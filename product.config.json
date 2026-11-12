@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 3,
+  "brandKey": "elektroniker",
+  "product": {
+    "name": "AdigunCabinLighting",
+    "description": "RGBW cabin lighting scene design, simulation and validated laboratory controller commissioning",
+    "repository": "HephzibahBehulahHQ/AdigunCabinLighting",
+    "legacyRepository": null
+  },
+  "references": {
+    "corporateWebsiteRepository": "HephzibahBehulahHQ/HephzibahBehulahHQ.github.io",
+    "designSystemRepository": "HephzibahBehulahHQ/hb-design-system",
+    "divisionRepository": "HephzibahBehulahHQ/hb-elektroniker"
+  },
+  "features": {
+    "languages": [],
+    "defaultLanguage": null,
+    "themeSwitcher": false,
+    "adigunBot": {
+      "enabled": false,
+      "displayName": "Adigun BOT",
+      "mode": null,
+      "actionsRequireConfirmation": true
+    },
+    "accounts": {
+      "enabled": false,
+      "provider": null,
+      "emailPassword": false,
+      "profileAvatar": false,
+      "guestAccess": {
+        "enabled": false,
+        "trialMinutes": null,
+        "permanentSaving": false
+      }
+    },
+    "projects": {
+      "localSaving": false,
+      "cloudSaving": false,
+      "ownerScopedAccess": false
+    },
+    "administration": {
+      "owner": "Hephzibah Behulah",
+      "serverAuthorizedRoles": false
+    }
+  },
+  "links": {
+    "documentation": null,
+    "support": null
+  },
+  "integrations": {
+    "assistantEndpoint": null,
+    "productActionAdapter": null,
+    "supabaseProject": null,
+    "cloudflareDeployment": null
+  },
+  "branding": {
+    "logoPolicy": "single-corporate-logo",
+    "corporateLogo": {
+      "asset": "assets/corporate/hephzibah-behulah-official.jpg",
+      "status": "reference-only-not-copied",
+      "source": "hb-design-system",
+      "alt": "Hephzibah Behulah"
+    },
+    "header": {
+      "productWordmark": true,
+      "divisionTextLabel": true,
+      "additionalBrandLogos": false,
+      "profilePosition": "top-right"
+    }
+  }
+}
