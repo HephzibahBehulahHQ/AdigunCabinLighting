@@ -8,8 +8,8 @@
 - **UI implementation merge:** `3867a2f625ced1225a91d9e39cd86b317e4a7242`
 - **HTTPS/status-record merge:** `6a05c23b215cf55e6df5f4ef8f1ad7304071efe5`
 - **UI pull request:** [#3 — Build the offline cabin lighting Studio](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/pull/3)
-- **Latest verified Pages deployment:** [Run 43305646729](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43305646729) — succeeded for the HTTPS/status-record merge; contains the same UI implementation as the merged UI commit.
-- **Latest main CI and screenshot artifact:** [Run 43305646864](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43305646864) — lint, typecheck, unit tests, build, browser tests, and screenshot artifact succeeded.
+- **Verified UI deployment:** [Run 43305646729](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43305646729) — succeeded for the HTTPS/status-record merge; later changes were documentation-only and retained this UI implementation.
+- **UI CI and screenshot artifact evidence:** [Run 43305646864](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43305646864) — lint, typecheck, unit tests, build, browser tests, and screenshot artifact succeeded.
 - **Production domain:** <https://adiguncabinlighting.hephzibahbehulah.com/>
 - **Production Studio route:** <https://adiguncabinlighting.hephzibahbehulah.com/studio/>
 - **Production screenshots:** Captured from the HTTPS domain at 1440×900 (landing), 1280×800 (Studio), and 390×844 (mobile Studio); delivered in the task outputs.
