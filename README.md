@@ -1,25 +1,38 @@
 # AdigunCabinLighting
 
-> **RELEASE ORDER (owner instruction, 2026-11-12):** [FIRST: build, merge, deploy and verify the actual landing page + functional Studio, then STOP for owner UI approval](docs/UI_FIRST_RELEASE_GATE.md). Once accepted, preserve approved appearance through subsequent AI/hardware engineering. The repository's current requirement documents are **not** themselves a deployed application.
-
-
 **Hephzibah Behulah · HB Elektroniker**
 
-AI-assisted RGBW cabin-lighting design, zone-based scenes, digital-twin visualization, offline simulation and safe, validated laboratory-controller integration.
+AdigunCabinLighting is production-oriented cabin lighting design software, beginning with an offline RGBW simulator. It is intended for an airline engineering context; real device control is not part of this first software release.
 
-> **State on 2026-11-12: requirements and implementation directive only.** No runnable simulator, physical hardware, CMS connectivity, aircraft certification or live deployment is yet verified.
+## Current implementation
 
-**Codex — implement the complete system:** [CODEX MASTER BUILD DIRECTIVE](docs/CODEX_MASTER_PROMPT.md) (architecture, screens, app, color engine, firmware, gateway, AI, protocols, security, safety gates, tests, and milestones).
+- / is the public product entry page.
+- /studio is the responsive Cabin Studio with an interactive, illustrative 2D cabin zone map, independent RGBW values, master intensity, editable fades, six editable scene definitions, deterministic timeline interpolation/playback, keyframes, undo/redo, local browser persistence, and validated versioned JSON import/export.
+- The app defaults to SIMULATION · OFFLINE · NO HARDWARE CONNECTED. No physical I/O, gateway, hardware telemetry, Adigun BOT runtime, OEM adapter, aircraft connection, or certification claim is present.
+- Local drafts use browser localStorage on the current browser profile. Export scene files for backup or transfer.
 
-**Agent rules:** [AGENTS.md](AGENTS.md) · **current capabilities (truthfully disabled until built):** [product.config.json](product.config.json).
+The cabin drawing is an illustrative zone model, not an aircraft layout fit, lighting performance calculation, or physical irradiance model. Engineering validation for any specific aircraft, fixture, or controller remains out of scope.
 
-Initial outcome: an attractive, operationally honest, nonblank offline simulator with editable cabin zones, full RGBW controls, scene/timeline editor, imports/exports and browser tests. Next: physical **isolated low-voltage lab bench** hardware, MCU firmware, reliable gateway, measured diagnostics. Flight/OEM integration is separately gated by real ICDs, qualified hardware and airworthiness approvals.
+## Run locally
 
-### Canonical references
-- [Corporate identity](https://github.com/HephzibahBehulahHQ/HephzibahBehulahHQ.github.io)
-- [Design system and official BOT contract](https://github.com/HephzibahBehulahHQ/hb-design-system)
-- [HB AI policy](https://github.com/HephzibahBehulahHQ/hb-AI-policy) (the provided `hb-AI-policyy` repo name was not found)
-- [Artificial Intelligence division](https://github.com/HephzibahBehulahHQ/hb-artificial-intelligence)
-- [HB Elektroniker](https://github.com/HephzibahBehulahHQ/hb-elektroniker)
+Requires Node.js 22 or newer.
 
-The repository's existing `CNAME` remains intact. A CNAME is not evidence of a deployed functional app.
+    npm ci
+    npm run dev
+
+Open the local URL printed by Vite. The simulator itself makes no server or hardware connection.
+
+## Verify
+
+    npm run lint
+    npm run typecheck
+    npm run test
+    npm run build
+    npx playwright install chromium
+    npm run test:e2e
+
+## Release
+
+The owner-approved first release is limited to the product entry page plus the functional offline Studio. The build emits a direct `/studio/` route, preserves the custom domain in `CNAME`, and provides a `404.html` SPA fallback. The deployment workflow publishes those static files to GitHub Pages. The public domain is not considered deployed until its URL and Studio interactions have been checked after the workflow succeeds.
+
+Read AGENTS.md, docs/ACTIVE_GOAL.md, docs/UI_FIRST_RELEASE_GATE.md, and docs/CODEX_MASTER_PROMPT.md before making product changes.

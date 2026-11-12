@@ -13,8 +13,8 @@
     "divisionRepository": "HephzibahBehulahHQ/hb-elektroniker"
   },
   "features": {
-    "languages": [],
-    "defaultLanguage": null,
+    "languages": ["en"],
+    "defaultLanguage": "en",
     "themeSwitcher": false,
     "adigunBot": {
       "enabled": false,
@@ -34,7 +34,7 @@
       }
     },
     "projects": {
-      "localSaving": false,
+      "localSaving": true,
       "cloudSaving": false,
       "ownerScopedAccess": false
     },
@@ -57,7 +57,7 @@
     "logoPolicy": "single-corporate-logo",
     "corporateLogo": {
       "asset": "assets/corporate/hephzibah-behulah-official.jpg",
-      "status": "reference-only-not-copied",
+      "status": "text-only-fallback-no-logo-asset-copied",
       "source": "hb-design-system",
       "alt": "Hephzibah Behulah"
     },
@@ -67,5 +67,15 @@
       "additionalBrandLogos": false,
       "profilePosition": "top-right"
     }
+  },
+  "releaseCapabilities": {
+    "offlineSimulator": true,
+    "editableRGBWZones": true,
+    "deterministicTimelinePreview": true,
+    "versionedSceneImportExport": true,
+    "hardwareControl": false,
+    "aircraftIntegration": false,
+    "adigunBotRuntime": false,
+    "certifiedForFlight": false
   }
 }
