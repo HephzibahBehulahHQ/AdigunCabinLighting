@@ -1,17 +1,18 @@
 # First UI release status
 
 **Date:** 2026-11-12  
-**Status:** Deployed to GitHub Pages; HTTPS verification is pending, so the production release gate is not fully clear.
+**Status:** Deployed to GitHub Pages. Custom-domain HTTPS is enforced, and both production routes return HTTP 200 over HTTPS.
 
 ## Release references
 
-- **Merged commit:** `3867a2f625ced1225a91d9e39cd86b317e4a7242`
+- **UI implementation merge:** `3867a2f625ced1225a91d9e39cd86b317e4a7242`
+- **Current main after status-record merge:** `9cea2e3ab4c278daf808d79db533b307e844cbd4`
 - **UI pull request:** [#3 — Build the offline cabin lighting Studio](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/pull/3)
-- **Pages deployment:** [Run 43302316019](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43302316019) — succeeded for the merged commit.
+- **Latest verified Pages deployment:** [Run 43303854279](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43303854279) — succeeded for current main; contains the same UI implementation as the merged UI commit.
 - **CI and screenshot artifact:** [Run 43302316176](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43302316176) — lint, typecheck, unit tests, build, browser tests, and screenshot artifact succeeded.
-- **Production domain:** <http://adiguncabinlighting.hephzibahbehulah.com/> (HTTP currently serves the deployed site.)
-- **Production Studio route:** <http://adiguncabinlighting.hephzibahbehulah.com/studio/>
-- **Production screenshots:** landing at 1440×900 and Studio at 1280×800 are captured in the delivery outputs as `adiguncabinlighting-landing-production.png` and `adiguncabinlighting-studio-production.png`.
+- **Production domain:** <https://adiguncabinlighting.hephzibahbehulah.com/>
+- **Production Studio route:** <https://adiguncabinlighting.hephzibahbehulah.com/studio/>
+- **Production screenshots:** Captured from the HTTPS domain at 1440×900 (landing) and 1280×800 (Studio); delivered as `adiguncabinlighting-landing-production.png` and `adiguncabinlighting-studio-production.png`.
 
 ## Verified scope
 
@@ -25,13 +26,14 @@
 - Local: lint, typecheck, 6/6 unit tests, production build, and 10/10 Playwright checks passed.
 - GitHub Actions on PR: `verify` passed.
 - GitHub Actions after merge: `verify` and `Deploy static site to GitHub Pages` both passed.
-- Public HTTP: landing and Studio render the expected content and offline/simulation status.
+- Public HTTPS: landing and Studio returned HTTP 200 and rendered the expected content and offline/simulation status; GitHub Pages shows Enforce HTTPS enabled.
 
-## Unresolved release issue
+## Release gate result
 
-GitHub Pages Settings reports **DNS Check in Progress** and says Enforce HTTPS is unavailable because a certificate has not yet been issued for `adiguncabinlighting.hephzibahbehulah.com`. HTTPS requests fail certificate verification; the `github.io` address redirects to the custom domain over HTTP. DNS currently resolves the custom-domain CNAME to `hephzibahbehulahhq.github.io`. Recheck after GitHub issues the certificate, enable Enforce HTTPS, and verify both routes over HTTPS before calling the release fully verified.
+The first UI release requirements are implemented and deployed. Aircraft or physical hardware integration is out of scope for this release and must not be inferred from the simulator.
 
 ## Owner approval gate
 
-After HTTPS is verified, stop implementation and ask: **“Do you approve this landing page and Studio interface as the visual baseline for AdigunCabinLighting?”**
+Stop implementation and ask: **“Do you approve this landing page and Studio interface as the visual baseline for AdigunCabinLighting?”**
+
 
