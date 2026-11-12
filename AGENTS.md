@@ -1,5 +1,8 @@
 # AdigunCabinLighting — Codex instructions
 
+> **FIRST PRIORITY:** Follow [docs/UI_FIRST_RELEASE_GATE.md](docs/UI_FIRST_RELEASE_GATE.md). Build and deploy the genuinely working **landing page `/` + Studio `/studio` first**. Owner explicitly authorizes that tested first release to be merged and deployed. Verify the live public URL, then **STOP and request visual approval**. Freeze approved visual baseline; subsequent AI/hardware work may not silently redesign it. This sequencing takes precedence over other product milestones, never over physical safety or required tests.
+
+
 Read [the complete build directive](docs/CODEX_MASTER_PROMPT.md) before implementation.
 
 ## Precedence and ownership

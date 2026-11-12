@@ -1,4 +1,7 @@
 # CODEX MASTER BUILD DIRECTIVE — AdigunCabinLighting
+
+> **OWNER-APPROVED ORDER CHANGE — READ FIRST (2026-11-12):** [UI FIRST RELEASE & APPROVAL GATE](UI_FIRST_RELEASE_GATE.md) overrides the earlier Phase A/B starting order in this prompt. Codex's first job is to **build the actual landing page and functioning cabin simulator Studio, test it, merge, deploy to the existing public product domain and verify the website**. The owner authorizes this first release and the instruction merge. **Then STOP for explicit owner visual acceptance; do not build AI, gateway or hardware firmware until accepted.** After approval, freeze the exact approved UI design and prevent unrequested redesigns. Keep all safety/airworthiness gates below in force.
+
 **Product:** AdigunCabinLighting · **Division:** HB Elektroniker · **Owner:** Hephzibah Behulah HQ  
 **Document:** ACL-PRD-001 v0.1 · **Date:** 2026-11-12 · **Status:** Engineering specification / implementation directive, NOT certified aircraft equipment
 
