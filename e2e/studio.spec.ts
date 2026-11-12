@@ -14,7 +14,7 @@ test('landing opens the working Studio route', async ({ page }) => {
   const response = await navigation;
   expect(response?.status()).toBe(200);
   await expect(page).toHaveURL(/\/studio\/?$/);
-  await expect(page.getByText('SIMULATION ONLY')).toBeVisible();
+  await expect(page.getByText('SIM · OFFLINE')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Cabin digital twin' })).toBeVisible();
   expect(errors).toEqual([]);
 });
@@ -27,7 +27,8 @@ test('zone RGBW edits persist and undo works', async ({ page }) => {
   await page.getByRole('spinbutton', { name: 'R percent' }).fill('50');
   await page.getByRole('spinbutton', { name: 'R percent' }).press('Enter');
   await expect(page.getByRole('spinbutton', { name: 'R percent' })).toHaveValue('50');
-  await page.getByRole('button', { name: 'Undo' }).click();
+  await page.getByRole('button', { name: 'More studio actions' }).click();
+  await page.getByRole('menuitem', { name: 'Undo' }).click();
   await expect(page.getByRole('spinbutton', { name: 'R percent' })).not.toHaveValue('50');
   await page.getByRole('spinbutton', { name: 'R percent' }).fill('62');
   await page.getByRole('spinbutton', { name: 'R percent' }).press('Enter');
@@ -74,9 +75,13 @@ test('scene file import is schema-validated and export downloads JSON', async ({
     name: 'boarding.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(PRESETS[0])),
   });
   await expect(page.getByRole('button', { name: /Boarding/ })).toBeVisible();
-  const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export' }).click();
-  expect((await download).suggestedFilename()).toBe('boarding.adigun-scene.json');
+  const pngDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
+  expect((await pngDownload).suggestedFilename()).toBe('adigun-zone-map-3840x2160.png');
+  await page.getByRole('button', { name: 'More studio actions' }).click();
+  const jsonDownload = page.waitForEvent('download');
+  await page.getByRole('menuitem', { name: 'Export scene JSON' }).click();
+  expect((await jsonDownload).suggestedFilename()).toBe('boarding.adigun-scene.json');
   await page.locator('input[type="file"]').setInputFiles({
     name: 'invalid.json', mimeType: 'application/json', buffer: Buffer.from('{"schemaVersion":9}'),
   });
@@ -108,6 +113,26 @@ test('cabin map shapes respond to pointer selection', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Window surrounds' })).toBeVisible();
 });
 
+test('new cabin zones, scenes, and browser-local projects are usable', async ({ page }) => {
+  await page.goto('/studio');
+  await expect(page.getByRole('button', { name: '3D unavailable: approved cabin model not installed' })).toBeDisabled();
+  await page.locator('#zone-picker').selectOption('toilet');
+  await expect(page.getByRole('heading', { name: 'Lavatory' })).toBeVisible();
+  page.once('dialog', (dialog) => void dialog.accept('Test scene'));
+  await page.getByRole('button', { name: 'New scene' }).click();
+  await expect(page.getByRole('button', { name: /Test scene/ })).toBeVisible();
+  page.once('dialog', (dialog) => void dialog.accept('Project Test'));
+  await page.getByRole('button', { name: 'New project' }).click();
+  await expect(page.getByRole('status')).toContainText('Project Test');
+  await page.waitForTimeout(350);
+  page.once('dialog', (dialog) => {
+    const index = dialog.message().split('\n').findIndex((line) => line.includes('Project Test'));
+    void dialog.accept(String(index));
+  });
+  await page.getByRole('button', { name: 'Open project' }).click();
+  await expect(page.getByRole('status')).toContainText('Project Test');
+});
+
 test('Studio fits one viewport with docked panels at all required desktop sizes', async ({ page }) => {
   const directory = 'artifacts/screenshots';
   await mkdir(directory, { recursive: true });
@@ -120,7 +145,7 @@ test('Studio fits one viewport with docked panels at all required desktop sizes'
       documentHeight: document.documentElement.scrollHeight,
       width: innerWidth,
       height: innerHeight,
-      regions: ['.studio-topbar', '.sim-banner', '.studio-rail', '.studio-main', '.cabin-panel', '.inspector', '.studio-statusbar'].map((selector) => {
+      regions: ['.studio-topbar', '.studio-rail', '.studio-main', '.cabin-panel', '.inspector'].map((selector) => {
         const { x, y, width: w, height: h } = document.querySelector(selector)!.getBoundingClientRect();
         return { selector, x, y, right: x + w, bottom: y + h, width: w, height: h };
       }),
@@ -128,12 +153,11 @@ test('Studio fits one viewport with docked panels at all required desktop sizes'
     expect(metrics.documentWidth, `${width}x${height} horizontal document overflow`).toBeLessThanOrEqual(width);
     expect(metrics.documentHeight, `${width}x${height} vertical document overflow`).toBeLessThanOrEqual(height);
     expect(metrics.regions.every((region) => region.x >= -1 && region.y >= -1 && region.right <= width + 1 && region.bottom <= height + 1), `${width}x${height} dock region outside viewport`).toBe(true);
-    const [top, banner, rail, main, cabin, inspector, status] = metrics.regions;
-    expect(top.bottom).toBeLessThanOrEqual(banner.y + 1);
-    expect(banner.bottom).toBeLessThanOrEqual(main.y + 1);
+    const [top, rail, main, cabin, inspector] = metrics.regions;
+    expect(top.bottom).toBeLessThanOrEqual(main.y + 1);
     expect(rail.right).toBeLessThanOrEqual(main.x + 1);
     expect(cabin.right).toBeLessThanOrEqual(inspector.x + 1);
-    expect(main.bottom).toBeLessThanOrEqual(status.y + 1);
+    expect(main.bottom).toBeLessThanOrEqual(height + 1);
     await expect(page.getByRole('button', { name: 'Zone mapping' })).toBeVisible();
     await expect(page.getByRole('button', { name: /Apply & set keyframe/ })).toBeVisible();
     await expect(page.locator('.cabin-legend')).toBeVisible();
@@ -157,9 +181,8 @@ test('Studio menus open without moving the canvas and close with Escape', async 
   const canvas = page.locator('#cabin-view');
   const before = await canvas.boundingBox();
   await page.getByRole('button', { name: 'More studio actions' }).click();
-  await expect(page.getByRole('menuitem', { name: /Export current scene/ })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: /Export scene JSON/ })).toBeVisible();
   expect(await canvas.boundingBox()).toEqual(before);
   await page.keyboard.press('Escape');
-  await expect(page.getByRole('menuitem', { name: /Export current scene/ })).toBeHidden();
+  await expect(page.getByRole('menuitem', { name: /Export scene JSON/ })).toBeHidden();
 });
-

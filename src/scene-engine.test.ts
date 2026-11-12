@@ -41,4 +41,25 @@ describe('RGBW scene engine', () => {
   it('accepts a valid versioned scene export', () => {
     expect(validateSceneFile(JSON.parse(JSON.stringify(PRESETS[2])))).toEqual(PRESETS[2]);
   });
+
+  it('migrates legacy six-zone scenes with safe zero values for added zones', () => {
+    const legacy = structuredClone(PRESETS[0]);
+    for (const frame of legacy.keyframes) {
+      for (const id of ['monuments', 'toilet', 'handrail', 'trolley', 'cabin'] as const) delete frame.targets[id];
+    }
+    const migrated = validateSceneFile(legacy);
+    for (const frame of migrated.keyframes) {
+      expect(Object.keys(frame.targets).sort()).toEqual([...ZONE_IDS].sort());
+      expect(frame.targets.monuments).toEqual({ r: 0, g: 0, b: 0, w: 0 });
+    }
+  });
+
+  it('defines every added lighting zone for every built-in scene', () => {
+    expect(PRESETS.map(({ name }) => name)).toEqual(expect.arrayContaining([
+      'Wake', 'Landing', 'Relax', 'Rest', 'Prayer', 'Movie', 'First Class', 'Business Class', 'Economy', 'Window shade lighting',
+    ]));
+    for (const scene of PRESETS) for (const frame of scene.keyframes) {
+      expect(Object.keys(frame.targets).sort()).toEqual([...ZONE_IDS].sort());
+    }
+  });
 });

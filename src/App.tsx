@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Activity, ArrowDownToLine, ArrowRight, Bookmark, Check, ChevronDown,
-  CircleHelp, Clock3, CloudOff, Download, Gauge, LayoutGrid,
-  Lightbulb, Monitor, MoreHorizontal, Pause, Play, Plus, Radio, Redo2, RotateCcw,
-  Save, Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Undo2, Upload, Volume2,
+  Activity, ArrowDownToLine, ArrowRight, Bookmark, Check, ChevronDown, CopyPlus,
+  CircleHelp, Clock3, Download, Gauge, LayoutGrid,
+  Lightbulb, MoreHorizontal, Pause, Play, Plus, Radio, Redo2, RotateCcw,
+  Save, Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Trash2, Undo2, Upload,
   Waves, X,
 } from 'lucide-react';
 import {
@@ -12,14 +12,31 @@ import {
 } from './scene-engine';
 
 const STORAGE_KEY = 'adigun-cabin-studio:v1';
-type SavedState = { zones: ZoneState[]; scenes: SceneFile[]; intensity: number; activeSceneId: string; selectedZoneId: ZoneId };
+const PROJECT_INDEX_KEY = 'adigun-cabin-projects:v1';
+const ACTIVE_PROJECT_KEY = 'adigun-cabin-active-project:v1';
+type SavedState = { zones: ZoneState[]; scenes: SceneFile[]; intensity: number; activeSceneId: string; selectedZoneId: ZoneId; projectName?: string };
 const copy = <T,>(value: T): T => structuredClone(value);
 
-function readSaved(): Partial<SavedState> {
+function readSaved(projectId = 'default'): Partial<SavedState> {
   try {
-    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as Partial<SavedState>;
+    const source = projectId === 'default' ? localStorage.getItem(STORAGE_KEY) : localStorage.getItem(`${STORAGE_KEY}:${projectId}`);
+    const parsed = JSON.parse(source ?? '{}') as Partial<SavedState>;
     return parsed && typeof parsed === 'object' ? parsed : {};
   } catch { return {}; }
+}
+
+type ProjectEntry = { id: string; name: string; updatedAt: string };
+function readProjectIndex(): ProjectEntry[] {
+  try { const value = JSON.parse(localStorage.getItem(PROJECT_INDEX_KEY) ?? '[]'); return Array.isArray(value) ? value.filter((item) => item && typeof item.id === 'string' && typeof item.name === 'string') : []; }
+  catch { return []; }
+}
+function writeProject(id: string, name: string, state: SavedState) {
+  const key = id === 'default' ? STORAGE_KEY : `${STORAGE_KEY}:${id}`;
+  localStorage.setItem(key, JSON.stringify(state));
+  const entries = readProjectIndex();
+  const entry = { id, name, updatedAt: new Date().toISOString() };
+  localStorage.setItem(PROJECT_INDEX_KEY, JSON.stringify([...entries.filter((item) => item.id !== id), entry]));
+  localStorage.setItem(ACTIVE_PROJECT_KEY, id);
 }
 
 function cabinGlows(zones: ZoneState[]) {
@@ -33,6 +50,8 @@ function CabinDrawing({ zones, selected, onSelect, compact = false }: {
   const labelPositions: Record<ZoneId, { x: number; y: number }> = {
     ceiling: { x: 490, y: 147 }, windows: { x: 490, y: 190 }, sidewalls: { x: 222, y: 310 },
     footwell: { x: 490, y: 411 }, reading: { x: 655, y: 331 }, entry: { x: 193, y: 359 },
+    monuments: { x: 805, y: 365 }, toilet: { x: 825, y: 242 }, handrail: { x: 490, y: 389 },
+    trolley: { x: 757, y: 332 }, cabin: { x: 490, y: 254 },
   };
   const onKey = (event: React.KeyboardEvent<SVGGElement>, id: ZoneId) => {
     if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect?.(id); }
@@ -111,6 +130,11 @@ function CabinDrawing({ zones, selected, onSelect, compact = false }: {
         <path d="M773 275 L825 284 L840 351 L769 345 Z" fill="#182736" stroke="#566d80" strokeWidth="2" />
         <path d="M782 286 L825 293" stroke={glows.entry} strokeWidth="5" />
       </>, 'entry-zone')}
+      {group('monuments', 'MONUMENTS', <><path d="M770 275 L825 284 L840 351 L769 345 Z" fill="none" stroke={glows.monuments} strokeWidth="4" /><path d="M145 324 Q162 259 191 245 L210 255 L190 346 Z" fill="none" stroke={glows.monuments} strokeWidth="3" /></>)}
+      {group('toilet', 'LAVATORY', <><path d="M784 235 L829 244 L834 278 L786 269 Z" fill={glows.toilet} fillOpacity=".22" stroke={glows.toilet} strokeWidth="3" /></>)}
+      {group('handrail', 'HANDRAIL', <><path d="M300 365 Q490 390 680 365" fill="none" stroke={glows.handrail} strokeWidth="5" /><path d="M300 365 Q490 390 680 365" fill="none" stroke={glows.handrail} strokeWidth="13" opacity=".2" filter="url(#softglow)" /></>)}
+      {group('trolley', 'TROLLEY', <><rect x="739" y="309" width="35" height="42" rx="4" fill={glows.trolley} fillOpacity=".28" stroke={glows.trolley} strokeWidth="3" /><circle cx="747" cy="355" r="3" fill="#9ab0c4"/><circle cx="767" cy="355" r="3" fill="#9ab0c4"/></>)}
+      {group('cabin', 'CABIN AMBIENT', <><path d="M215 336 Q250 290 300 276 M765 336 Q730 290 680 276" fill="none" stroke={glows.cabin} strokeWidth="4" opacity=".85" /><path d="M215 336 Q250 290 300 276 M765 336 Q730 290 680 276" fill="none" stroke={glows.cabin} strokeWidth="14" opacity=".18" filter="url(#softglow)" /></>)}
       <g className="map-axis"><text x="490" y="438" textAnchor="middle">ILLUSTRATIVE CABIN MAP · SIMULATION PROFILE 01</text></g>
     </svg>
   );
@@ -169,28 +193,40 @@ function Channel({ name, value, color, onChange }: { name: string; value: number
 }
 
 function Studio() {
-  const stored = useMemo(readSaved, []);
+  const [projectId, setProjectId] = useState(() => localStorage.getItem(ACTIVE_PROJECT_KEY) ?? 'default');
+  const stored = useMemo(() => readSaved(projectId), [projectId]);
   const [zones, setZones] = useState<ZoneState[]>(() => {
     const saved = stored.zones;
-    return Array.isArray(saved) && saved.length === ZONE_IDS.length && ZONE_IDS.every((id) => saved.some((zone) => zone.id === id))
-      ? saved.map((zone) => ({ ...zone, rgbw: normalizeRGBW(zone.rgbw) })) : makeDefaultZones();
+    if (!Array.isArray(saved)) return makeDefaultZones();
+    const migrated = makeZones().map((base) => {
+      const previous = saved.find((zone) => zone.id === base.id);
+      return previous ? { ...base, ...previous, rgbw: normalizeRGBW(previous.rgbw) } : base;
+    });
+    return migrated.length === ZONE_IDS.length ? migrated : makeDefaultZones();
   });
   const [scenes, setScenes] = useState<SceneFile[]>(() => {
-    try { return Array.isArray(stored.scenes) && stored.scenes.length ? stored.scenes.map(validateSceneFile) : copy(PRESETS); }
+    try {
+      if (!Array.isArray(stored.scenes) || !stored.scenes.length) return copy(PRESETS);
+      const savedScenes = stored.scenes.map(validateSceneFile);
+      return [...savedScenes, ...PRESETS.filter((preset) => !savedScenes.some((scene) => scene.id === preset.id)).map(copy)];
+    }
     catch { return copy(PRESETS); }
   });
   const [intensity, setIntensity] = useState<number>(() => Number.isFinite(stored.intensity) ? Math.max(0, Math.min(100, stored.intensity!)) : 72);
   const [selected, setSelected] = useState<ZoneId>(() => ZONE_IDS.includes(stored.selectedZoneId as ZoneId) ? stored.selectedZoneId! : 'ceiling');
   const [activeSceneId, setActiveSceneId] = useState(() => typeof stored.activeSceneId === 'string' ? stored.activeSceneId : 'aurora');
+  const [projectName, setProjectName] = useState(() => typeof stored.projectName === 'string' && stored.projectName.trim() ? stored.projectName : 'Cabin 01');
   const [time, setTime] = useState(0);
   const [effectiveRGBW, setEffectiveRGBW] = useState<Record<ZoneId, RGBW>>(() => Object.fromEntries(zones.map((zone) => [zone.id, { ...zone.rgbw }])) as Record<ZoneId, RGBW>);
   const [playing, setPlaying] = useState(false);
   const [notice, setNotice] = useState('');
   const [tab, setTab] = useState('scene');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [hq4k, setHq4k] = useState(true);
   const [undo, setUndo] = useState<ZoneState[][]>([]);
   const [redo, setRedo] = useState<ZoneState[][]>([]);
   const importRef = useRef<HTMLInputElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const playStart = useRef(0);
   const effectiveRef = useRef(effectiveRGBW);
   const fadeTransitions = useRef<Partial<Record<ZoneId, { from: RGBW; to: RGBW; started: number; durationMs: number }>>>({});
@@ -232,13 +268,13 @@ function Studio() {
 
   useEffect(() => {
     const persist = () => {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ zones, scenes, intensity, activeSceneId, selectedZoneId: selected } satisfies SavedState)); }
+      try { writeProject(projectId, projectName, { zones, scenes, intensity, activeSceneId, selectedZoneId: selected, projectName }); }
       catch { setNotice('Browser storage is unavailable. Export scenes to save a local copy.'); }
     };
     const timer = window.setTimeout(persist, 300);
     window.addEventListener('pagehide', persist);
     return () => { window.clearTimeout(timer); window.removeEventListener('pagehide', persist); };
-  }, [zones, scenes, intensity, activeSceneId, selected]);
+  }, [zones, scenes, intensity, activeSceneId, selected, projectName, projectId]);
   useEffect(() => {
     if (!playing) return;
     playStart.current = performance.now() - time * 1000;
@@ -310,6 +346,55 @@ function Studio() {
     setNotice(`Saved ${scene.name} locally`);
   };
   const resetScene = () => { const defaults = makeDefaultZones(); setPlaying(false); setUndo([]); setRedo([]); setScenes(copy(PRESETS)); setZones(defaults); setEffectiveImmediately(Object.fromEntries(defaults.map((zone) => [zone.id, zone.rgbw])) as Record<ZoneId, RGBW>); setActiveSceneId('aurora'); setSelected('ceiling'); setTime(0); setIntensity(72); setNotice('Local studio reset to default scenes'); };
+  const currentProjectState = (): SavedState => ({ zones, scenes, intensity, activeSceneId, selectedZoneId: selected, projectName });
+  const saveProject = () => { try { writeProject(projectId, projectName, currentProjectState()); setNotice(`Project “${projectName}” saved locally`); } catch { setNotice('Project could not be saved to browser storage'); } };
+  const loadProject = (id: string, name: string) => {
+    const next = readSaved(id);
+    const nextZones = Array.isArray(next.zones) ? makeZones().map((base) => { const prior = next.zones!.find((zone) => zone.id === base.id); return prior ? { ...base, ...prior, rgbw: normalizeRGBW(prior.rgbw) } : base; }) : makeDefaultZones();
+    let nextScenes: SceneFile[]; try {
+      const savedScenes = Array.isArray(next.scenes) && next.scenes.length ? next.scenes.map(validateSceneFile) : [];
+      nextScenes = [...savedScenes, ...PRESETS.filter((preset) => !savedScenes.some((item) => item.id === preset.id)).map(copy)];
+      if (!nextScenes.length) nextScenes = copy(PRESETS);
+    } catch { nextScenes = copy(PRESETS); }
+    setProjectId(id); localStorage.setItem(ACTIVE_PROJECT_KEY, id); setProjectName(next.projectName || name); setZones(nextZones); setScenes(nextScenes); setIntensity(Number.isFinite(next.intensity) ? Math.max(0, Math.min(100, next.intensity!)) : 72); setActiveSceneId(next.activeSceneId || 'aurora'); setSelected(ZONE_IDS.includes(next.selectedZoneId as ZoneId) ? next.selectedZoneId! : 'ceiling'); setUndo([]); setRedo([]); setPlaying(false); setTime(0); setEffectiveImmediately(Object.fromEntries(nextZones.map((zone) => [zone.id, zone.rgbw])) as Record<ZoneId, RGBW>); setNotice(`Project “${name}” opened`);
+  };
+  const openProject = () => {
+    const index = readProjectIndex(); if (!index.length) { setNotice('Save a project before using Open Project'); return; }
+    try { writeProject(projectId, projectName, currentProjectState()); } catch { setNotice('Current project could not be saved'); return; }
+    const answer = window.prompt('Enter a project number:\n' + index.map((item, i) => `${i + 1}. ${item.name}`).join('\n'), '1');
+    const entry = index[Number(answer) - 1]; if (entry) loadProject(entry.id, entry.name);
+  };
+  const createProject = () => {
+    const name = window.prompt('New project name', 'Cabin project');
+    if (!name?.trim()) return;
+    try { writeProject(projectId, projectName, currentProjectState()); } catch { setNotice('Current project could not be saved'); return; }
+    const id = crypto.randomUUID(); setProjectId(id); localStorage.setItem(ACTIVE_PROJECT_KEY, id); setProjectName(name.trim()); resetScene(); setNotice(`New local project “${name.trim()}” created`);
+  };
+  const changeCabin = () => setNotice('No approved aircraft model package is installed. The current cabin remains illustrative; supply an airline-approved 3D model and exact variant to enable this selector.');
+  const createNewScene = () => {
+    const name = window.prompt('New scene name'); if (!name?.trim()) return;
+    const targets = Object.fromEntries(zones.map((zone) => [zone.id, { ...zone.rgbw }])) as SceneFile['keyframes'][number]['targets'];
+    const next: SceneFile = { schemaVersion: 1, id: `scene-${Date.now()}`, name: name.trim().slice(0, 80), durationSeconds: 60, keyframes: [{ atSeconds: 0, targets }, { atSeconds: 60, targets: copy(targets) }] };
+    setScenes((all) => [...all, next]); setActiveSceneId(next.id); setTime(0); setEffectiveImmediately(targets); setNotice(`Scene “${next.name}” created`);
+  };
+  const duplicateScene = (id: string) => {
+    const source = scenes.find((item) => item.id === id); if (!source) return;
+    const next = validateSceneFile({ ...copy(source), id: `${source.id.slice(0, 45)}-copy-${Date.now()}`, name: `${source.name} copy`.slice(0, 80) });
+    setScenes((all) => [...all, next]); setNotice(`Scene “${next.name}” duplicated`);
+  };
+  const renameScene = (id: string) => {
+    const source = scenes.find((item) => item.id === id); if (!source) return;
+    const name = window.prompt('Rename scene', source.name); if (!name?.trim()) return;
+    try { const renamed = validateSceneFile({ ...source, name: name.trim() }); setScenes((all) => all.map((item) => item.id === id ? renamed : item)); setNotice(`Scene renamed to “${renamed.name}”`); }
+    catch (error) { setNotice(error instanceof Error ? error.message : 'Scene name is invalid'); }
+  };
+  const deleteScene = (id: string) => {
+    if (scenes.length <= 1) { setNotice('Keep at least one scene in the library'); return; }
+    const target = scenes.find((item) => item.id === id); if (!target || !window.confirm(`Delete scene “${target.name}”?`)) return;
+    const remaining = scenes.filter((item) => item.id !== id); setScenes(remaining);
+    if (activeSceneId === id) { const next = remaining[0]; setActiveSceneId(next.id); setTime(0); setEffectiveImmediately(next.keyframes[0].targets); }
+    setNotice(`Scene “${target.name}” deleted`);
+  };
   const addKeyframe = () => {
     const at = Math.max(1, Math.min(scene.durationSeconds - 1, Math.round(time)));
     const frame = { atSeconds: at, targets: Object.fromEntries(zones.map((zone) => [zone.id, zone.rgbw])) as SceneFile['keyframes'][number]['targets'] };
@@ -334,6 +419,25 @@ function Studio() {
     const anchor = document.createElement('a'); anchor.href = url; anchor.download = `${scene.id}.adigun-scene.json`; anchor.click(); URL.revokeObjectURL(url);
     setNotice('Versioned scene file exported');
   };
+  const exportCabin4K = async () => {
+    const source = stageRef.current?.querySelector('svg');
+    if (!source) { setNotice('Cabin view is not ready for export'); return; }
+    try {
+      const clone = source.cloneNode(true) as SVGSVGElement;
+      const width = hq4k ? 3840 : 1920; const height = hq4k ? 2160 : 1080;
+      clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg'); clone.setAttribute('width', String(width)); clone.setAttribute('height', String(height));
+      const image = new Image(); const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)], { type: 'image/svg+xml;charset=utf-8' }));
+      await new Promise<void>((resolve, reject) => { image.onload = () => resolve(); image.onerror = () => reject(new Error('Unable to render 4K cabin image')); image.src = url; });
+      const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height; const context = canvas.getContext('2d');
+      if (!context) throw new Error('Cabin image canvas is unavailable');
+      context.fillStyle = '#0b1420'; context.fillRect(0, 0, canvas.width, canvas.height);
+      const scale = Math.min(canvas.width / image.width, canvas.height / image.height); context.drawImage(image, (canvas.width - image.width * scale) / 2, (canvas.height - image.height * scale) / 2, image.width * scale, image.height * scale);
+      URL.revokeObjectURL(url);
+      const png = await new Promise<Blob>((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('4K PNG encoding failed')), 'image/png'));
+      const downloadUrl = URL.createObjectURL(png); const anchor = document.createElement('a'); anchor.href = downloadUrl; anchor.download = `adigun-zone-map-${width}x${height}.png`; anchor.click(); URL.revokeObjectURL(downloadUrl);
+      setNotice(`${width} × ${height} 2D zone map exported`);
+    } catch (error) { setNotice(error instanceof Error ? error.message : '4K cabin export failed'); }
+  };
   const importScene = async (file?: File) => {
     if (!file) return;
     try {
@@ -348,16 +452,13 @@ function Studio() {
   };
 
   return <main className="studio-shell" data-active-tab={tab}>
-    <header className="studio-topbar"><Brand /><div className="top-project"><span className="project-kicker">PROJECT PROFILE</span><strong>Cabin 01 <ChevronDown size={14} /></strong></div>
-      <div className="top-revision">REV <b>01</b><span className="revision-dot" /> LOCAL DRAFT</div>
+    <header className="studio-topbar"><Brand />
       <div className="top-spacer" />
-      <div className="mode-pill"><span className="status-pulse" /> SIMULATION <i /> OFFLINE</div>
-      <div className="top-actions"><button className="icon-button" title="Help" aria-label="Help" onClick={() => setNotice('Studio help: select a zone, tune RGBW, then save or export a scene.')}><CircleHelp size={18} /></button>
+      <div className="top-actions"><span className="mode-pill compact-mode" title="SIMULATION · OFFLINE · NO HARDWARE CONNECTED"><i className="status-pulse" /> SIM · OFFLINE · NO HW</span><button className="button button-quiet button-sm top-save" onClick={saveScene}><Save size={15} /> Save scene</button><button className="button button-primary button-sm top-export" onClick={() => void exportCabin4K()}><Download size={15} /> Export</button><button className="icon-button" title="Help" aria-label="Help" onClick={() => setNotice('Studio help: select a zone, tune RGBW, then save or export a scene.')}><CircleHelp size={18} /></button>
         <button className="icon-button" title="More studio actions" aria-label="More studio actions" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}><MoreHorizontal size={20} /></button>
       </div>
-      {menuOpen && <><button className="dismiss-overlay" aria-label="Close menu" onClick={() => setMenuOpen(false)} /><div className="top-menu" role="menu"><button role="menuitem" onClick={() => { setMenuOpen(false); exportScene(); }}><Download size={15} /> Export current scene</button><button role="menuitem" onClick={() => { setMenuOpen(false); importRef.current?.click(); }}><Upload size={15} /> Import scene file</button><button role="menuitem" onClick={() => { setMenuOpen(false); resetScene(); }}><RotateCcw size={15} /> Reset local studio</button></div></>}
+      {menuOpen && <><button className="dismiss-overlay" aria-label="Close menu" onClick={() => setMenuOpen(false)} /><div className="top-menu" role="menu"><button role="menuitem" disabled={!undo.length} onClick={() => { setMenuOpen(false); undoOnce(); }}><Undo2 size={15} /> Undo</button><button role="menuitem" disabled={!redo.length} onClick={() => { setMenuOpen(false); redoOnce(); }}><Redo2 size={15} /> Redo</button><button role="menuitem" onClick={() => { setMenuOpen(false); saveScene(); }}><Save size={15} /> Save scene locally</button><button role="menuitem" onClick={() => { setMenuOpen(false); exportScene(); }}><Download size={15} /> Export scene JSON</button><button role="menuitem" onClick={() => { setMenuOpen(false); void exportCabin4K(); }}><Download size={15} /> Export cabin view · 4K PNG</button><button role="menuitem" onClick={() => { setMenuOpen(false); importRef.current?.click(); }}><Upload size={15} /> Import scene file</button><button role="menuitem" onClick={() => { setMenuOpen(false); resetScene(); }}><RotateCcw size={15} /> Reset local studio</button><button role="menuitem" onClick={() => { setMenuOpen(false); setNotice('SIMULATION ONLY · NOT CONNECTED · No physical output is enabled.'); }}><ShieldCheck size={15} /> Operating mode &amp; safety</button></div></>}
     </header>
-    <div className="sim-banner"><CloudOff size={15} /><span><strong>SIMULATION ONLY</strong> · Offline workspace · No hardware connected · No physical output</span><a href="/#safety">Safety boundary <ArrowRight size={13} /></a></div>
     <div className="studio-layout">
       <aside className="studio-rail" aria-label="Studio sections">
         <span className="rail-label">WORKSPACE</span>
@@ -365,22 +466,26 @@ function Studio() {
         <button aria-label="Zone mapping" title="Zone mapping" className={tab === 'zones' ? 'active' : ''} onClick={() => chooseTab('zones', 'zone-inspector')}><SlidersHorizontal size={18} /><span>Zone mapping</span></button>
         <button aria-label="Choreography" title="Choreography" className={tab === 'timeline' ? 'active' : ''} onClick={() => chooseTab('timeline', 'timeline')}><Waves size={18} /><span>Choreography</span></button>
         <button aria-label="Scene library" title="Scene library" className={tab === 'library' ? 'active' : ''} onClick={() => chooseTab('library', 'scene-library')}><Bookmark size={18} /><span>Scene library</span></button>
+        <div className="rail-divider" />
+        <span className="rail-label">PROJECT</span>
+        <button aria-label="Save scene" title="Save scene locally" onClick={saveScene}><Save size={18} /><span>Save scene</span></button>
+        <button aria-label="Save project" title="Save project in this browser" onClick={saveProject}><Save size={18} /><span>Save project</span></button>
+        <button aria-label="Open project" title="Open a saved local project" onClick={openProject}><LayoutGrid size={18} /><span>Open project</span></button>
+        <button aria-label="Create new project" title="Create new local project" onClick={createProject}><Plus size={18} /><span>New project</span></button>
+        <button aria-label="Create new scene" title="Create a scene from current zone values" onClick={createNewScene}><Plus size={18} /><span>New scene</span></button>
+        <button aria-label="Change cabin model" title="Select an approved aircraft cabin model" onClick={changeCabin}><RotateCcw size={18} /><span>Change cabin</span></button>
         <div className="rail-divider" /><span className="rail-label">SYSTEM</span>
         <div className="rail-disabled" title="Physical hardware diagnostics are not included in this offline release"><Activity size={18} /><span>Hardware diagnostics</span><small>NOT AVAILABLE</small></div>
         <div className="rail-disabled" title="Adigun BOT is not enabled for this release"><Sparkles size={18} /><span>Adigun BOT</span><small>NOT ENABLED</small></div>
-        <div className="rail-bottom"><div className="sim-avatar"><Monitor size={16} /></div><div><b>Offline workspace</b><small>Local browser storage</small></div></div>
       </aside>
       <section className="studio-main">
-        <div className="studio-heading"><div><div className="breadcrumbs">CABIN STUDIO <span>/</span> SCENE DESIGN</div><h1>Light, in its place.</h1><p>Adjust an individual cabin zone, then preview how the whole cabin changes.</p></div>
-          <div className="heading-actions"><button className="icon-button undo-btn" aria-label="Undo" title="Undo" disabled={!undo.length} onClick={undoOnce}><Undo2 size={17} /></button><button className="icon-button undo-btn" aria-label="Redo" title="Redo" disabled={!redo.length} onClick={redoOnce}><Redo2 size={17} /></button><button className="button button-outline" onClick={saveScene}><Save size={15} /> Save scene</button><button className="button button-primary" onClick={exportScene}><Download size={15} /> Export</button></div>
-        </div>
         <div className="workspace-grid">
           <div className="visual-column">
             <section className="panel cabin-panel" id="cabin-view" tabIndex={-1}>
-              <div className="panel-head"><div><span className="panel-overline">SPATIAL PREVIEW</span><h2>Cabin digital twin</h2></div><div className="view-chip"><span className="view-chip-dot" /> PERSPECTIVE · 2D</div></div>
-              <div className="cabin-stage"><div className="stage-grid" /><div className="stage-crosshair" /><div className="stage-label stage-label-front">FORWARD <span>01</span></div><div className="stage-label stage-label-aft">AFT <span>02</span></div>
+              <div className="panel-head"><div><h2>Cabin digital twin</h2></div><div className="view-controls" aria-label="Cabin view controls"><div className="view-switch" role="group" aria-label="Cabin view"><button aria-pressed="true" disabled>2D</button><button aria-pressed="false" aria-label="3D unavailable: approved cabin model not installed" disabled title="Unavailable until a licensed, airline-approved 3D cabin model is installed">3D</button></div><button className={`quality-toggle ${hq4k ? 'is-on' : ''}`} aria-label="HQ 4K export mode" aria-pressed={hq4k} onClick={() => setHq4k((value) => !value)}>HQ 4K <span /></button></div></div>
+              <div className={`cabin-stage ${hq4k ? 'quality-high' : ''}`} data-view-mode="2d" ref={stageRef}><div className="stage-grid" /><div className="stage-crosshair" />
                 <CabinDrawing zones={zones.map((zone) => ({ ...zone, rgbw: Object.fromEntries(Object.entries(effectiveRGBW[zone.id]).map(([key, value]) => [key, value * intensity / 100])) as RGBW }))} selected={selected} onSelect={setSelected} />
-                <div className="stage-scale"><span /> 2D ZONE MAP</div>
+                <div className="stage-scale"><span /> 2D ZONE MAP · ILLUSTRATIVE ONLY</div>
               </div>
               <div className="cabin-legend"><span><i className="legend-active" /> Active selection</span><span><i className="legend-zone" /> Selectable lighting zone</span><span className="legend-revision">Illustrative profile · not an aircraft fit</span></div>
             </section>
@@ -397,7 +502,7 @@ function Studio() {
               </div>
             </section>
             <section className="panel scene-library" id="scene-library" tabIndex={-1}>
-              <div className="library-head"><div><span className="panel-overline">SCENE LIBRARY</span><h2>Start with a mood</h2></div><span className="local-badge"><span /> SAVED LOCALLY</span></div>
+              <div className="library-head"><div><span className="panel-overline">SCENE LIBRARY</span><h2>Start with a mood</h2></div><div className="library-tools"><button className="icon-button" aria-label="Duplicate current scene" title="Duplicate current scene" onClick={() => duplicateScene(scene.id)}><CopyPlus size={15} /></button><button className="icon-button" aria-label="Rename current scene" title="Rename current scene" onClick={() => renameScene(scene.id)}><Settings2 size={15} /></button><button className="icon-button" aria-label="Delete current scene" title="Delete current scene" onClick={() => deleteScene(scene.id)}><Trash2 size={15} /></button><span className="local-badge"><span /> SAVED LOCALLY</span></div></div>
               <div className="scene-cards">{scenes.map((item) => { const last = item.keyframes[item.keyframes.length - 1].targets; const samples = [last.ceiling, last.windows, last.sidewalls, last.footwell]; return <button key={item.id} className={`scene-card ${item.id === activeSceneId ? 'selected' : ''}`} onClick={() => chooseScene(item.id)} aria-pressed={item.id === activeSceneId}>
                 <span className="scene-swatch">{samples.map((sample, index) => <i key={index} style={{ background: toHex(sample), color: toHex(sample) }} />)}</span><strong>{item.name}</strong><small>{item.durationSeconds}s transition</small>{item.id === activeSceneId && <Check className="scene-check" size={15} />}
               </button>; })}</div>
@@ -421,7 +526,6 @@ function Studio() {
         </div>
       </section>
     </div>
-    <div className="studio-statusbar"><span><span className="status-pulse" /> SIMULATION · NOT CONNECTED</span><span><Volume2 size={14} /> Scene engine ready</span><span><Save size={13} /> Auto-saved locally</span><span className="status-right">PROFILE 01 · SCHEMA v1 <span className="status-sep">|</span> 60 FPS TARGET (NOT MEASURED)</span></div>
     <input ref={importRef} type="file" accept="application/json,.json" className="visually-hidden" aria-label="Import versioned scene JSON" onChange={(e) => void importScene(e.target.files?.[0])} />
     {notice && <div className="toast" role="status"><Check size={15} />{notice}<button aria-label="Dismiss notice" onClick={() => setNotice('')}><X size={14} /></button></div>}
   </main>;
@@ -436,4 +540,3 @@ export default function App() {
   const isStudio = window.location.pathname.replace(/\/$/, '') === '/studio';
   return isStudio ? <Studio /> : <Landing />;
 }
-
