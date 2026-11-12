@@ -1,41 +1,30 @@
-# First UI release status
+# AdigunCabinLighting release status
 
-**Date:** 2026-11-12  
-**Status:** Deployed to GitHub Pages. Custom-domain HTTPS is enforced, and both production routes return HTTP 200 over HTTPS.
+**Date:** 2026-11-13 (Europe/Berlin)  
+**Status:** The owner-approved Cabin Studio revision is merged and deployed to GitHub Pages. Custom-domain HTTPS is enforced.
 
-## Release references
+## Latest release
 
-- **UI implementation merge:** `3867a2f625ced1225a91d9e39cd86b317e4a7242`
-- **HTTPS/status-record merge:** `6a05c23b215cf55e6df5f4ef8f1ad7304071efe5`
-- **UI pull request:** [#3 — Build the offline cabin lighting Studio](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/pull/3)
-- **Verified UI deployment:** [Run 43305646729](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43305646729) — succeeded for the HTTPS/status-record merge; later changes were documentation-only and retained this UI implementation.
-- **UI CI and screenshot artifact evidence:** [Run 43305646864](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43305646864) — lint, typecheck, unit tests, build, browser tests, and screenshot artifact succeeded.
-- **Production domain:** <https://adiguncabinlighting.hephzibahbehulah.com/>
-- **Production Studio route:** <https://adiguncabinlighting.hephzibahbehulah.com/studio/>
-- **Production screenshots:** Captured from the HTTPS domain at 1440×900 (landing), 1280×800 (Studio), and 390×844 (mobile Studio); delivered in the task outputs.
+- **Pull request:** [#10 — Expand cabin studio scenes and projects](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/pull/10)
+- **Merge commit:** `78ec387db6d2960a2afd0575e240b82df48382d8`
+- **CI verification:** [Run 43326598647](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43326598647) — succeeded, including lint, typecheck, unit tests, build and Playwright.
+- **Pages deployment:** [Run 43326598675](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43326598675) — succeeded.
+- **Public domain:** <https://adiguncabinlighting.hephzibahbehulah.com/>
+- **Studio:** <https://adiguncabinlighting.hephzibahbehulah.com/studio/>
 
-## Verified scope
+## Verified release scope
 
-- Responsive landing page and `/studio/` route load from the public custom domain.
-- Offline cabin scene simulator includes six named RGBW presets, editable zones, deterministic timeline playback and keyframes, local save, undo/redo, and validated JSON import/export.
-- Browser checks cover the landing-to-Studio route, scene editing, persistence, timeline, per-zone fades, import/export, responsive viewports, keyboard/pointer interactions, and WCAG 2.2 AA checks.
-- No aircraft connection, physical outputs, hardware diagnostics, bot, certification, or OEM compatibility is provided or claimed.
+The Studio gives the cabin zone map the reclaimed vertical space, keeps Transition preview and Scene library docked at the bottom, and moves working project/scene actions into the left rail. It includes 11 editable RGBW zones, 16 scene presets, local project create/open/save, scene create/duplicate/rename/delete, deterministic playback, validated JSON import/export, and 4K/1080p PNG export of the 2D zone map.
 
-## Verification results
+- Local checks: lint passed; typecheck passed; 8/8 unit tests passed; production build passed; 11/11 Playwright checks passed.
+- Browser coverage: desktop at 1280×720, 1366×768, 1440×900 and 1920×1080; mobile 390×844; zero document overflow; WCAG 2.2 AA automated check passed.
+- Production smoke on 2026-11-13: landing and Studio returned HTTP 200 over HTTPS; the Studio rendered the cabin view and new project/scene actions; at 1280×800 the document matched the viewport without overflow; no browser page errors.
+- First UI release history: [PR #3](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/pull/3), [prior deployment run](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43305646729).
 
-- Local: lint, typecheck, 6/6 unit tests, production build, and 10/10 Playwright checks passed.
-- GitHub Actions on PR: `verify` passed.
-- GitHub Actions after merge: `verify` and `Deploy static site to GitHub Pages` both passed.
-- Public HTTPS: landing and Studio returned HTTP 200 and rendered the expected content and offline/simulation status; GitHub Pages shows Enforce HTTPS enabled.
-- Production browser smoke: landing-to-Studio navigation, a pointer selection on Window surrounds, RGB setpoint update, and keyframe commit passed; no browser console errors.
-- Mobile production smoke: Studio returned HTTP 200 at 390×844 with no horizontal overflow (390 px document width); no browser console errors.
+## Explicit limits
 
-## Release gate result
-
-The first UI release requirements are implemented and deployed. Aircraft or physical hardware integration is out of scope for this release and must not be inferred from the simulator.
+The active map remains an illustrative 2D zone model, not a specific aircraft cabin fit. The 3D selector stays disabled until a licensed, airline-approved passenger cabin model and exact cabin configuration are verified and added. No aircraft, hardware, physical outputs, certification or OEM compatibility is provided or claimed. Window shade scenes affect lighting only; they do not actuate blinds.
 
 ## Owner approval gate
 
-Stop implementation and ask: **“Do you approve this landing page and Studio interface as the visual baseline for AdigunCabinLighting?”**
-
-
+Request approval for this revised interface as the visual baseline before continuing broader aircraft, hardware or AI work.
