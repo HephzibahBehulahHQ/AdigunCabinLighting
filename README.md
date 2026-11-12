@@ -1,5 +1,8 @@
 # AdigunCabinLighting
 
+> **RELEASE ORDER (owner instruction, 2026-11-12):** [FIRST: build, merge, deploy and verify the actual landing page + functional Studio, then STOP for owner UI approval](docs/UI_FIRST_RELEASE_GATE.md). Once accepted, preserve approved appearance through subsequent AI/hardware engineering. The repository's current requirement documents are **not** themselves a deployed application.
+
+
 **Hephzibah Behulah · HB Elektroniker**
 
 AI-assisted RGBW cabin-lighting design, zone-based scenes, digital-twin visualization, offline simulation and safe, validated laboratory-controller integration.
