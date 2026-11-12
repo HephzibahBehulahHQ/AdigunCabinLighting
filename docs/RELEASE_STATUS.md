@@ -6,13 +6,13 @@
 ## Release references
 
 - **UI implementation merge:** `3867a2f625ced1225a91d9e39cd86b317e4a7242`
-- **Current main after status-record merge:** `9cea2e3ab4c278daf808d79db533b307e844cbd4`
+- **HTTPS/status-record merge:** `6a05c23b215cf55e6df5f4ef8f1ad7304071efe5`
 - **UI pull request:** [#3 — Build the offline cabin lighting Studio](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/pull/3)
-- **Latest verified Pages deployment:** [Run 43303854279](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43303854279) — succeeded for current main; contains the same UI implementation as the merged UI commit.
-- **CI and screenshot artifact:** [Run 43302316176](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43302316176) — lint, typecheck, unit tests, build, browser tests, and screenshot artifact succeeded.
+- **Latest verified Pages deployment:** [Run 43305646729](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43305646729) — succeeded for the HTTPS/status-record merge; contains the same UI implementation as the merged UI commit.
+- **Latest main CI and screenshot artifact:** [Run 43305646864](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43305646864) — lint, typecheck, unit tests, build, browser tests, and screenshot artifact succeeded.
 - **Production domain:** <https://adiguncabinlighting.hephzibahbehulah.com/>
 - **Production Studio route:** <https://adiguncabinlighting.hephzibahbehulah.com/studio/>
-- **Production screenshots:** Captured from the HTTPS domain at 1440×900 (landing) and 1280×800 (Studio); delivered as `adiguncabinlighting-landing-production.png` and `adiguncabinlighting-studio-production.png`.
+- **Production screenshots:** Captured from the HTTPS domain at 1440×900 (landing), 1280×800 (Studio), and 390×844 (mobile Studio); delivered in the task outputs.
 
 ## Verified scope
 
@@ -27,6 +27,8 @@
 - GitHub Actions on PR: `verify` passed.
 - GitHub Actions after merge: `verify` and `Deploy static site to GitHub Pages` both passed.
 - Public HTTPS: landing and Studio returned HTTP 200 and rendered the expected content and offline/simulation status; GitHub Pages shows Enforce HTTPS enabled.
+- Production browser smoke: landing-to-Studio navigation, a pointer selection on Window surrounds, RGB setpoint update, and keyframe commit passed; no browser console errors.
+- Mobile production smoke: Studio returned HTTP 200 at 390×844 with no horizontal overflow (390 px document width); no browser console errors.
 
 ## Release gate result
 
