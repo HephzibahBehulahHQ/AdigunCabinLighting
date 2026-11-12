@@ -140,9 +140,15 @@ test('Studio fits one viewport with docked panels at all required desktop sizes'
     const cabinFit = await page.evaluate(() => {
       const panel = document.querySelector('.cabin-panel')!.getBoundingClientRect();
       const legend = document.querySelector('.cabin-legend')!.getBoundingClientRect();
-      return legend.bottom <= panel.bottom + 1;
+      const stage = document.querySelector('.cabin-stage')!.getBoundingClientRect();
+      const zonesFit = [...document.querySelectorAll('.cabin-stage .cabin-zone')].every((zone) => {
+        const rect = zone.getBoundingClientRect();
+        return rect.left >= stage.left - 1 && rect.top >= stage.top - 1 && rect.right <= stage.right + 1 && rect.bottom <= stage.bottom + 1;
+      });
+      return { legendFits: legend.bottom <= panel.bottom + 1, zonesFit };
     });
-    expect(cabinFit, `${width}x${height} cabin legend clipped`).toBe(true);
+    expect(cabinFit.legendFits, `${width}x${height} cabin legend clipped`).toBe(true);
+    expect(cabinFit.zonesFit, `${width}x${height} cabin map zones clipped`).toBe(true);
   }
 });
 
