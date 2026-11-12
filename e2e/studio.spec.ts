@@ -87,9 +87,11 @@ test('Studio stays usable at a narrow mobile viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/studio');
   await expect(page.getByRole('heading', { name: 'Cabin digital twin' })).toBeVisible();
+  await page.getByRole('button', { name: 'Zone mapping' }).click();
   await expect(page.getByRole('slider', { name: 'R channel' })).toBeVisible();
-  const width = await page.evaluate(() => document.documentElement.scrollWidth);
-  expect(width).toBeLessThanOrEqual(390);
+  const metrics = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight, innerWidth: innerWidth, innerHeight: innerHeight }));
+  expect(metrics.width).toBeLessThanOrEqual(metrics.innerWidth);
+  expect(metrics.height).toBeLessThanOrEqual(metrics.innerHeight);
 });
 
 test('public routes have no WCAG 2.2 AA violations', async ({ page }) => {
@@ -106,21 +108,42 @@ test('cabin map shapes respond to pointer selection', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Window surrounds' })).toBeVisible();
 });
 
-test('captures review screenshots at desktop and mobile sizes', async ({ page }) => {
+test('Studio fits one viewport with docked panels at all required desktop sizes', async ({ page }) => {
   const directory = 'artifacts/screenshots';
   await mkdir(directory, { recursive: true });
-  await page.setViewportSize({ width: 1920, height: 1080 });
-  await page.goto('/');
-  await page.screenshot({ path: directory + '/landing-1920x1080.png', fullPage: true });
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.screenshot({ path: directory + '/landing-1440x900.png', fullPage: true });
   await page.goto('/studio');
-  await page.setViewportSize({ width: 1280, height: 800 });
-  await page.screenshot({ path: directory + '/studio-1280x800.png', fullPage: true });
-  await page.setViewportSize({ width: 834, height: 1194 });
-  await page.screenshot({ path: directory + '/studio-834x1194.png', fullPage: true });
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({ path: directory + '/studio-390x844.png', fullPage: true });
+  for (const { width, height } of [{ width: 1280, height: 720 }, { width: 1366, height: 768 }, { width: 1440, height: 900 }, { width: 1920, height: 1080 }]) {
+    await page.setViewportSize({ width, height });
+    await page.screenshot({ path: `${directory}/studio-${width}x${height}.png`, fullPage: false });
+    const metrics = await page.evaluate(() => ({
+      documentWidth: document.documentElement.scrollWidth,
+      documentHeight: document.documentElement.scrollHeight,
+      width: innerWidth,
+      height: innerHeight,
+      regions: ['.studio-topbar', '.sim-banner', '.studio-rail', '.studio-main', '.cabin-panel', '.inspector', '.studio-statusbar'].map((selector) => {
+        const { x, y, width: w, height: h } = document.querySelector(selector)!.getBoundingClientRect();
+        return { selector, x, y, right: x + w, bottom: y + h, width: w, height: h };
+      }),
+    }));
+    expect(metrics.documentWidth, `${width}x${height} horizontal document overflow`).toBeLessThanOrEqual(width);
+    expect(metrics.documentHeight, `${width}x${height} vertical document overflow`).toBeLessThanOrEqual(height);
+    expect(metrics.regions.every((region) => region.x >= -1 && region.y >= -1 && region.right <= width + 1 && region.bottom <= height + 1), `${width}x${height} dock region outside viewport`).toBe(true);
+    const [top, banner, rail, main, cabin, inspector, status] = metrics.regions;
+    expect(top.bottom).toBeLessThanOrEqual(banner.y + 1);
+    expect(banner.bottom).toBeLessThanOrEqual(main.y + 1);
+    expect(rail.right).toBeLessThanOrEqual(main.x + 1);
+    expect(cabin.right).toBeLessThanOrEqual(inspector.x + 1);
+    expect(main.bottom).toBeLessThanOrEqual(status.y + 1);
+    await expect(page.getByRole('button', { name: 'Zone mapping' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Apply & set keyframe/ })).toBeVisible();
+    await expect(page.locator('.cabin-legend')).toBeVisible();
+    const cabinFit = await page.evaluate(() => {
+      const panel = document.querySelector('.cabin-panel')!.getBoundingClientRect();
+      const legend = document.querySelector('.cabin-legend')!.getBoundingClientRect();
+      return legend.bottom <= panel.bottom + 1;
+    });
+    expect(cabinFit, `${width}x${height} cabin legend clipped`).toBe(true);
+  }
 });
 
 test('Studio menus open without moving the canvas and close with Escape', async ({ page }) => {
@@ -133,3 +156,4 @@ test('Studio menus open without moving the canvas and close with Escape', async 
   await page.keyboard.press('Escape');
   await expect(page.getByRole('menuitem', { name: /Export current scene/ })).toBeHidden();
 });
+

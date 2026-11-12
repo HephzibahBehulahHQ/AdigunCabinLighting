@@ -342,9 +342,12 @@ function Studio() {
     } catch (error) { setNotice(error instanceof Error ? error.message : 'Scene import failed validation'); }
     if (importRef.current) importRef.current.value = '';
   };
-  const chooseTab = (next: string, section: string) => { setTab(next); document.getElementById(section)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); };
+  const chooseTab = (next: string, section: string) => {
+    setTab(next);
+    window.requestAnimationFrame(() => document.getElementById(section)?.focus({ preventScroll: true }));
+  };
 
-  return <main className="studio-shell">
+  return <main className="studio-shell" data-active-tab={tab}>
     <header className="studio-topbar"><Brand /><div className="top-project"><span className="project-kicker">PROJECT PROFILE</span><strong>Cabin 01 <ChevronDown size={14} /></strong></div>
       <div className="top-revision">REV <b>01</b><span className="revision-dot" /> LOCAL DRAFT</div>
       <div className="top-spacer" />
@@ -358,10 +361,10 @@ function Studio() {
     <div className="studio-layout">
       <aside className="studio-rail" aria-label="Studio sections">
         <span className="rail-label">WORKSPACE</span>
-        <button className={tab === 'scene' ? 'active' : ''} onClick={() => chooseTab('scene', 'cabin-view')}><LayoutGrid size={18} /><span>Cabin overview</span></button>
-        <button className={tab === 'zones' ? 'active' : ''} onClick={() => chooseTab('zones', 'zone-inspector')}><SlidersHorizontal size={18} /><span>Zone mapping</span></button>
-        <button className={tab === 'timeline' ? 'active' : ''} onClick={() => chooseTab('timeline', 'timeline')}><Waves size={18} /><span>Choreography</span></button>
-        <button className={tab === 'library' ? 'active' : ''} onClick={() => chooseTab('library', 'scene-library')}><Bookmark size={18} /><span>Scene library</span></button>
+        <button aria-label="Cabin overview" title="Cabin overview" className={tab === 'scene' ? 'active' : ''} onClick={() => chooseTab('scene', 'cabin-view')}><LayoutGrid size={18} /><span>Cabin overview</span></button>
+        <button aria-label="Zone mapping" title="Zone mapping" className={tab === 'zones' ? 'active' : ''} onClick={() => chooseTab('zones', 'zone-inspector')}><SlidersHorizontal size={18} /><span>Zone mapping</span></button>
+        <button aria-label="Choreography" title="Choreography" className={tab === 'timeline' ? 'active' : ''} onClick={() => chooseTab('timeline', 'timeline')}><Waves size={18} /><span>Choreography</span></button>
+        <button aria-label="Scene library" title="Scene library" className={tab === 'library' ? 'active' : ''} onClick={() => chooseTab('library', 'scene-library')}><Bookmark size={18} /><span>Scene library</span></button>
         <div className="rail-divider" /><span className="rail-label">SYSTEM</span>
         <div className="rail-disabled" title="Physical hardware diagnostics are not included in this offline release"><Activity size={18} /><span>Hardware diagnostics</span><small>NOT AVAILABLE</small></div>
         <div className="rail-disabled" title="Adigun BOT is not enabled for this release"><Sparkles size={18} /><span>Adigun BOT</span><small>NOT ENABLED</small></div>
@@ -373,7 +376,7 @@ function Studio() {
         </div>
         <div className="workspace-grid">
           <div className="visual-column">
-            <section className="panel cabin-panel" id="cabin-view">
+            <section className="panel cabin-panel" id="cabin-view" tabIndex={-1}>
               <div className="panel-head"><div><span className="panel-overline">SPATIAL PREVIEW</span><h2>Cabin digital twin</h2></div><div className="view-chip"><span className="view-chip-dot" /> PERSPECTIVE · 2D</div></div>
               <div className="cabin-stage"><div className="stage-grid" /><div className="stage-crosshair" /><div className="stage-label stage-label-front">FORWARD <span>01</span></div><div className="stage-label stage-label-aft">AFT <span>02</span></div>
                 <CabinDrawing zones={zones.map((zone) => ({ ...zone, rgbw: Object.fromEntries(Object.entries(effectiveRGBW[zone.id]).map(([key, value]) => [key, value * intensity / 100])) as RGBW }))} selected={selected} onSelect={setSelected} />
@@ -381,7 +384,7 @@ function Studio() {
               </div>
               <div className="cabin-legend"><span><i className="legend-active" /> Active selection</span><span><i className="legend-zone" /> Selectable lighting zone</span><span className="legend-revision">Illustrative profile · not an aircraft fit</span></div>
             </section>
-            <section className="panel timeline-panel" id="timeline">
+            <section className="panel timeline-panel" id="timeline" tabIndex={-1}>
               <div className="timeline-head"><div><span className="panel-overline">CHOREOGRAPHY TIMELINE</span><h2>Transition preview</h2></div><button className="button button-quiet button-sm" onClick={addKeyframe}><Plus size={14} /> Add keyframe</button></div>
               <div className="transport"><button className="play-button" aria-label={playing ? 'Pause preview' : 'Play preview'} onClick={() => { if (playing) setPlaying(false); else { if (time >= scene.durationSeconds) applySceneAt(0); setPlaying(true); } }}>{playing ? <Pause size={17} /> : <Play size={17} fill="currentColor" />}</button>
                 <div className="timeline-track-wrap"><div className="timeline-label-row"><span>{scene.name.toUpperCase()} <i>·</i> {scene.keyframes.length} KEYFRAMES</span><span className="time-readout">{formatTime(time)} <small>/ {formatTime(scene.durationSeconds)}</small></span></div>
@@ -393,14 +396,14 @@ function Studio() {
                 <span className="transport-duration"><Clock3 size={14} /> {scene.durationSeconds}s</span>
               </div>
             </section>
-            <section className="panel scene-library" id="scene-library">
+            <section className="panel scene-library" id="scene-library" tabIndex={-1}>
               <div className="library-head"><div><span className="panel-overline">SCENE LIBRARY</span><h2>Start with a mood</h2></div><span className="local-badge"><span /> SAVED LOCALLY</span></div>
               <div className="scene-cards">{scenes.map((item) => { const last = item.keyframes[item.keyframes.length - 1].targets; const samples = [last.ceiling, last.windows, last.sidewalls, last.footwell]; return <button key={item.id} className={`scene-card ${item.id === activeSceneId ? 'selected' : ''}`} onClick={() => chooseScene(item.id)} aria-pressed={item.id === activeSceneId}>
                 <span className="scene-swatch">{samples.map((sample, index) => <i key={index} style={{ background: toHex(sample), color: toHex(sample) }} />)}</span><strong>{item.name}</strong><small>{item.durationSeconds}s transition</small>{item.id === activeSceneId && <Check className="scene-check" size={15} />}
               </button>; })}</div>
             </section>
           </div>
-          <aside className="inspector panel" id="zone-inspector">
+          <aside className="inspector panel" id="zone-inspector" tabIndex={-1}>
             <div className="inspector-head"><div><span className="panel-overline">ZONE INSPECTOR</span><h2>{currentZone.name}</h2><p>{currentZone.detail}</p></div><button className="icon-button" aria-label="Inspector settings" title="Inspector settings" onClick={() => setNotice('Zone values are editable in SIMULATION only.')}><Settings2 size={17} /></button></div>
             <div className="zone-select"><label htmlFor="zone-picker">EDITING ZONE</label><select id="zone-picker" value={selected} onChange={(e) => setSelected(e.target.value as ZoneId)}>{zones.map((zone) => <option key={zone.id} value={zone.id}>{zone.name}</option>)}</select><ChevronDown size={14} /></div>
             <div className="rgbw-head"><div><span className="panel-overline">RGBW OUTPUT</span><span className="channel-model">4 CHANNELS · 0—100%</span></div><label className="color-well" aria-label="RGB color picker"><input type="color" aria-label="Choose RGB color" value={toHex(currentZone.rgbw)} onChange={(e) => { const hex = e.target.value; setZoneColor({ r: parseInt(hex.slice(1, 3), 16) / 2.55, g: parseInt(hex.slice(3, 5), 16) / 2.55, b: parseInt(hex.slice(5, 7), 16) / 2.55, w: currentZone.rgbw.w }); }} /><span style={{ background: toHex(currentZone.rgbw) }} /></label></div>
@@ -433,3 +436,4 @@ export default function App() {
   const isStudio = window.location.pathname.replace(/\/$/, '') === '/studio';
   return isStudio ? <Studio /> : <Landing />;
 }
+
