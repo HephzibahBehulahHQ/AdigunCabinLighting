@@ -1,4 +1,5 @@
 import { startGateway } from '../dist-gateway/gateway/server.js';
+import { installGracefulShutdown } from '../dist-gateway/gateway/shutdown.js';
 
 const token = process.env.ADIGUN_GATEWAY_TOKEN;
 if (!token) {
@@ -10,4 +11,5 @@ const server = await startGateway(token, port);
 const address = server.address();
 if (!address || typeof address === 'string') throw new Error('Gateway did not expose a TCP address.');
 console.log(`SIMULATION gateway listening on http://127.0.0.1:${address.port}; no hardware output is enabled.`);
-for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => server.close(() => process.exit(0)));
+installGracefulShutdown(server);
+

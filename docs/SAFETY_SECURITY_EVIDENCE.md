@@ -39,6 +39,7 @@ Assumptions: the local machine and Node runtime are controlled by the operator; 
 | C-10 Unsupported OEM adapter boundary | The default adapter reports `unsupported`, `AIRCRAFT_LOCKED`, disconnected, no capabilities, and physical output disabled. Scene translation returns `command: null`; the SDK defines no connect/send/commit API. | Contract tests in `packages/oem-sdk/src/index.test.ts` cover status, rejection, and invalid identifiers. No vendor-specific adapter, approved ICD, OEM verification, or airworthiness approval exists. |
 | C-11 Offline scene preflight boundary | The operator validator applies the shared schema validator, reads at most 64 KiB, and reports simulation-only/no physical output. | `operator/scene-review.ts` and `scripts/validate-scene.mjs`; tests cover schema and RGBW/time bounds. The tool does not perform cabin-fit, OEM, electrical, or hardware verification. |
 | C-12 Local request flood bound | Gateway applies an in-memory fixed-window limit of 120 requests per peer per minute by default, before host/auth/route handling; rejected requests receive HTTP 429 and `Retry-After`. | `gateway/server.ts`; tests cover rejection, retry header, window reset, and invalid configuration. This is a single-process local safeguard, not distributed abuse protection or a substitute for OS process supervision. |
+| C-13 Bounded process shutdown | SIGINT/SIGTERM closes the listener, allows in-flight work to drain for up to 20 seconds, then closes remaining connections and exits with failure status. | `gateway/shutdown.ts` and `gateway/shutdown.test.ts`; graceful, forced, idempotent, and invalid-timeout paths are unit-tested. This is shutdown handling, not an external service supervisor or restart policy. |
 
 ## 4. Preliminary hazard and threat register
 
@@ -68,4 +69,5 @@ The following must remain open until supported by actual artifacts and independe
 6. **Localization:** professional translations and review, accessibility checks, and locale-specific operator validation before enabling translated operational workflows.
 
 Until those gates are met, retain offline simulation-only positioning. A passing CI suite verifies the tested software behavior; it does not verify physical hardware, operational safety, OEM conformity, or aircraft suitability.
+
 
