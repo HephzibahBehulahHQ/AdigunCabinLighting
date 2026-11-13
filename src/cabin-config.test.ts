@@ -7,7 +7,7 @@ describe('configurable reference cabin profile', () => {
   });
 
   it('provides distinct layouts and cabin dimensions for each reference profile', () => {
-    expect(Object.keys(CABIN_PROFILES)).toHaveLength(4);
+    expect(Object.keys(CABIN_PROFILES)).toHaveLength(5);
     expect(CABIN_LAYOUTS.widebody.groups).toEqual([3, 3, 3]);
     expect(CABIN_LAYOUTS.premium.groups).toEqual([1, 2, 1]);
     expect(CABIN_PROFILES.regional.widthMeters).toBeLessThan(CABIN_PROFILES.widebody.widthMeters);
@@ -22,8 +22,20 @@ describe('configurable reference cabin profile', () => {
 
   it('bounds unsafe dimensions and rejects non-finite values', () => {
     expect(validateCabinConfig({ lengthMeters: 100, seatRows: 0, ceilingHeightMeters: Number.NaN })).toMatchObject({
-      lengthMeters: 50, seatRows: 2, ceilingHeightMeters: DEFAULT_CABIN_CONFIG.ceilingHeightMeters,
+      lengthMeters: 60, seatRows: 2, ceilingHeightMeters: DEFAULT_CABIN_CONFIG.ceilingHeightMeters,
     });
+  });
+
+  it('uses Airbus A350-900 sourced dimensions and preserves its published two-class seat totals', () => {
+    const a350 = CABIN_LAYOUTS.a350900;
+    expect(CABIN_PROFILES.a350900).toMatchObject({ layoutId: 'a350900', lengthMeters: 51.04, widthMeters: 5.71, seatRows: 38 });
+    expect(a350.seatCount).toBe(315);
+    expect(a350.seatPlan.reduce((sum, section) => sum + section.seatCount, 0)).toBe(315);
+    expect(a350.seatPlan.reduce((sum, section) => sum + section.rows * section.groups.reduce((rowSeats, count) => rowSeats + count, 0), 0)).toBe(315);
+    expect(a350.seatPlan.filter((section) => section.cabinClass === 'Business').reduce((sum, section) => sum + section.seatCount, 0)).toBe(48);
+    expect(a350.seatPlan.filter((section) => section.cabinClass === 'Economy').reduce((sum, section) => sum + section.seatCount, 0)).toBe(267);
+    expect(a350.seatPlan.map((section) => section.pitchMeters)).toEqual([1.524, .8128, .8128]);
+    expect(validateCabinConfig({ layoutId: 'a350900' }).lengthMeters).toBe(51.04);
   });
 
   it('migrates older saved side-seat settings to an equivalent reference profile', () => {

@@ -139,22 +139,28 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
     const seatGroups = CABIN_LAYOUTS[config.layoutId].groups;
     const aisleWidth = Math.min(.48, config.widthMeters * .105);
     const seatGap = .07;
-    const totalSeats = seatGroups.reduce((sum, count) => sum + count, 0);
-    const aisleCount = seatGroups.length - 1;
-    const seatWidth = Math.min(config.layoutId === 'premium' ? .68 : .49, (config.widthMeters - .5 - aisleCount * aisleWidth - Math.max(0, totalSeats - seatGroups.length) * seatGap) / totalSeats);
-    const pitch = config.seatPitchMeters;
-    const firstRow = -((config.seatRows - 1) * pitch) / 2;
+    const rows = config.layoutId === 'a350900'
+      ? CABIN_LAYOUTS.a350900.seatPlan.flatMap((section) => Array.from({ length: section.rows }, () => ({ groups: section.groups, pitchMeters: section.pitchMeters })))
+      : Array.from({ length: config.seatRows }, () => ({ groups: seatGroups, pitchMeters: config.seatPitchMeters }));
+    const totalSpan = rows.reduce((sum, row) => sum + row.pitchMeters, 0);
+    const maxSeatsInRow = Math.max(...rows.map((row) => row.groups.reduce((sum, count) => sum + count, 0)));
+    const maxAisles = Math.max(...rows.map((row) => row.groups.length - 1));
+    const seatWidth = Math.min(config.layoutId === 'premium' ? .68 : .49, (config.widthMeters - .5 - maxAisles * aisleWidth - Math.max(0, maxSeatsInRow - rows[0].groups.length) * seatGap) / maxSeatsInRow);
     const seats: [number, number][] = [];
-    for (let row = 0; row < config.seatRows; row++) {
-      const z = firstRow + row * pitch;
-      const occupiedWidth = totalSeats * seatWidth + (totalSeats - seatGroups.length) * seatGap + aisleCount * aisleWidth;
+    let rowStart = -totalSpan / 2;
+    for (const row of rows) {
+      const totalSeats = row.groups.reduce((sum, count) => sum + count, 0);
+      const aisleCount = row.groups.length - 1;
+      const z = rowStart + row.pitchMeters / 2;
+      rowStart += row.pitchMeters;
+      const occupiedWidth = totalSeats * seatWidth + (totalSeats - row.groups.length) * seatGap + aisleCount * aisleWidth;
       let x = -occupiedWidth / 2 + seatWidth / 2;
-      for (let groupIndex = 0; groupIndex < seatGroups.length; groupIndex++) {
-        for (let col = 0; col < seatGroups[groupIndex]; col++) {
+      for (let groupIndex = 0; groupIndex < row.groups.length; groupIndex++) {
+        for (let col = 0; col < row.groups[groupIndex]; col++) {
           seats.push([x, z]);
           x += seatWidth + seatGap;
         }
-        if (groupIndex < seatGroups.length - 1) x += aisleWidth - seatGap;
+        if (groupIndex < row.groups.length - 1) x += aisleWidth - seatGap;
       }
     }
     const seatPositions = (offset: [number, number, number]): [number, number, number][] => seats.map(([x, z]) => [x + offset[0], offset[1], z + offset[2]]);
@@ -200,7 +206,7 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
       } else {
         const fixtures = spec.count ?? 1;
         for (let i = 0; i < fixtures; i++) {
-          const z = spec.count ? firstRow + (i + .5) * config.lengthMeters / fixtures : spec.position[2];
+          const z = spec.count ? -config.lengthMeters / 2 + (i + .5) * config.lengthMeters / fixtures : spec.position[2];
           const mesh = addBox(scene, spec.strip, [spec.position[0], spec.position[1], z], sourceMaterial, id, false);
           mesh.userData.zoneId = id;
         }
@@ -326,7 +332,10 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
     current.draw();
   }, [selected]);
 
-  return <div className="cabin3d-root" data-cabin-layout={config.layoutId}>
+  const renderedSeatCount = config.layoutId === 'a350900'
+    ? CABIN_LAYOUTS.a350900.seatCount
+    : config.seatRows * CABIN_LAYOUTS[config.layoutId].groups.reduce((sum, count) => sum + count, 0);
+  return <div className="cabin3d-root" data-cabin-layout={config.layoutId} data-rendered-seat-count={renderedSeatCount}>
     <div ref={canvasHost} className="cabin3d-canvas" onClick={() => setHelp('Drag to look · WASD to move · double-click a fixture to select its zone')} />
     <div className="cabin3d-badge"><i /> CONFIGURABLE REFERENCE CABIN <span>· {CABIN_LAYOUTS[config.layoutId].name} · Not an aircraft-specific fit</span></div>
     {error && <div className="cabin3d-error" role="alert">{error}</div>}
