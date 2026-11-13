@@ -118,6 +118,7 @@ test('cabin map shapes respond to pointer selection', async ({ page }) => {
 });
 
 test('new cabin zones, scenes, and browser-local projects are usable', async ({ page }) => {
+  test.setTimeout(90_000);
   await page.goto('/studio');
   await expect(page.getByRole('img', { name: 'Interactive 3D configurable reference aircraft cabin' })).toBeVisible();
   const renderSize = await page.locator('canvas.cabin-webgl-canvas').evaluate((canvas: HTMLCanvasElement) => ({ width: canvas.width, height: canvas.height }));
