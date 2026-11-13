@@ -102,6 +102,41 @@ test('Studio stays usable at a narrow mobile viewport', async ({ page }) => {
   expect(metrics.height).toBeLessThanOrEqual(metrics.innerHeight);
 });
 
+test('desktop workspace navigation focuses and marks each fixed panel', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/studio');
+  const destinations = [
+    ['Cabin overview', '#cabin-view'],
+    ['Zone mapping', '#zone-inspector'],
+    ['Choreography', '#timeline'],
+    ['Scene library', '#scene-library'],
+  ] as const;
+  for (const [label, target] of destinations) {
+    const nav = page.getByRole('button', { name: label });
+    await nav.click();
+    await expect(nav).toHaveAttribute('aria-current', 'page');
+    await expect(page.locator(target)).toBeFocused();
+    await expect(page.locator(target)).toHaveCSS('border-top-color', /^rgba\(34, 211, 238,/);
+  }
+});
+
+test('transition preview changes cabin output with optional motion and sound cues', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/studio');
+  const motion = page.getByRole('button', { name: 'Camera motion preview' });
+  const sound = page.getByRole('button', { name: 'Audio keyframe cues' });
+  await expect(motion).toHaveAttribute('aria-pressed', 'true');
+  await motion.click();
+  await expect(motion).toHaveAttribute('aria-pressed', 'false');
+  await sound.click();
+  await expect(sound).toHaveAttribute('aria-pressed', 'true');
+  const output = page.locator('.inspector-summary code');
+  const initialOutput = await output.innerText();
+  await page.getByRole('button', { name: 'Play preview' }).click();
+  await expect(page.getByRole('button', { name: 'Pause preview' })).toBeVisible();
+  await expect.poll(async () => output.innerText()).not.toBe(initialOutput);
+});
+
 test('public routes have no WCAG 2.2 AA violations', async ({ page }) => {
   for (const route of ['/', '/studio']) {
     await page.goto(route);

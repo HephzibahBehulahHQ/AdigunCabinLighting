@@ -12,6 +12,9 @@ type Props = {
   selected: ZoneId;
   onSelect: (zone: ZoneId) => void;
   highQuality: boolean;
+  previewMotion: boolean;
+  previewTime: number;
+  previewDuration: number;
   captureRef: MutableRefObject<(() => Promise<Blob>) | null>;
   cameraResetRef: MutableRefObject<(() => void) | null>;
 };
@@ -22,11 +25,12 @@ const sRGB = (rgbw: RGBW) => new THREE.Color(
   Math.min(1, (rgbw.b + rgbw.w * 0.48) / 100),
 );
 
-export default function Cabin3D({ config, zones, effective, intensity, selected, onSelect, highQuality, captureRef, cameraResetRef }: Props) {
+export default function Cabin3D({ config, zones, effective, intensity, selected, onSelect, highQuality, previewMotion, previewTime, previewDuration, captureRef, cameraResetRef }: Props) {
   const canvasHost = useRef<HTMLDivElement>(null);
   const api = useRef<{ renderer: THREE.WebGLRenderer; scene: THREE.Scene; camera: THREE.PerspectiveCamera; lights: Map<ZoneId, THREE.PointLight[]>; zoneMaterials: Map<ZoneId, THREE.MeshStandardMaterial[]>; selectable: THREE.Object3D[]; frame: number; resize: ResizeObserver; cameraHome: THREE.Vector3; draw: () => void } | null>(null);
   const [error, setError] = useState('');
   const [help, setHelp] = useState('Drag to look · WASD to move · scroll to move');
+  const motionHome = useRef<{ position: THREE.Vector3; rotation: THREE.Euler } | null>(null);
 
   useEffect(() => {
     const host = canvasHost.current;
@@ -325,6 +329,25 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
     }
     current.draw();
   }, [zones, effective, intensity, highQuality]);
+
+  useEffect(() => {
+    const current = api.current;
+    if (!current) return;
+    if (previewMotion) {
+      motionHome.current ??= { position: current.camera.position.clone(), rotation: current.camera.rotation.clone() };
+      const phase = previewDuration > 0 ? previewTime / previewDuration * Math.PI * 2 : 0;
+      current.camera.position.copy(motionHome.current.position);
+      current.camera.position.x += Math.sin(phase) * .14;
+      current.camera.position.y += Math.sin(phase * .5) * .025;
+      current.camera.rotation.copy(motionHome.current.rotation);
+      current.camera.rotation.y += Math.sin(phase) * .008;
+    } else if (motionHome.current) {
+      current.camera.position.copy(motionHome.current.position);
+      current.camera.rotation.copy(motionHome.current.rotation);
+      motionHome.current = null;
+    }
+    current.draw();
+  }, [previewMotion, previewTime, previewDuration]);
 
   useEffect(() => {
     const current = api.current; if (!current) return;
