@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.gateway.json",
+  "compilerOptions": {
+    "rootDir": "packages/oem-sdk/src",
+    "outDir": "dist-oem-sdk",
+    "declaration": true,
+    "sourceMap": true
+  },
+  "include": ["packages/oem-sdk/src/index.ts"]
+}

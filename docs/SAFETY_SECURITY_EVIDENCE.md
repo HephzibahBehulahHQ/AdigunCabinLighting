@@ -1,6 +1,6 @@
 # Initial safety and security evidence ledger
 
-**Revision:** 0.4 · **Date:** 2026-11-13 · **Scope:** PR #18 gateway limits and PR #19 compile-only ESP32-S3 firmware core
+**Revision:** 0.5 · **Date:** 2026-11-13 · **Scope:** PR #18 gateway limits, PR #19 firmware core, and typed unsupported OEM contract
 **Status:** Engineering evidence in progress. This ledger is not a safety case, certification package, aircraft approval, penetration-test report, or substitute for review by qualified aviation safety and security specialists.
 
 ## 1. System boundary and intended use
@@ -36,6 +36,7 @@ Assumptions: the local machine and Node runtime are controlled by the operator; 
 | C-07 Build and static code checks | ESLint, frontend/gateway TypeScript checks, unit/integration tests, production build, and browser tests. | PR CI run [43368044191](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43368044191) passed; Pages deployment [43368627448](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43368627448) succeeded. |
 | C-08 HTTP resource bounds | Limits headers to 64, headers to 10 seconds, request receipt to 15 seconds, keep-alive to 5 seconds, and simultaneous connections to 64. | PR #18 CI run [43375463726](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43375463726), post-merge CI [43375854021](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43375854021), and Pages deployment [43375854073](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43375854073) succeeded. This does not establish production hardening. |
 | C-09 Firmware output inhibition | Firmware core has no GPIO/PWM or transport initialization; scene/target commands remain rejected and `fw_physical_outputs_enabled()` is hard-coded false. Startup checks the CRC-32 known-answer vector before entering `SAFE_DISABLED`. | PR CI [43377838769](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43377838769) and post-merge firmware CI [43378608098](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43378608098) passed the ESP-IDF v6.1 ESP32-S3 build and portable protocol-core checks. No board flash, serial transport, or hardware test has been performed. |
+| C-10 Unsupported OEM adapter boundary | The default adapter reports `unsupported`, `AIRCRAFT_LOCKED`, disconnected, no capabilities, and physical output disabled. Scene translation returns `command: null`; the SDK defines no connect/send/commit API. | Contract tests in `packages/oem-sdk/src/index.test.ts` cover status, rejection, and invalid identifiers. No vendor-specific adapter, approved ICD, OEM verification, or airworthiness approval exists. |
 
 ## 4. Preliminary hazard and threat register
 
@@ -50,6 +51,7 @@ Qualitative items below identify failure paths; no formal severity, probability,
 | H-05 | A future change adds a physical command path without adequate safeguards. | Current route set has no actuator endpoint; hardware integration is explicitly out of scope. | Require a separate approved design, code review, authorization boundary, board-specific validation, interlock, and bench evidence before any such change. |
 | H-06 | A generic cabin visualization or derived reference is represented as aircraft-exact. | Source and limitation notes distinguish planning references from a cabin fit or certified twin. | Independent source/provenance review and exact approved operator configuration are absent. |
 | H-07 | Token or scene data is exposed in logs, browser bundles, or support artifacts. | Token is not emitted by startup or route logging; gateway is not bundled into the browser app. | Secret scanning, log review, distribution review, and operator guidance testing remain outstanding. |
+| H-08 | A generic or unsupported adapter identifier is mistaken for OEM compatibility. | Adapter status is `unsupported`, fields for manufacturer/model are null, capabilities and evidence references are empty, translation is rejected, and an ICD worksheet lists missing evidence. | Review labels and operator understanding with actual OEM/operator stakeholders before enabling any adapter; no compatibility claims are supported. |
 
 ## 5. Release gates and open evidence
 
