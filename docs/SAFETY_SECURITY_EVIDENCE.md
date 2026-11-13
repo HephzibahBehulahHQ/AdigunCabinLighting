@@ -1,6 +1,6 @@
 # Initial safety and security evidence ledger
 
-**Revision:** 0.3 · **Date:** 2026-11-13 · **Scope:** PR #18 gateway limits plus compile-only ESP32-S3 firmware core proposal
+**Revision:** 0.4 · **Date:** 2026-11-13 · **Scope:** PR #18 gateway limits and PR #19 compile-only ESP32-S3 firmware core
 **Status:** Engineering evidence in progress. This ledger is not a safety case, certification package, aircraft approval, penetration-test report, or substitute for review by qualified aviation safety and security specialists.
 
 ## 1. System boundary and intended use
@@ -35,7 +35,7 @@ Assumptions: the local machine and Node runtime are controlled by the operator; 
 | C-06 Explicit simulation labeling | Health, capability, and preview responses identify simulation and disabled physical output. | `gateway/server.ts`; gateway tests passed in CI. |
 | C-07 Build and static code checks | ESLint, frontend/gateway TypeScript checks, unit/integration tests, production build, and browser tests. | PR CI run [43368044191](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43368044191) passed; Pages deployment [43368627448](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43368627448) succeeded. |
 | C-08 HTTP resource bounds | Limits headers to 64, headers to 10 seconds, request receipt to 15 seconds, keep-alive to 5 seconds, and simultaneous connections to 64. | PR #18 CI run [43375463726](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43375463726), post-merge CI [43375854021](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43375854021), and Pages deployment [43375854073](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43375854073) succeeded. This does not establish production hardening. |
-| C-09 Firmware output inhibition | Firmware core has no GPIO/PWM or transport initialization; scene/target commands remain rejected and `fw_physical_outputs_enabled()` is hard-coded false. | Proposal in current PR. Host checks and ESP-IDF build pending CI. No board flash, protocol integration, or hardware test has been performed. |
+| C-09 Firmware output inhibition | Firmware core has no GPIO/PWM or transport initialization; scene/target commands remain rejected and `fw_physical_outputs_enabled()` is hard-coded false. Startup checks the CRC-32 known-answer vector before entering `SAFE_DISABLED`. | PR CI [43377838769](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43377838769) and post-merge firmware CI [43378608098](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43378608098) passed the ESP-IDF v6.1 ESP32-S3 build and portable protocol-core checks. No board flash, serial transport, or hardware test has been performed. |
 
 ## 4. Preliminary hazard and threat register
 
