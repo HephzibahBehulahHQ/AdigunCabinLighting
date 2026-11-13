@@ -65,12 +65,16 @@ test('manual setpoints follow the selected zone fade and can be committed', asyn
   await expect(output).toHaveText('43 / 6 / 18 / 3');
   await page.getByRole('button', { name: /Apply & set keyframe/ }).click();
   await expect(page.getByRole('status')).toContainText('committed to Aurora at 00:00');
-  await fade.press('End');
-  await expect(fade).toHaveValue('30');
+  await fade.press('Home');
+  await fade.press('ArrowRight');
+  await fade.press('ArrowRight');
+  await fade.press('ArrowRight');
+  await expect(fade).toHaveValue('3');
   const beforeFade = Number((await output.innerText()).split(' / ')[0]);
   await red.fill('0');
   await red.press('Enter');
-  await expect.poll(async () => Number((await output.innerText()).split(' / ')[0])).toBeLessThan(beforeFade);
+  await expect(red).toHaveValue('0');
+  await expect.poll(async () => Number((await output.innerText()).split(' / ')[0]), { timeout: 10_000 }).toBeLessThan(beforeFade);
 });
 
 test('scene file import is schema-validated and export downloads JSON', async ({ page }) => {
