@@ -327,12 +327,6 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
       for (const light of current.lights.get(zone.id) ?? []) { light.color.copy(color); light.intensity = level * (zone.id === 'cabin' ? 18 : 12); }
       for (const material of current.zoneMaterials.get(zone.id) ?? []) { material.emissive.copy(color); material.emissiveIntensity = .15 + level * 1.8; }
     }
-    current.draw();
-  }, [zones, effective, intensity, highQuality]);
-
-  useEffect(() => {
-    const current = api.current;
-    if (!current) return;
     if (previewMotion) {
       motionHome.current ??= { position: current.camera.position.clone(), rotation: current.camera.rotation.clone() };
       const phase = previewDuration > 0 ? previewTime / previewDuration * Math.PI * 2 : 0;
@@ -347,7 +341,7 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
       motionHome.current = null;
     }
     current.draw();
-  }, [previewMotion, previewTime, previewDuration]);
+  }, [zones, effective, intensity, highQuality, previewMotion, previewTime, previewDuration]);
 
   useEffect(() => {
     const current = api.current; if (!current) return;
