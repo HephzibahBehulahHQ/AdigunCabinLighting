@@ -103,7 +103,13 @@ function route(request: IncomingMessage, response: ServerResponse, token: Buffer
 export function createGatewayServer(tokenValue: string): Server {
   if (Buffer.byteLength(tokenValue, 'utf8') < 32) throw new Error('ADIGUN_GATEWAY_TOKEN must contain at least 32 UTF-8 bytes.');
   const token = Buffer.from(tokenValue, 'utf8');
-  return createServer((request, response) => route(request, response, token));
+  const server = createServer((request, response) => route(request, response, token));
+  server.headersTimeout = 10_000;
+  server.requestTimeout = 15_000;
+  server.keepAliveTimeout = 5_000;
+  server.maxHeadersCount = 64;
+  server.maxConnections = 64;
+  return server;
 }
 
 export async function startGateway(token: string, port = 4510): Promise<Server> {

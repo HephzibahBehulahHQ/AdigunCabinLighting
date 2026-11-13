@@ -1,6 +1,6 @@
 # Initial safety and security evidence ledger
 
-**Revision:** 0.1 · **Date:** 2026-11-13 · **Scope:** PR #16 software baseline  
+**Revision:** 0.2 · **Date:** 2026-11-13 · **Scope:** PR #16 baseline plus gateway resource limits proposed in PR #18
 **Status:** Engineering evidence in progress. This ledger is not a safety case, certification package, aircraft approval, penetration-test report, or substitute for review by qualified aviation safety and security specialists.
 
 ## 1. System boundary and intended use
@@ -34,6 +34,7 @@ Assumptions: the local machine and Node runtime are controlled by the operator; 
 | C-05 Input size and schema | Request body capped at 64 KiB; scene file and preview time validated by the shared scene engine. | `gateway/server.ts`; invalid-scene/time and deterministic-preview tests passed in CI. |
 | C-06 Explicit simulation labeling | Health, capability, and preview responses identify simulation and disabled physical output. | `gateway/server.ts`; gateway tests passed in CI. |
 | C-07 Build and static code checks | ESLint, frontend/gateway TypeScript checks, unit/integration tests, production build, and browser tests. | PR CI run [43368044191](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43368044191) passed; Pages deployment [43368627448](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43368627448) succeeded. |
+| C-08 HTTP resource bounds | Limits headers to 64, headers to 10 seconds, request receipt to 15 seconds, keep-alive to 5 seconds, and simultaneous connections to 64. | Added in PR #18; pending CI and merge verification. |
 
 ## 4. Preliminary hazard and threat register
 
@@ -44,7 +45,7 @@ Qualitative items below identify failure paths; no formal severity, probability,
 | H-01 | An operator mistakes a visual preview for aircraft or hardware behavior. | Explicit simulation/offline labels; no physical command path; illustrative geometry caveat. | Human misunderstanding remains possible. Conduct operator usability and labeling review before field use. |
 | H-02 | A malformed or hostile scene produces invalid preview output or crashes the process. | 64 KiB body cap, JSON parsing, shared scene validation, bounded preview time, deterministic engine. | Fuzzing, parser/resource analysis, and broader property tests are outstanding. |
 | H-03 | An unauthorized local process invokes preview routes. | Loopback-only binding, bearer token, `Host` allowlist, no CORS headers. | Local-machine compromise, leaked token, browser-origin edge cases, and secret rotation are not fully assessed. Perform threat-model and penetration testing. |
-| H-04 | Local request flooding or slow upload degrades the machine. | Body size cap. | No rate limit, request deadline, connection cap, or process supervisor is implemented. Define and test resource limits before any shared deployment. |
+| H-04 | Local request flooding or slow upload degrades the machine. | 64 KiB body cap; proposed header/request timeouts and 64-connection cap in PR #18. | No rate limit, process supervisor, resource monitoring, or load test exists. Verify limits and define operational controls before any shared deployment. |
 | H-05 | A future change adds a physical command path without adequate safeguards. | Current route set has no actuator endpoint; hardware integration is explicitly out of scope. | Require a separate approved design, code review, authorization boundary, board-specific validation, interlock, and bench evidence before any such change. |
 | H-06 | A generic cabin visualization or derived reference is represented as aircraft-exact. | Source and limitation notes distinguish planning references from a cabin fit or certified twin. | Independent source/provenance review and exact approved operator configuration are absent. |
 | H-07 | Token or scene data is exposed in logs, browser bundles, or support artifacts. | Token is not emitted by startup or route logging; gateway is not bundled into the browser app. | Secret scanning, log review, distribution review, and operator guidance testing remain outstanding. |
