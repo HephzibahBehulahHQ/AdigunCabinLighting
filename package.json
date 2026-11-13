@@ -17,6 +17,7 @@
     "build:gateway": "tsc -p tsconfig.gateway.json",
     "gateway:start": "npm run build:gateway && node gateway/start.mjs",
     "operator:validate-scene": "npm run build:gateway && node scripts/validate-scene.mjs",
+    "operator:diff-scenes": "npm run build:gateway && node scripts/diff-scenes.mjs",
     "lint": "eslint ."
   },
   "dependencies": {
@@ -42,4 +43,5 @@
     "vitest": "^2.1.8"
   }
 }
+
 
