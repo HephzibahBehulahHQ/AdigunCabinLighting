@@ -60,7 +60,7 @@ async function readJson(request: IncomingMessage): Promise<unknown> {
 
 function requireJsonContent(request: IncomingMessage): void {
   const contentType = request.headers['content-type'];
-  if (!contentType || !/^application\\/json(?:\\s*;|$)/i.test(contentType)) {
+  if (!contentType || !/^application\/json(?:\s*;|$)/i.test(contentType)) {
     throw fault(415, 'UNSUPPORTED_MEDIA_TYPE', 'Preview requests must use application/json.');
   }
   const contentEncoding = request.headers['content-encoding'];
