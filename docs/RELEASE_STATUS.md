@@ -4,13 +4,13 @@
 
 ## Latest deployed release checkpoint
 
-- **Latest application/gateway release:** [PR #25 — Document local gateway token rotation](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/pull/25), merged.
-- **Merge commit:** [`f0b4fc88b628df4d4763cde33f110d4d9f58f5e5`](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/commit/f0b4fc88b628df4d4763cde33f110d4d9f58f5e5).
-- **PR CI:** [Run 43393525144](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43393525144) passed.
-- **Post-merge CI:** [Run 43394197305](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43394197305) passed.
-- **GitHub Pages:** [Run 43394197387](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43394197387) succeeded.
-- **Production smoke:** HTTPS HEAD returned 200 for the [landing page](https://adiguncabinlighting.hephzibahbehulah.com/) and [Studio](https://adiguncabinlighting.hephzibahbehulah.com/studio/) after deployment.
-- **Studio boundary:** PRs #23–#25 changed no Studio application source. PR #23 adjusted only existing E2E waits alongside gateway/docs changes; the approved layout, styling, navigation, panels, labels, and controls remain locked.
+- **Latest functional milestone:** [PR #26 — Add offline scene revision diff workflow](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/pull/26), merged.
+- **Merge commit:** [`2dde7eea22cc892203ec9964dad32b1eb2c6cb68`](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/commit/2dde7eea22cc892203ec9964dad32b1eb2c6cb68).
+- **PR CI:** [Run 43397693027](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43397693027) passed.
+- **Post-merge CI:** [Run 43398557603](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43398557603) passed, including lint, typecheck, unit tests, production build, and Playwright E2E.
+- **GitHub Pages:** [Run 43398557466](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43398557466) succeeded for the merge commit.
+- **Production smoke:** Not rerun after PR #26. The prior recorded HTTPS HEAD checks returned 200 for the [landing page](https://adiguncabinlighting.hephzibahbehulah.com/) and [Studio](https://adiguncabinlighting.hephzibahbehulah.com/studio/) after PR #25.
+- **Studio boundary:** PR #26 changes no Studio application source, layout, styling, navigation, panels, labels, or controls. Earlier PR #23 only adjusted existing E2E waits; Studio interface remains locked.
 
 ## Current deployed scope
 
