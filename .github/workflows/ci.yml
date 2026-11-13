@@ -17,6 +17,11 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Verify checkout root and npm lockfile
+        run: |
+          pwd
+          ls -la
+          node -e "const fs = require('node:fs'); const lock = 'package-lock.json'; const exists = fs.existsSync(lock); const version = exists ? require('./package-lock.json').lockfileVersion : null; console.log(JSON.stringify({ cwd: process.cwd(), lockfileExists: exists, lockfileVersion: version })); if (!exists || version < 1) process.exit(1);"
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
@@ -30,3 +35,4 @@ jobs:
           name: cabin-lighting-ui-screenshots
           path: artifacts/screenshots/
           if-no-files-found: ignore
+

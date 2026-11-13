@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity, ArrowDownToLine, ArrowRight, Bookmark, Check, ChevronDown, CopyPlus,
   CircleHelp, Clock3, Download, Gauge, LayoutGrid,
@@ -10,12 +10,14 @@ import {
   interpolateRGBW, interpolateScene, makeDefaultZones, makeZones, normalizeRGBW, PRESETS, toHex, validateSceneFile,
   ZONE_IDS, ZONE_INFO, type RGBW, type SceneFile, type ZoneId, type ZoneState,
 } from './scene-engine';
+import { CABIN_LAYOUTS, CABIN_PROFILES, DEFAULT_CABIN_CONFIG, validateCabinConfig, type CabinConfig, type CabinLayoutId } from './cabin-config';
 
 const STORAGE_KEY = 'adigun-cabin-studio:v1';
 const PROJECT_INDEX_KEY = 'adigun-cabin-projects:v1';
 const ACTIVE_PROJECT_KEY = 'adigun-cabin-active-project:v1';
-type SavedState = { zones: ZoneState[]; scenes: SceneFile[]; intensity: number; activeSceneId: string; selectedZoneId: ZoneId; projectName?: string };
+type SavedState = { zones: ZoneState[]; scenes: SceneFile[]; intensity: number; activeSceneId: string; selectedZoneId: ZoneId; projectName?: string; cabinConfig?: CabinConfig };
 const copy = <T,>(value: T): T => structuredClone(value);
+const Cabin3D = lazy(() => import('./Cabin3D'));
 
 function readSaved(projectId = 'default'): Partial<SavedState> {
   try {
@@ -216,6 +218,8 @@ function Studio() {
   const [selected, setSelected] = useState<ZoneId>(() => ZONE_IDS.includes(stored.selectedZoneId as ZoneId) ? stored.selectedZoneId! : 'ceiling');
   const [activeSceneId, setActiveSceneId] = useState(() => typeof stored.activeSceneId === 'string' ? stored.activeSceneId : 'aurora');
   const [projectName, setProjectName] = useState(() => typeof stored.projectName === 'string' && stored.projectName.trim() ? stored.projectName : 'Cabin 01');
+  const [cabinConfig, setCabinConfig] = useState<CabinConfig>(() => validateCabinConfig(stored.cabinConfig ?? {}));
+  const [cabinDraft, setCabinDraft] = useState<CabinConfig>(() => validateCabinConfig(stored.cabinConfig ?? {}));
   const [time, setTime] = useState(0);
   const [effectiveRGBW, setEffectiveRGBW] = useState<Record<ZoneId, RGBW>>(() => Object.fromEntries(zones.map((zone) => [zone.id, { ...zone.rgbw }])) as Record<ZoneId, RGBW>);
   const [playing, setPlaying] = useState(false);
@@ -223,10 +227,14 @@ function Studio() {
   const [tab, setTab] = useState('scene');
   const [menuOpen, setMenuOpen] = useState(false);
   const [hq4k, setHq4k] = useState(true);
+  const [viewMode, setViewMode] = useState<'2d' | '3d'>('3d');
+  const [configOpen, setConfigOpen] = useState(false);
   const [undo, setUndo] = useState<ZoneState[][]>([]);
   const [redo, setRedo] = useState<ZoneState[][]>([]);
   const importRef = useRef<HTMLInputElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const cabinCaptureRef = useRef<(() => Promise<Blob>) | null>(null);
+  const cameraResetRef = useRef<(() => void) | null>(null);
   const playStart = useRef(0);
   const effectiveRef = useRef(effectiveRGBW);
   const fadeTransitions = useRef<Partial<Record<ZoneId, { from: RGBW; to: RGBW; started: number; durationMs: number }>>>({});
@@ -268,13 +276,13 @@ function Studio() {
 
   useEffect(() => {
     const persist = () => {
-      try { writeProject(projectId, projectName, { zones, scenes, intensity, activeSceneId, selectedZoneId: selected, projectName }); }
+      try { writeProject(projectId, projectName, { zones, scenes, intensity, activeSceneId, selectedZoneId: selected, projectName, cabinConfig }); }
       catch { setNotice('Browser storage is unavailable. Export scenes to save a local copy.'); }
     };
     const timer = window.setTimeout(persist, 300);
     window.addEventListener('pagehide', persist);
     return () => { window.clearTimeout(timer); window.removeEventListener('pagehide', persist); };
-  }, [zones, scenes, intensity, activeSceneId, selected, projectName, projectId]);
+  }, [zones, scenes, intensity, activeSceneId, selected, projectName, projectId, cabinConfig]);
   useEffect(() => {
     if (!playing) return;
     playStart.current = performance.now() - time * 1000;
@@ -345,8 +353,8 @@ function Studio() {
     setScenes((all) => all.map((item) => item.id === updated.id ? updated : item));
     setNotice(`Saved ${scene.name} locally`);
   };
-  const resetScene = () => { const defaults = makeDefaultZones(); setPlaying(false); setUndo([]); setRedo([]); setScenes(copy(PRESETS)); setZones(defaults); setEffectiveImmediately(Object.fromEntries(defaults.map((zone) => [zone.id, zone.rgbw])) as Record<ZoneId, RGBW>); setActiveSceneId('aurora'); setSelected('ceiling'); setTime(0); setIntensity(72); setNotice('Local studio reset to default scenes'); };
-  const currentProjectState = (): SavedState => ({ zones, scenes, intensity, activeSceneId, selectedZoneId: selected, projectName });
+  const resetScene = () => { const defaults = makeDefaultZones(); setPlaying(false); setUndo([]); setRedo([]); setScenes(copy(PRESETS)); setZones(defaults); setEffectiveImmediately(Object.fromEntries(defaults.map((zone) => [zone.id, zone.rgbw])) as Record<ZoneId, RGBW>); setActiveSceneId('aurora'); setSelected('ceiling'); setTime(0); setIntensity(72); setCabinConfig(DEFAULT_CABIN_CONFIG); setCabinDraft(DEFAULT_CABIN_CONFIG); setNotice('Local studio reset to default scenes'); };
+  const currentProjectState = (): SavedState => ({ zones, scenes, intensity, activeSceneId, selectedZoneId: selected, projectName, cabinConfig });
   const saveProject = () => { try { writeProject(projectId, projectName, currentProjectState()); setNotice(`Project “${projectName}” saved locally`); } catch { setNotice('Project could not be saved to browser storage'); } };
   const loadProject = (id: string, name: string) => {
     const next = readSaved(id);
@@ -356,7 +364,7 @@ function Studio() {
       nextScenes = [...savedScenes, ...PRESETS.filter((preset) => !savedScenes.some((item) => item.id === preset.id)).map(copy)];
       if (!nextScenes.length) nextScenes = copy(PRESETS);
     } catch { nextScenes = copy(PRESETS); }
-    setProjectId(id); localStorage.setItem(ACTIVE_PROJECT_KEY, id); setProjectName(next.projectName || name); setZones(nextZones); setScenes(nextScenes); setIntensity(Number.isFinite(next.intensity) ? Math.max(0, Math.min(100, next.intensity!)) : 72); setActiveSceneId(next.activeSceneId || 'aurora'); setSelected(ZONE_IDS.includes(next.selectedZoneId as ZoneId) ? next.selectedZoneId! : 'ceiling'); setUndo([]); setRedo([]); setPlaying(false); setTime(0); setEffectiveImmediately(Object.fromEntries(nextZones.map((zone) => [zone.id, zone.rgbw])) as Record<ZoneId, RGBW>); setNotice(`Project “${name}” opened`);
+    setProjectId(id); localStorage.setItem(ACTIVE_PROJECT_KEY, id); setProjectName(next.projectName || name); setZones(nextZones); setScenes(nextScenes); setIntensity(Number.isFinite(next.intensity) ? Math.max(0, Math.min(100, next.intensity!)) : 72); setActiveSceneId(next.activeSceneId || 'aurora'); setSelected(ZONE_IDS.includes(next.selectedZoneId as ZoneId) ? next.selectedZoneId! : 'ceiling'); setCabinConfig(validateCabinConfig(next.cabinConfig ?? {})); setCabinDraft(validateCabinConfig(next.cabinConfig ?? {})); setUndo([]); setRedo([]); setPlaying(false); setTime(0); setEffectiveImmediately(Object.fromEntries(nextZones.map((zone) => [zone.id, zone.rgbw])) as Record<ZoneId, RGBW>); setNotice(`Project “${name}” opened`);
   };
   const openProject = () => {
     const index = readProjectIndex(); if (!index.length) { setNotice('Save a project before using Open Project'); return; }
@@ -370,7 +378,7 @@ function Studio() {
     try { writeProject(projectId, projectName, currentProjectState()); } catch { setNotice('Current project could not be saved'); return; }
     const id = crypto.randomUUID(); setProjectId(id); localStorage.setItem(ACTIVE_PROJECT_KEY, id); setProjectName(name.trim()); resetScene(); setNotice(`New local project “${name.trim()}” created`);
   };
-  const changeCabin = () => setNotice('No approved aircraft model package is installed. The current cabin remains illustrative; supply an airline-approved 3D model and exact variant to enable this selector.');
+  const changeCabin = () => { setCabinDraft(cabinConfig); setConfigOpen((open) => !open); setTab('scene'); };
   const createNewScene = () => {
     const name = window.prompt('New scene name'); if (!name?.trim()) return;
     const targets = Object.fromEntries(zones.map((zone) => [zone.id, { ...zone.rgbw }])) as SceneFile['keyframes'][number]['targets'];
@@ -420,6 +428,15 @@ function Studio() {
     setNotice('Versioned scene file exported');
   };
   const exportCabin4K = async () => {
+    if (viewMode === '3d') {
+      try {
+        const png = await cabinCaptureRef.current?.();
+        if (!png) throw new Error('The 3D renderer is not ready for capture.');
+        const downloadUrl = URL.createObjectURL(png); const anchor = document.createElement('a'); anchor.href = downloadUrl; anchor.download = 'adigun-configurable-reference-cabin-3840x2160.png'; anchor.click(); URL.revokeObjectURL(downloadUrl);
+        setNotice('Exported the current 3D cabin view at 3840 × 2160.');
+      } catch (error) { setNotice(error instanceof Error ? error.message : 'The 3D cabin could not be exported.'); }
+      return;
+    }
     const source = stageRef.current?.querySelector('svg');
     if (!source) { setNotice('Cabin view is not ready for export'); return; }
     try {
@@ -473,7 +490,8 @@ function Studio() {
         <button aria-label="Open project" title="Open a saved local project" onClick={openProject}><LayoutGrid size={18} /><span>Open project</span></button>
         <button aria-label="Create new project" title="Create new local project" onClick={createProject}><Plus size={18} /><span>New project</span></button>
         <button aria-label="Create new scene" title="Create a scene from current zone values" onClick={createNewScene}><Plus size={18} /><span>New scene</span></button>
-        <button aria-label="Change cabin model" title="Select an approved aircraft cabin model" onClick={changeCabin}><RotateCcw size={18} /><span>Change cabin</span></button>
+        <button aria-label="Change cabin" title="Choose a different cabin layout and dimensions" aria-expanded={configOpen} onClick={changeCabin}><Settings2 size={18} /><span>Change cabin</span></button>
+        <button aria-label="Reset cabin camera view" title="Return the 3D camera to the cabin entry view" disabled={viewMode !== '3d'} onClick={() => cameraResetRef.current?.()}><RotateCcw size={18} /><span>Reset camera</span></button>
         <div className="rail-divider" /><span className="rail-label">SYSTEM</span>
         <div className="rail-disabled" title="Physical hardware diagnostics are not included in this offline release"><Activity size={18} /><span>Hardware diagnostics</span><small>NOT AVAILABLE</small></div>
         <div className="rail-disabled" title="Adigun BOT is not enabled for this release"><Sparkles size={18} /><span>Adigun BOT</span><small>NOT ENABLED</small></div>
@@ -482,12 +500,19 @@ function Studio() {
         <div className="workspace-grid">
           <div className="visual-column">
             <section className="panel cabin-panel" id="cabin-view" tabIndex={-1}>
-              <div className="panel-head"><div><h2>Cabin digital twin</h2></div><div className="view-controls" aria-label="Cabin view controls"><div className="view-switch" role="group" aria-label="Cabin view"><button aria-pressed="true" disabled>2D</button><button aria-pressed="false" aria-label="3D unavailable: approved cabin model not installed" disabled title="Unavailable until a licensed, airline-approved 3D cabin model is installed">3D</button></div><button className={`quality-toggle ${hq4k ? 'is-on' : ''}`} aria-label="HQ 4K export mode" aria-pressed={hq4k} onClick={() => setHq4k((value) => !value)}>HQ 4K <span /></button></div></div>
-              <div className={`cabin-stage ${hq4k ? 'quality-high' : ''}`} data-view-mode="2d" ref={stageRef}><div className="stage-grid" /><div className="stage-crosshair" />
-                <CabinDrawing zones={zones.map((zone) => ({ ...zone, rgbw: Object.fromEntries(Object.entries(effectiveRGBW[zone.id]).map(([key, value]) => [key, value * intensity / 100])) as RGBW }))} selected={selected} onSelect={setSelected} />
-                <div className="stage-scale"><span /> 2D ZONE MAP · ILLUSTRATIVE ONLY</div>
+              <div className="panel-head"><div><h2>Cabin digital twin</h2></div><div className="view-controls" aria-label="Cabin view controls"><div className="view-switch" role="group" aria-label="Cabin view"><button aria-pressed={viewMode === '2d'} onClick={() => setViewMode('2d')}>2D</button><button aria-pressed={viewMode === '3d'} onClick={() => setViewMode('3d')}>3D</button></div><button className={`quality-toggle ${hq4k ? 'is-on' : ''}`} aria-label="High quality 4K capture mode" aria-pressed={hq4k} onClick={() => setHq4k((value) => !value)}>HQ 4K <span /></button></div></div>
+              {configOpen && <form className="cabin-config" onSubmit={(e) => { e.preventDefault(); const next = validateCabinConfig(cabinDraft); setCabinDraft(next); setCabinConfig(next); setConfigOpen(false); setNotice(`${CABIN_LAYOUTS[next.layoutId].name} cabin loaded · ${next.lengthMeters.toFixed(1)} m × ${next.widthMeters.toFixed(2)} m. Reference layout only.`); }}>
+                <div className="cabin-config-head"><strong>Change cabin <small>· configurable reference layouts</small></strong><button type="button" aria-label="Close cabin configuration" onClick={() => setConfigOpen(false)}><X size={14} /></button></div>
+                <label className="cabin-profile-select">Cabin layout<select aria-label="Cabin layout" value={cabinDraft.layoutId} onChange={(e) => setCabinDraft(CABIN_PROFILES[e.target.value as CabinLayoutId])}>{Object.entries(CABIN_LAYOUTS).map(([id, item]) => <option key={id} value={id}>{item.name}</option>)}</select></label>
+                <div className="cabin-profile-summary">{CABIN_LAYOUTS[cabinDraft.layoutId].description} · {cabinDraft.lengthMeters.toFixed(1)} m long · {cabinDraft.widthMeters.toFixed(2)} m wide · {CABIN_LAYOUTS[cabinDraft.layoutId].groups.reduce((sum, count) => sum + count, 0)} seats/row</div>
+                {([['lengthMeters','Length (m)',8,50,.1],['widthMeters','Interior width (m)',2.6,7,.05],['ceilingHeightMeters','Ceiling height (m)',1.8,4,.05],['seatRows','Seat rows',2,40,1],['seatPitchMeters','Seat pitch (m)',.55,1.3,.01],['windowCountPerSide','Windows per side',2,30,1],['overheadBinDepthMeters','Bin depth (m)',.25,1,.01]] as const).map(([key,label,min,max,step]) => <label key={key}>{label}<input type="number" min={min} max={max} step={step} value={cabinDraft[key]} onChange={(e) => setCabinDraft((config) => ({ ...config, [key]: Number(e.target.value) }))} /></label>)}
+                <p className="cabin-profile-note">These are editable reference layouts, not certified aircraft models or operator cabin fits.</p>
+                <button type="submit" className="button button-quiet button-sm">Load cabin layout</button>
+              </form>}
+              <div className={`cabin-stage ${hq4k ? 'quality-high' : ''}`} data-view-mode={viewMode} ref={stageRef}><div className="stage-grid" /><div className="stage-crosshair" />
+                {viewMode === '3d' ? <Suspense fallback={<div className="cabin3d-loading" role="status">Preparing the configurable reference cabin…</div>}><Cabin3D key={JSON.stringify(cabinConfig)} config={cabinConfig} zones={zones} effective={effectiveRGBW} intensity={intensity} selected={selected} onSelect={setSelected} highQuality={hq4k} captureRef={cabinCaptureRef} cameraResetRef={cameraResetRef} /></Suspense> : <><CabinDrawing zones={zones.map((zone) => ({ ...zone, rgbw: Object.fromEntries(Object.entries(effectiveRGBW[zone.id]).map(([key, value]) => [key, value * intensity / 100])) as RGBW }))} selected={selected} onSelect={setSelected} /><div className="stage-scale"><span /> 2D ZONE MAP · ILLUSTRATIVE ONLY</div></>}
               </div>
-              <div className="cabin-legend"><span><i className="legend-active" /> Active selection</span><span><i className="legend-zone" /> Selectable lighting zone</span><span className="legend-revision">Illustrative profile · not an aircraft fit</span></div>
+              <div className="cabin-legend"><span><i className="legend-active" /> Active zone: {currentZone.name}</span><span><i className="legend-zone" /> Double-click a 3D fixture to select its zone</span><span className="legend-revision">Configurable reference geometry · not an aircraft fit</span></div>
             </section>
             <section className="panel timeline-panel" id="timeline" tabIndex={-1}>
               <div className="timeline-head"><div><span className="panel-overline">CHOREOGRAPHY TIMELINE</span><h2>Transition preview</h2></div><button className="button button-quiet button-sm" onClick={addKeyframe}><Plus size={14} /> Add keyframe</button></div>
@@ -540,3 +565,4 @@ export default function App() {
   const isStudio = window.location.pathname.replace(/\/$/, '') === '/studio';
   return isStudio ? <Studio /> : <Landing />;
 }
+

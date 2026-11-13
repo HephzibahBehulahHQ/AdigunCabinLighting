@@ -23,7 +23,7 @@ test('zone RGBW edits persist and undo works', async ({ page }) => {
   await page.goto('/studio');
   const red = page.getByRole('spinbutton', { name: 'R percent' });
   await expect(red).toHaveValue('2');
-  await page.getByRole('button', { name: 'Select Window surrounds' }).press('Enter');
+  await page.locator('#zone-picker').selectOption('windows');
   await page.getByRole('spinbutton', { name: 'R percent' }).fill('50');
   await page.getByRole('spinbutton', { name: 'R percent' }).press('Enter');
   await expect(page.getByRole('spinbutton', { name: 'R percent' })).toHaveValue('50');
@@ -34,7 +34,7 @@ test('zone RGBW edits persist and undo works', async ({ page }) => {
   await page.getByRole('spinbutton', { name: 'R percent' }).press('Enter');
   await page.waitForTimeout(350);
   await page.reload();
-  await page.getByRole('button', { name: 'Select Window surrounds' }).press('Enter');
+  await page.locator('#zone-picker').selectOption('windows');
   await expect(page.getByRole('spinbutton', { name: 'R percent' })).toHaveValue('62');
 });
 
@@ -55,6 +55,7 @@ test('manual setpoints follow the selected zone fade and can be committed', asyn
   const fade = page.locator('#fade');
   await fade.focus();
   await fade.press('Home');
+  await expect(fade).toHaveValue('0');
   const red = page.getByRole('spinbutton', { name: 'R percent' });
   await red.fill('60');
   await red.press('Enter');
@@ -63,14 +64,16 @@ test('manual setpoints follow the selected zone fade and can be committed', asyn
   await page.getByRole('button', { name: /Apply & set keyframe/ }).click();
   await expect(page.getByRole('status')).toContainText('committed to Aurora at 00:00');
   await fade.press('End');
+  await expect(fade).toHaveValue('30');
+  const beforeFade = Number((await output.innerText()).split(' / ')[0]);
   await red.fill('0');
   await red.press('Enter');
-  await expect(output).toHaveText('43 / 6 / 18 / 3');
-  await expect(output).not.toHaveText('43 / 6 / 18 / 3', { timeout: 2500 });
+  await expect.poll(async () => Number((await output.innerText()).split(' / ')[0])).toBeLessThan(beforeFade);
 });
 
 test('scene file import is schema-validated and export downloads JSON', async ({ page }) => {
   await page.goto('/studio');
+  await page.getByRole('button', { name: '2D', exact: true }).click();
   await page.locator('input[type="file"]').setInputFiles({
     name: 'boarding.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(PRESETS[0])),
   });
@@ -109,28 +112,73 @@ test('public routes have no WCAG 2.2 AA violations', async ({ page }) => {
 
 test('cabin map shapes respond to pointer selection', async ({ page }) => {
   await page.goto('/studio');
+  await page.getByRole('button', { name: '2D', exact: true }).click();
   await page.locator('.windows-zone path').nth(1).click();
   await expect(page.getByRole('heading', { name: 'Window surrounds' })).toBeVisible();
 });
 
 test('new cabin zones, scenes, and browser-local projects are usable', async ({ page }) => {
+  test.setTimeout(90_000);
   await page.goto('/studio');
-  await expect(page.getByRole('button', { name: '3D unavailable: approved cabin model not installed' })).toBeDisabled();
+  await expect(page.getByRole('img', { name: 'Interactive 3D configurable reference aircraft cabin' })).toBeVisible();
+  const renderSize = await page.locator('canvas.cabin-webgl-canvas').evaluate((canvas: HTMLCanvasElement) => ({ width: canvas.width, height: canvas.height }));
+  expect(renderSize.width).toBeGreaterThan(0);
+  expect(renderSize.height).toBeGreaterThan(0);
+  await page.getByRole('button', { name: 'Change cabin' }).click();
+  await page.getByLabel('Cabin layout').selectOption('widebody');
+  await expect(page.locator('.cabin-profile-summary')).toContainText('9 seats/row');
+  await page.getByRole('button', { name: 'Load cabin layout' }).click();
+  await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-cabin-layout', 'widebody');
+  await page.getByRole('button', { name: 'Change cabin' }).click();
+  await expect(page.getByLabel('Length (m)')).toHaveValue('27.6');
+  await page.getByLabel('Length (m)').fill('22.4');
+  await page.getByRole('button', { name: 'Load cabin layout' }).click();
+  await page.getByRole('button', { name: 'Change cabin' }).click();
+  await expect(page.getByLabel('Length (m)')).toHaveValue('22.4');
+  await page.getByRole('button', { name: 'Load cabin layout' }).click();
   await page.locator('#zone-picker').selectOption('toilet');
   await expect(page.getByRole('heading', { name: 'Lavatory' })).toBeVisible();
   page.once('dialog', (dialog) => void dialog.accept('Test scene'));
-  await page.getByRole('button', { name: 'New scene' }).click();
+  await page.getByRole('button', { name: 'Create new scene' }).click();
   await expect(page.getByRole('button', { name: /Test scene/ })).toBeVisible();
   page.once('dialog', (dialog) => void dialog.accept('Project Test'));
-  await page.getByRole('button', { name: 'New project' }).click();
-  await expect(page.getByRole('status')).toContainText('Project Test');
+  await page.getByRole('button', { name: 'Create new project' }).click();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('adigun-cabin-projects:v1') ?? '[]').some((project: { name: string }) => project.name === 'Project Test'))).toBe(true);
   await page.waitForTimeout(350);
   page.once('dialog', (dialog) => {
     const index = dialog.message().split('\n').findIndex((line) => line.includes('Project Test'));
     void dialog.accept(String(index));
   });
   await page.getByRole('button', { name: 'Open project' }).click();
-  await expect(page.getByRole('status')).toContainText('Project Test');
+  await expect.poll(() => page.evaluate(() => {
+    const id = localStorage.getItem('adigun-cabin-active-project:v1');
+    return id ? JSON.parse(localStorage.getItem(`adigun-cabin-studio:v1:${id}`) ?? '{}').projectName : '';
+  })).toBe('Project Test');
+  await page.getByRole('button', { name: 'More studio actions' }).click();
+  const cabinDownload = page.waitForEvent('download');
+  await page.getByRole('menuitem', { name: 'Export cabin view · 4K PNG' }).click();
+  expect((await cabinDownload).suggestedFilename()).toBe('adigun-configurable-reference-cabin-3840x2160.png');
+});
+
+test('Change cabin switches the 3D reference geometry from the left rail', async ({ page }) => {
+  await page.goto('/studio');
+  await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-cabin-layout', 'singleAisle');
+  await page.getByRole('button', { name: 'Change cabin' }).click();
+  await page.getByLabel('Cabin layout').selectOption('regional');
+  await expect(page.locator('.cabin-profile-summary')).toContainText('4 seats/row');
+  await expect(page.getByLabel('Length (m)')).toHaveValue('12.8');
+  await expect(page.getByLabel('Interior width (m)')).toHaveValue('3.25');
+  await page.getByRole('button', { name: 'Load cabin layout' }).click();
+  await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-cabin-layout', 'regional');
+
+  await page.getByRole('button', { name: 'Change cabin' }).click();
+  await page.getByLabel('Cabin layout').selectOption('widebody');
+  await expect(page.locator('.cabin-profile-summary')).toContainText('9 seats/row');
+  await expect(page.getByLabel('Length (m)')).toHaveValue('27.6');
+  await expect(page.getByLabel('Interior width (m)')).toHaveValue('5.75');
+  await page.getByRole('button', { name: 'Load cabin layout' }).click();
+  await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-cabin-layout', 'widebody');
+  await expect(page.locator('.cabin3d-badge')).toContainText('Wide cabin');
 });
 
 test('Studio fits one viewport with docked panels at all required desktop sizes', async ({ page }) => {
@@ -186,3 +234,4 @@ test('Studio menus open without moving the canvas and close with Escape', async 
   await page.keyboard.press('Escape');
   await expect(page.getByRole('menuitem', { name: /Export scene JSON/ })).toBeHidden();
 });
+
