@@ -4,13 +4,13 @@
 
 ## Latest deployed release checkpoint
 
-- **Latest functional milestone:** [PR #26 — Add offline scene revision diff workflow](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/pull/26), merged.
-- **Merge commit:** [`2dde7eea22cc892203ec9964dad32b1eb2c6cb68`](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/commit/2dde7eea22cc892203ec9964dad32b1eb2c6cb68).
-- **PR CI:** [Run 43397693027](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43397693027) passed.
-- **Post-merge CI:** [Run 43398557603](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43398557603) passed, including lint, typecheck, unit tests, production build, and Playwright E2E.
-- **GitHub Pages:** [Run 43398557466](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43398557466) succeeded for the merge commit.
-- **Production smoke:** Not rerun after PR #26. The prior recorded HTTPS HEAD checks returned 200 for the [landing page](https://adiguncabinlighting.hephzibahbehulah.com/) and [Studio](https://adiguncabinlighting.hephzibahbehulah.com/studio/) after PR #25.
-- **Studio boundary:** PR #26 changes no Studio application source, layout, styling, navigation, panels, labels, or controls. Earlier PR #23 only adjusted existing E2E waits; Studio interface remains locked.
+- **Latest functional milestone:** [PR #28 — Reject duplicate and stale firmware frames](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/pull/28), merged.
+- **Merge commit:** [`45b9cf4b26285011343656a1112864e7af3968fd`](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/commit/45b9cf4b26285011343656a1112864e7af3968fd).
+- **PR CI:** [Run 43401758355](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43401758355) and firmware build [43401758492](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43401758492) passed.
+- **Post-merge CI:** [Run 43402682555](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43402682555) and firmware build/portable host checks [43402682574](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43402682574) passed.
+- **GitHub Pages:** [Run 43402682684](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43402682684) succeeded for the merge commit.
+- **Production smoke:** Not rerun after PR #28. The prior recorded HTTPS HEAD checks returned 200 for the [landing page](https://adiguncabinlighting.hephzibahbehulah.com/) and [Studio](https://adiguncabinlighting.hephzibahbehulah.com/studio/) after PR #25.
+- **Studio boundary:** PR #28 changes only firmware core/tests and traceability/docs; it changes no Studio application source, layout, styling, navigation, panels, labels, or controls. Studio remains locked.
 
 ## Current deployed scope
 
