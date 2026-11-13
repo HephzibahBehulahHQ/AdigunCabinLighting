@@ -294,6 +294,8 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
       scene.traverse((object) => { if (object instanceof THREE.Mesh && !allCachedGeometries.has(object.geometry)) object.geometry.dispose(); });
       boxGeometryCache.forEach((geometry) => geometry.dispose());
       roundedGeometryCache.forEach((geometry) => geometry.dispose());
+      boxGeometryCache.clear();
+      roundedGeometryCache.clear();
       const disposed = new Set<THREE.Material>();
       scene.traverse((object) => { if (object instanceof THREE.Mesh) { const materials = Array.isArray(object.material) ? object.material : [object.material]; materials.forEach((material) => disposed.add(material)); } });
       disposed.forEach((material) => material.dispose());
