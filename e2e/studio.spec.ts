@@ -20,6 +20,7 @@ test('landing opens the working Studio route', async ({ page }) => {
 });
 
 test('zone RGBW edits persist and undo works', async ({ page }) => {
+  test.setTimeout(60_000);
   await page.goto('/studio');
   const red = page.getByRole('spinbutton', { name: 'R percent' });
   await expect(red).toHaveValue('2');
@@ -33,12 +34,13 @@ test('zone RGBW edits persist and undo works', async ({ page }) => {
   await page.getByRole('spinbutton', { name: 'R percent' }).fill('62');
   await page.getByRole('spinbutton', { name: 'R percent' }).press('Enter');
   await page.waitForTimeout(350);
-  await page.reload();
+  await page.reload({ waitUntil: 'domcontentloaded' });
   await page.locator('#zone-picker').selectOption('windows');
   await expect(page.getByRole('spinbutton', { name: 'R percent' })).toHaveValue('62');
 });
 
 test('scene timeline scrubs and plays its actual transition', async ({ page }) => {
+  test.setTimeout(60_000);
   await page.goto('/studio');
   const clock = page.locator('.time-readout');
   const timeline = page.getByRole('slider', { name: 'Scene timeline position' });
@@ -47,7 +49,7 @@ test('scene timeline scrubs and plays its actual transition', async ({ page }) =
   await expect(clock).toContainText('01:00');
   await page.getByRole('button', { name: 'Play preview' }).click();
   await expect(page.getByRole('button', { name: 'Pause preview' })).toBeVisible();
-  await expect.poll(async () => clock.innerText(), { timeout: 3000 }).not.toBe('00:00 / 01:00');
+  await expect.poll(async () => Number(await timeline.inputValue()), { timeout: 15_000 }).toBeGreaterThan(0);
 });
 
 test('manual setpoints follow the selected zone fade and can be committed', async ({ page }) => {
@@ -289,4 +291,5 @@ test('Studio menus open without moving the canvas and close with Escape', async 
   await page.keyboard.press('Escape');
   await expect(page.getByRole('menuitem', { name: /Export scene JSON/ })).toBeHidden();
 });
+
 

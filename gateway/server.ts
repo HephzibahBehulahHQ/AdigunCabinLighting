@@ -4,6 +4,10 @@ import { interpolateScene, validateSceneFile, type SceneFile } from '../src/scen
 
 const API_VERSION = '1';
 const MAX_BODY_BYTES = 64 * 1024;
+const DEFAULT_RATE_LIMIT = 120;
+const DEFAULT_RATE_WINDOW_MS = 60_000;
+
+type RateBucket = { startedAt: number; requests: number };
 
 type GatewayFault = Error & { statusCode: number; code: string };
 
@@ -59,9 +63,27 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function route(request: IncomingMessage, response: ServerResponse, token: Buffer): void {
+function takeRateLimit(request: IncomingMessage, buckets: Map<string, RateBucket>, now: number, limit: number, windowMs: number): number | null {
+  const key = request.socket.remoteAddress ?? 'unknown';
+  let bucket = buckets.get(key);
+  if (!bucket || now - bucket.startedAt >= windowMs) {
+    bucket = { startedAt: now, requests: 0 };
+    buckets.set(key, bucket);
+  }
+  bucket.requests += 1;
+  if (bucket.requests <= limit) return null;
+  return Math.max(1, Math.ceil((bucket.startedAt + windowMs - now) / 1000));
+}
+
+function route(request: IncomingMessage, response: ServerResponse, token: Buffer, buckets: Map<string, RateBucket>, limit: number, windowMs: number): void {
   void (async () => {
     try {
+      const retryAfter = takeRateLimit(request, buckets, Date.now(), limit, windowMs);
+      if (retryAfter !== null) {
+        response.setHeader('retry-after', String(retryAfter));
+        send(response, 429, { apiVersion: API_VERSION, error: { code: 'RATE_LIMITED', message: 'Local simulator gateway request limit exceeded.' } });
+        return;
+      }
       if (!isLoopbackHost(request.headers.host)) throw fault(421, 'LOOPBACK_HOST_REQUIRED', 'The local simulator gateway accepts loopback Host values only.');
       if (!isAuthorized(request, token)) {
         response.setHeader('www-authenticate', 'Bearer');
@@ -100,10 +122,15 @@ function route(request: IncomingMessage, response: ServerResponse, token: Buffer
   })();
 }
 
-export function createGatewayServer(tokenValue: string): Server {
+export function createGatewayServer(tokenValue: string, options: { rateLimit?: number; rateWindowMs?: number } = {}): Server {
   if (Buffer.byteLength(tokenValue, 'utf8') < 32) throw new Error('ADIGUN_GATEWAY_TOKEN must contain at least 32 UTF-8 bytes.');
+  const rateLimit = options.rateLimit ?? DEFAULT_RATE_LIMIT;
+  const rateWindowMs = options.rateWindowMs ?? DEFAULT_RATE_WINDOW_MS;
+  if (!Number.isInteger(rateLimit) || rateLimit < 1) throw new Error('Gateway rate limit must be a positive integer.');
+  if (!Number.isInteger(rateWindowMs) || rateWindowMs < 1) throw new Error('Gateway rate window must be a positive integer in milliseconds.');
   const token = Buffer.from(tokenValue, 'utf8');
-  const server = createServer((request, response) => route(request, response, token));
+  const buckets = new Map<string, RateBucket>();
+  const server = createServer((request, response) => route(request, response, token, buckets, rateLimit, rateWindowMs));
   server.headersTimeout = 10_000;
   server.requestTimeout = 15_000;
   server.keepAliveTimeout = 5_000;
@@ -121,3 +148,4 @@ export async function startGateway(token: string, port = 4510): Promise<Server> 
   });
   return server;
 }
+
