@@ -14,13 +14,12 @@ PR #19 merged a reproducible ESP-IDF v6.1 ESP32-S3 compile target and fail-close
 - **Bench firmware and hardware tests:** compile-only ESP32-S3 fail-closed protocol/state core merged; PR and post-merge builds and host checks pass. It cannot drive outputs and is not an authenticated device or commissioning firmware. No exact board/module revision, validated driver, isolated current-limited rig, physical interlock, flashed image, or HIL evidence is available.
 - **Adigun BOT:** no runtime integration. Any future copilot is advisory only and must not issue hardware commands.
 - **OEM SDK:** typed adapter boundary and unsupported implementation; it reports `AIRCRAFT_LOCKED`, no capabilities, and no device command. No approved aircraft configuration, OEM contract, SDK agreement, or conformance evidence is present; no vendor is supported.
-- **Operator workflows:** offline scene preflight and schema-validated scene revision comparison use the shared validator and bounded file reader; neither is an approval. Accounts, role approvals, audit sign-off, device/bench procedures, telemetry reconciliation, and crew workflows remain unavailable.
+- **Operator workflows:** offline scene preflight, schema-validated scene revision comparison, and deterministic exact-byte scene integrity receipts use the shared validator and bounded file reader; none is an approval or an immutable audit record. Accounts, role approvals, audit sign-off, device/bench procedures, telemetry reconciliation, and crew workflows remain unavailable.
 - **Localization:** English only. German, Yoruba, and Nigerian Pidgin require reviewed translations; the Studio stays English while its interface is locked.
 - **Safety/security evidence:** boundary, safeguards, hazards, open gates, and master-plan acceptance traceability are recorded. Qualified review, penetration testing, risk analysis, and physical test evidence remain outstanding. See [requirements traceability](REQUIREMENTS_TRACEABILITY.md) for evidence quality and explicit gaps.
 
 ## Non-negotiable limits
 
 The app remains an offline visual simulator until each independent engineering and authorization gate is satisfied. Do not claim hardware readiness, aircraft connection, operator approval, OEM compatibility, airworthiness, certification, or verified physical behavior without evidence. Never expose aircraft actuation through the gateway. Preserve the locked Studio and deploy only after required CI and deployment checks pass.
-
 
 
