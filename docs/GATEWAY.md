@@ -47,7 +47,7 @@ Preview body:
 }
 ```
 
-Use an exported scene file so that its schema and zone targets match the shared validator. Invalid scenes and times return structured errors. Request bodies are capped at 64 KiB. The HTTP server also caps headers at 64, applies 10-second header, 15-second request, and 5-second keep-alive timeouts, and limits simultaneous connections to 64. The API does not provide a command to apply targets to any device.
+Use an exported scene file so that its schema and zone targets match the shared validator. Preview requests must have an `application/json` content type; unsupported or encoded request bodies return `415` before parsing. Invalid JSON returns `400`, and invalid scenes or times return structured `422` errors. Request bodies are capped at 64 KiB. The HTTP server also caps headers at 64, applies 10-second header, 15-second request, and 5-second keep-alive timeouts, and limits simultaneous connections to 64. The API does not provide a command to apply targets to any device.
 
 Requests are limited to 120 per peer per minute by default. SIGINT/SIGTERM stops the listener and gives active requests up to 20 seconds to complete before remaining connections are closed.
 

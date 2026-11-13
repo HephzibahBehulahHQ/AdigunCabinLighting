@@ -67,6 +67,25 @@ describe('loopback simulator gateway', () => {
     await expect(response.json()).resolves.toMatchObject({ mode: 'SIMULATION', physicalOutputEnabled: false, sceneId: 'boarding', timeSeconds: 22.5, targets: { ceiling: { r: 13.5 } } });
   });
 
+  it('requires JSON media type and rejects encoded request bodies', async () => {
+    const gateway = await openGateway();
+    const body = JSON.stringify({ scene: PRESETS[0], timeSeconds: 1 });
+    const request = (headers: Record<string, string>) => fetch(`${gateway.base}/v1/preview`, {
+      method: 'POST', headers: { ...gateway.headers, ...headers }, body,
+    });
+
+    const missingType = await request({});
+    expect(missingType.status).toBe(415);
+    await expect(missingType.json()).resolves.toMatchObject({ error: { code: 'UNSUPPORTED_MEDIA_TYPE' } });
+
+    const wrongType = await request({ 'content-type': 'text/plain' });
+    expect(wrongType.status).toBe(415);
+
+    const encoded = await request({ 'content-type': 'application/json', 'content-encoding': 'gzip' });
+    expect(encoded.status).toBe(415);
+    await expect(encoded.json()).resolves.toMatchObject({ error: { code: 'UNSUPPORTED_CONTENT_ENCODING' } });
+  });
+
   it('rejects an invalid scene and an out-of-range preview time', async () => {
     const gateway = await openGateway();
     const request = (scene: unknown, timeSeconds: number) => fetch(`${gateway.base}/v1/preview`, {

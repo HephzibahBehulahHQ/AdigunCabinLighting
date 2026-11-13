@@ -58,6 +58,17 @@ async function readJson(request: IncomingMessage): Promise<unknown> {
   }
 }
 
+function requireJsonContent(request: IncomingMessage): void {
+  const contentType = request.headers['content-type'];
+  if (!contentType || !/^application\/json(?:\s*;|$)/i.test(contentType)) {
+    throw fault(415, 'UNSUPPORTED_MEDIA_TYPE', 'Preview requests must use application/json.');
+  }
+  const contentEncoding = request.headers['content-encoding'];
+  if (contentEncoding && contentEncoding.toLowerCase() !== 'identity') {
+    throw fault(415, 'UNSUPPORTED_CONTENT_ENCODING', 'Encoded request bodies are not supported.');
+  }
+}
+
 function asRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw fault(400, 'INVALID_REQUEST', 'Request body must be an object.');
   return value as Record<string, unknown>;
@@ -99,6 +110,7 @@ function route(request: IncomingMessage, response: ServerResponse, token: Buffer
         return;
       }
       if (request.method === 'POST' && url.pathname === '/v1/preview') {
+        requireJsonContent(request);
         const body = asRecord(await readJson(request));
         let scene: SceneFile;
         try { scene = validateSceneFile(body.scene); }
