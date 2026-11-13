@@ -16,6 +16,7 @@
     "build:oem-sdk": "tsc -p tsconfig.oem-sdk.json",
     "build:gateway": "tsc -p tsconfig.gateway.json",
     "gateway:start": "npm run build:gateway && node gateway/start.mjs",
+    "operator:validate-scene": "npm run build:gateway && node scripts/validate-scene.mjs",
     "lint": "eslint ."
   },
   "dependencies": {

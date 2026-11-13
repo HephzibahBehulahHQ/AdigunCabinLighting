@@ -13,5 +13,6 @@
     "declaration": true,
     "sourceMap": true
   },
-  "include": ["gateway/**/*.ts", "src/scene-engine.ts"]
+  "include": ["gateway/**/*.ts", "operator/**/*.ts", "src/scene-engine.ts"],
+  "exclude": ["operator/**/*.test.ts"]
 }

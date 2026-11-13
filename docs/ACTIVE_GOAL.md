@@ -14,7 +14,7 @@ PR #19 merged a reproducible ESP-IDF v6.1 ESP32-S3 compile target and fail-close
 - **Bench firmware and hardware tests:** compile-only ESP32-S3 fail-closed protocol/state core merged; PR and post-merge builds and host checks pass. It cannot drive outputs and is not an authenticated device or commissioning firmware. No exact board/module revision, validated driver, isolated current-limited rig, physical interlock, flashed image, or HIL evidence is available.
 - **Adigun BOT:** no runtime integration. Any future copilot is advisory only and must not issue hardware commands.
 - **OEM SDK:** typed adapter boundary and unsupported implementation; it reports `AIRCRAFT_LOCKED`, no capabilities, and no device command. No approved aircraft configuration, OEM contract, SDK agreement, or conformance evidence is present; no vendor is supported.
-- **Operator workflows:** not implemented beyond local browser projects and scene import/export.
+- **Operator workflows:** an offline scene-file preflight command now uses the shared validator; it is schema review only. Accounts, role approvals, audit sign-off, device/bench procedures, telemetry reconciliation, and crew workflows remain unavailable.
 - **Localization:** English only. German, Yoruba, and Nigerian Pidgin require reviewed translations; the Studio stays English while its interface is locked.
 - **Safety/security evidence:** initial boundary, safeguards, hazards, and open gates are recorded. Qualified review, penetration testing, risk analysis, and physical test evidence remain outstanding.
 
