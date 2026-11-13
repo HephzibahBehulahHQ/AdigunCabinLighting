@@ -17,6 +17,8 @@ npm run gateway:start
 
 The service defaults to port `4510`. Set `ADIGUN_GATEWAY_PORT` to another available local port if needed. The startup message identifies simulation mode and confirms that no hardware output is enabled. The token is never printed.
 
+Follow [Local gateway secret operations](GATEWAY_OPERATIONS.md) to generate or rotate the local token. The procedure uses stop-and-restart rotation; no online token reload or account system exists.
+
 ## Routes
 
 All routes require `Authorization: Bearer <token>` and accept only loopback `Host` values.
@@ -47,6 +49,9 @@ Preview body:
 
 Use an exported scene file so that its schema and zone targets match the shared validator. Invalid scenes and times return structured errors. Request bodies are capped at 64 KiB. The HTTP server also caps headers at 64, applies 10-second header, 15-second request, and 5-second keep-alive timeouts, and limits simultaneous connections to 64. The API does not provide a command to apply targets to any device.
 
+Requests are limited to 120 per peer per minute by default. SIGINT/SIGTERM stops the listener and gives active requests up to 20 seconds to complete before remaining connections are closed.
+
 ## Verification and readiness boundary
 
 `npm run lint`, `npm run typecheck`, and `npm run build:gateway` validate the current local increment. `npm test` includes gateway HTTP integration tests, but those tests require loopback sockets; run them in CI where local socket binding is permitted. Do not call this gateway hardware-ready, bench-ready, production-hardened, or safety-validated. Those states require separate reviewed milestones and evidence.
+
