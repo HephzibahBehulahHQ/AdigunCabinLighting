@@ -5,13 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "tsc -b && npm run typecheck:gateway && vite build && node scripts/prepare-pages.mjs",
+    "build": "tsc -b && npm run typecheck:gateway && npm run typecheck:oem-sdk && vite build && node scripts/prepare-pages.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit && npm run typecheck:gateway",
+    "typecheck": "tsc --noEmit && npm run typecheck:gateway && npm run typecheck:oem-sdk",
     "typecheck:gateway": "tsc -p tsconfig.gateway.json --noEmit",
+    "typecheck:oem-sdk": "tsc -p tsconfig.oem-sdk.json --noEmit",
+    "build:oem-sdk": "tsc -p tsconfig.oem-sdk.json",
     "build:gateway": "tsc -p tsconfig.gateway.json",
     "gateway:start": "npm run build:gateway && node gateway/start.mjs",
     "lint": "eslint ."
