@@ -25,6 +25,7 @@ This table maps the acceptance IDs in [CODEX_MASTER_PROMPT.md](CODEX_MASTER_PROM
 | ACL-019 | Public static build contains no gateway backend or hardware credentials | PASS | Vite entry points are the browser app; gateway starts separately from `gateway/start.mjs`; static release workflow publishes `dist/` | Recheck built output and secret scan for every release. |
 | ACL-020 | Airworthiness and flight suitability remain independent gates | PASS | `SAFETY_SECURITY_EVIDENCE.md`, `RELEASE_STATUS.md`, and `firmware/bench-controller/README.md` state the independent approval and NOT TESTED boundaries | Qualified independent safety/OEM/operator reviews remain required before any operational claim. |
 | Master plan §9 | Offline scene revision diff reports schema-validated changes | IMPLEMENTED | `operator/scene-diff.ts`, `operator/scene-file.ts`, and their unit tests; CLI documented in `OPERATOR_WORKFLOWS.md` | Human review remains necessary; the report does not approve an aircraft fit or interpolate every point in time. |
+| Master plan §9 | Offline scene integrity receipt binds schema review to exported artifact bytes | IMPLEMENTED | `operator/scene-receipt.ts`, bounded `readSceneDocument`, and receipt/file-reader unit tests; CLI documented in `OPERATOR_WORKFLOWS.md` | The unsigned SHA-256 receipt is not operator identity, approval, immutable audit evidence, OEM/aircraft validation, or hardware verification. |
 
 ## External evidence gates
 

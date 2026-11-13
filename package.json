@@ -18,6 +18,7 @@
     "gateway:start": "npm run build:gateway && node gateway/start.mjs",
     "operator:validate-scene": "npm run build:gateway && node scripts/validate-scene.mjs",
     "operator:diff-scenes": "npm run build:gateway && node scripts/diff-scenes.mjs",
+    "operator:receipt-scene": "npm run build:gateway && node scripts/receipt-scene.mjs",
     "lint": "eslint ."
   },
   "dependencies": {
@@ -43,5 +44,4 @@
     "vitest": "^2.1.8"
   }
 }
-
 

@@ -13,8 +13,13 @@ export class SceneFileReadError extends Error {
   }
 }
 
-/** Reads a bounded UTF-8 JSON file without modifying its contents. */
-export async function readSceneJson(path: string): Promise<unknown> {
+export interface SceneDocument {
+  readonly value: unknown;
+  readonly rawBytes: Uint8Array;
+}
+
+/** Reads a bounded UTF-8 JSON document and retains its exact source bytes. */
+export async function readSceneDocument(path: string): Promise<SceneDocument> {
   let handle: FileHandle;
   try {
     handle = await open(resolve(path), 'r');
@@ -24,7 +29,7 @@ export async function readSceneJson(path: string): Promise<unknown> {
     throw new SceneFileReadError('READ_FAILED', 'Scene file could not be opened.');
   }
 
-  let text: string;
+  let rawBytes: Uint8Array;
   try {
     const bytes = Buffer.alloc(MAX_SCENE_FILE_BYTES + 1);
     let total = 0;
@@ -35,7 +40,8 @@ export async function readSceneJson(path: string): Promise<unknown> {
     }
     if (total > MAX_SCENE_FILE_BYTES) throw new SceneFileReadError('FILE_TOO_LARGE', 'Scene file exceeds 64 KiB.');
     try {
-      text = new TextDecoder('utf-8', { fatal: true }).decode(bytes.subarray(0, total));
+      rawBytes = Buffer.from(bytes.subarray(0, total));
+      new TextDecoder('utf-8', { fatal: true }).decode(rawBytes);
     } catch {
       throw new SceneFileReadError('INVALID_UTF8', 'Scene file is not valid UTF-8.');
     }
@@ -47,9 +53,14 @@ export async function readSceneJson(path: string): Promise<unknown> {
   }
 
   try {
-    return JSON.parse(text) as unknown;
+    const text = new TextDecoder('utf-8', { fatal: true }).decode(rawBytes);
+    return { value: JSON.parse(text) as unknown, rawBytes };
   } catch {
     throw new SceneFileReadError('INVALID_JSON', 'Scene file is not valid JSON.');
   }
 }
 
+/** Reads a bounded UTF-8 JSON file without modifying its contents. */
+export async function readSceneJson(path: string): Promise<unknown> {
+  return (await readSceneDocument(path)).value;
+}
