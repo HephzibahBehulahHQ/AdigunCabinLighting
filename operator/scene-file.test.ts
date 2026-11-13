@@ -1,8 +1,9 @@
+import { Buffer } from 'node:buffer';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { readSceneJson, SceneFileReadError } from './scene-file.js';
+import { readSceneDocument, readSceneJson, SceneFileReadError } from './scene-file.js';
 
 let directory = '';
 
@@ -20,8 +21,12 @@ afterEach(async () => {
 
 describe('bounded operator scene file reader', () => {
   it('reads valid UTF-8 JSON', async () => {
-    const path = await createFile('{"scene":true}');
+    const source = '{"scene":true}\r\n';
+    const path = await createFile(source);
     await expect(readSceneJson(path)).resolves.toEqual({ scene: true });
+    const document = await readSceneDocument(path);
+    expect(document.value).toEqual({ scene: true });
+    expect(document.rawBytes).toEqual(Buffer.from(source, 'utf8'));
   });
 
   it('rejects files larger than 64 KiB', async () => {
@@ -38,4 +43,3 @@ describe('bounded operator scene file reader', () => {
     await expect(readSceneJson(join(directory, 'missing.json'))).rejects.toMatchObject({ code: 'FILE_NOT_FOUND' });
   });
 });
-
