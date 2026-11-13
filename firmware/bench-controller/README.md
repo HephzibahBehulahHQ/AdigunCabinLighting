@@ -1,10 +1,10 @@
 # ESP32-S3 bench-controller firmware core
 
-This is the first compileable firmware increment for the ESP32-S3 development-board family, using Espressif ESP-IDF v6.1. It provides a bounded protocol-frame validator (SOF, version, message type, payload length, sequence and CRC-32) plus a fail-closed state core. GitHub CI builds it for `esp32s3` and runs its portable host checks.
+This is a compileable, output-disabled firmware core for the ESP32-S3 development-board family, using Espressif ESP-IDF v6.1. It provides a bounded protocol-frame validator (SOF, version, message type, payload length, sequence and CRC-32), a per-boot 16-bit duplicate/stale sequence guard, and a fail-closed state core. GitHub CI builds it for `esp32s3` and runs its portable host checks.
 
 ## Current boundary
 
-This release does **not** initialize GPIO, PWM, USB/UART transport, a driver, a lamp, or any physical output. `SET_TARGETS` and `PLAY_SCENE` are rejected in `SAFE_DISABLED`; no state can enable outputs. `app_main` only completes the software startup transition and logs the disabled state. The parser is not connected to a transport and is not an authenticated device protocol yet.
+This release does **not** initialize GPIO, PWM, USB/UART transport, a driver, a lamp, or any physical output. `SET_TARGETS` and `PLAY_SCENE` are rejected in `SAFE_DISABLED`; no state can enable outputs. `app_main` only completes the software startup transition and logs the disabled state. The sequence guard rejects duplicate, backward, and half-range-ambiguous values using 16-bit modulo ordering, but resets at boot. It is not cryptographic replay protection: there is no authenticated session, peer identity, persistence, transport, or protection from a forged future sequence. Do not connect this parser to a transport or use it as a security boundary.
 
 The ESP32-S3-DevKitC-1 family is a development target candidate, not a verified board installation. The exact module suffix, board revision, peripheral wiring, driver, interlock, current limit, sensors, and approved safe state are not available in this workspace. No pin map or electrical ratings are inferred. Do not flash or connect this build to a driver or aircraft equipment.
 
