@@ -28,7 +28,18 @@ The command validates both files with the shared scene validator and prints a de
 
 The reader caps each file at 64 KiB and rejects invalid UTF-8/JSON. The tool never modifies either input. It compares explicit keyframe data; it does not calculate an interpolated time-series, check an aircraft fit, or authorize a release. The report is simulation-only, with physical output disabled.
 
+## Offline scene integrity receipt
+
+Create a deterministic receipt for the exact bytes of one exported scene:
+
+```sh
+npm run operator:receipt-scene -- path/to/exported-scene.json
+```
+
+The command reads the file through the same 64 KiB bounded reader, validates it with the simulator schema, and reports its exact byte length and SHA-256 digest. Whitespace and line-ending changes produce a different digest. Keep the original file with the receipt when passing a scene between reviewers.
+
+The receipt is an integrity fingerprint and schema result only. It does not identify an operator, record an approval, contain a signature, or provide an immutable audit log. It does not validate aircraft fit, OEM limits, electrical safety, or hardware behavior. No gateway/device command is sent and physical output remains disabled.
+
 ## Workflows not available
 
 Role-based approval, operator accounts, audit sign-off, device discovery, bench prepare/commit, physical interlock checks, telemetry reconciliation, aircraft CMS control, and dispatch/crew workflows are not implemented. The locked Studio interface is unchanged, and the current gateway has no hardware command route. Do not interpret the scene preflight report as operator approval, bench verification, or OEM acceptance.
-
