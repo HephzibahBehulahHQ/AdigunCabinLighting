@@ -3,6 +3,20 @@ export const CABIN_LAYOUTS = {
   singleAisle: { name: 'Single aisle · 3–3', description: 'Six seats per row · one aisle', groups: [3, 3] },
   widebody: { name: 'Wide cabin · 3–3–3', description: 'Nine seats per row · two aisles', groups: [3, 3, 3] },
   premium: { name: 'Premium · 1–2–1', description: 'Four seats per row · two aisles', groups: [1, 2, 1] },
+  a350900: {
+    name: 'A350-900 · standard reference',
+    description: 'Airbus planning dimensions and two-class seat data; row distribution is derived for illustration.',
+    groups: [3, 3, 3],
+    source: 'https://www.aircraft.airbus.com/en/aircraft/a350/a350-900',
+    seatPlan: [
+      { groups: [2, 2, 2], rows: 8, pitchMeters: 1.524, seatCount: 48, cabinClass: 'Business' },
+      { groups: [3, 3, 3], rows: 29, pitchMeters: .8128, seatCount: 261, cabinClass: 'Economy' },
+      { groups: [3, 3], rows: 1, pitchMeters: .8128, seatCount: 6, cabinClass: 'Economy' },
+    ],
+    seatCount: 315,
+    seatCountBasis: 'Airbus standard two-class planning configuration',
+    geometryNote: 'Class order and row distribution are derived for display from published totals and pitch. This is not the Airbus plan drawing or an airline fit.',
+  },
 } as const;
 
 export type CabinLayoutId = keyof typeof CABIN_LAYOUTS;
@@ -22,6 +36,7 @@ export const CABIN_PROFILES: Record<CabinLayoutId, CabinConfig> = {
   singleAisle: { layoutId: 'singleAisle', lengthMeters: 18.4, widthMeters: 4.4, ceilingHeightMeters: 2.65, seatRows: 12, seatPitchMeters: .76, windowCountPerSide: 11, overheadBinDepthMeters: .58 },
   widebody: { layoutId: 'widebody', lengthMeters: 27.6, widthMeters: 5.75, ceilingHeightMeters: 2.85, seatRows: 15, seatPitchMeters: .79, windowCountPerSide: 16, overheadBinDepthMeters: .75 },
   premium: { layoutId: 'premium', lengthMeters: 20.2, widthMeters: 5.25, ceilingHeightMeters: 2.72, seatRows: 9, seatPitchMeters: 1.05, windowCountPerSide: 12, overheadBinDepthMeters: .62 },
+  a350900: { layoutId: 'a350900', lengthMeters: 51.04, widthMeters: 5.71, ceilingHeightMeters: 2.85, seatRows: 38, seatPitchMeters: .8128, windowCountPerSide: 16, overheadBinDepthMeters: .75 },
 };
 
 export const DEFAULT_CABIN_CONFIG: CabinConfig = CABIN_PROFILES.singleAisle;
@@ -38,7 +53,7 @@ export function validateCabinConfig(input: Partial<CabinConfig> & { seatsPerSide
   const fallback = CABIN_PROFILES[layoutId];
   return {
     layoutId,
-    lengthMeters: clamp(input.lengthMeters, fallback.lengthMeters, 8, 50),
+    lengthMeters: clamp(input.lengthMeters, fallback.lengthMeters, 8, 60),
     widthMeters: clamp(input.widthMeters, fallback.widthMeters, 2.6, 7),
     ceilingHeightMeters: clamp(input.ceilingHeightMeters, fallback.ceilingHeightMeters, 1.8, 4),
     seatRows: clamp(input.seatRows, fallback.seatRows, 2, 40, true),
