@@ -52,7 +52,11 @@ bool fw_decode_frame(const uint8_t *bytes, size_t length, fw_frame_view_t *frame
 
 void fw_controller_init(fw_controller_t *controller)
 {
-    if (controller != NULL) controller->state = FW_STATE_BOOT_SELF_TEST;
+    if (controller != NULL) {
+        controller->state = FW_STATE_BOOT_SELF_TEST;
+        controller->has_last_sequence = false;
+        controller->last_sequence = 0u;
+    }
 }
 
 void fw_controller_self_test_complete(fw_controller_t *controller, bool passed)
@@ -71,6 +75,20 @@ fw_result_t fw_controller_accept(fw_controller_t *controller,
                                  const fw_frame_view_t *frame)
 {
     if (controller == NULL || frame == NULL) return FW_RESULT_INVALID_FRAME;
+
+    if (frame->version != FW_PROTOCOL_VERSION || frame->payload_length > FW_MAX_PAYLOAD ||
+        (frame->payload_length > 0u && frame->payload == NULL)) {
+        return FW_RESULT_INVALID_FRAME;
+    }
+
+    if (controller->has_last_sequence) {
+        /* RFC-1982-style half-range ordering for a 16-bit per-session counter. */
+        const uint16_t delta = (uint16_t)(frame->sequence - controller->last_sequence);
+        if (delta == 0u || delta >= 0x8000u) return FW_RESULT_STALE_SEQUENCE;
+    }
+    controller->last_sequence = frame->sequence;
+    controller->has_last_sequence = true;
+
     if (controller->state == FW_STATE_FAULT_LATCHED) return FW_RESULT_FAULT_LATCHED;
     if (controller->state != FW_STATE_SAFE_DISABLED) return FW_RESULT_OUTPUTS_DISABLED;
 
