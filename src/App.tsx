@@ -223,7 +223,7 @@ function Studio() {
   const [time, setTime] = useState(0);
   const [effectiveRGBW, setEffectiveRGBW] = useState<Record<ZoneId, RGBW>>(() => Object.fromEntries(zones.map((zone) => [zone.id, { ...zone.rgbw }])) as Record<ZoneId, RGBW>);
   const [playing, setPlaying] = useState(false);
-  const [motionPreview, setMotionPreview] = useState(true);
+  const [motionPreview, setMotionPreview] = useState(false);
   const [audioCues, setAudioCues] = useState(false);
   const [notice, setNotice] = useState('');
   const [tab, setTab] = useState('scene');
