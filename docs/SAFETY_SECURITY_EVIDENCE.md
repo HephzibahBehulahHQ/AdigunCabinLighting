@@ -1,6 +1,6 @@
 # Initial safety and security evidence ledger
 
-**Revision:** 0.2 · **Date:** 2026-11-13 · **Scope:** PR #16 baseline plus gateway resource limits proposed in PR #18
+**Revision:** 0.3 · **Date:** 2026-11-13 · **Scope:** PR #18 gateway limits plus compile-only ESP32-S3 firmware core proposal
 **Status:** Engineering evidence in progress. This ledger is not a safety case, certification package, aircraft approval, penetration-test report, or substitute for review by qualified aviation safety and security specialists.
 
 ## 1. System boundary and intended use
@@ -34,7 +34,8 @@ Assumptions: the local machine and Node runtime are controlled by the operator; 
 | C-05 Input size and schema | Request body capped at 64 KiB; scene file and preview time validated by the shared scene engine. | `gateway/server.ts`; invalid-scene/time and deterministic-preview tests passed in CI. |
 | C-06 Explicit simulation labeling | Health, capability, and preview responses identify simulation and disabled physical output. | `gateway/server.ts`; gateway tests passed in CI. |
 | C-07 Build and static code checks | ESLint, frontend/gateway TypeScript checks, unit/integration tests, production build, and browser tests. | PR CI run [43368044191](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43368044191) passed; Pages deployment [43368627448](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43368627448) succeeded. |
-| C-08 HTTP resource bounds | Limits headers to 64, headers to 10 seconds, request receipt to 15 seconds, keep-alive to 5 seconds, and simultaneous connections to 64. | Added in PR #18; pending CI and merge verification. |
+| C-08 HTTP resource bounds | Limits headers to 64, headers to 10 seconds, request receipt to 15 seconds, keep-alive to 5 seconds, and simultaneous connections to 64. | PR #18 CI run [43375463726](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43375463726), post-merge CI [43375854021](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43375854021), and Pages deployment [43375854073](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43375854073) succeeded. This does not establish production hardening. |
+| C-09 Firmware output inhibition | Firmware core has no GPIO/PWM or transport initialization; scene/target commands remain rejected and `fw_physical_outputs_enabled()` is hard-coded false. | Proposal in current PR. Host checks and ESP-IDF build pending CI. No board flash, protocol integration, or hardware test has been performed. |
 
 ## 4. Preliminary hazard and threat register
 
@@ -45,7 +46,7 @@ Qualitative items below identify failure paths; no formal severity, probability,
 | H-01 | An operator mistakes a visual preview for aircraft or hardware behavior. | Explicit simulation/offline labels; no physical command path; illustrative geometry caveat. | Human misunderstanding remains possible. Conduct operator usability and labeling review before field use. |
 | H-02 | A malformed or hostile scene produces invalid preview output or crashes the process. | 64 KiB body cap, JSON parsing, shared scene validation, bounded preview time, deterministic engine. | Fuzzing, parser/resource analysis, and broader property tests are outstanding. |
 | H-03 | An unauthorized local process invokes preview routes. | Loopback-only binding, bearer token, `Host` allowlist, no CORS headers. | Local-machine compromise, leaked token, browser-origin edge cases, and secret rotation are not fully assessed. Perform threat-model and penetration testing. |
-| H-04 | Local request flooding or slow upload degrades the machine. | 64 KiB body cap; proposed header/request timeouts and 64-connection cap in PR #18. | No rate limit, process supervisor, resource monitoring, or load test exists. Verify limits and define operational controls before any shared deployment. |
+| H-04 | Local request flooding or slow upload degrades the machine. | 64 KiB body cap; header/request timeouts and 64-connection cap in PR #18. | No rate limit, process supervisor, resource monitoring, or load test exists. Verify limits and define operational controls before any shared deployment. |
 | H-05 | A future change adds a physical command path without adequate safeguards. | Current route set has no actuator endpoint; hardware integration is explicitly out of scope. | Require a separate approved design, code review, authorization boundary, board-specific validation, interlock, and bench evidence before any such change. |
 | H-06 | A generic cabin visualization or derived reference is represented as aircraft-exact. | Source and limitation notes distinguish planning references from a cabin fit or certified twin. | Independent source/provenance review and exact approved operator configuration are absent. |
 | H-07 | Token or scene data is exposed in logs, browser bundles, or support artifacts. | Token is not emitted by startup or route logging; gateway is not bundled into the browser app. | Secret scanning, log review, distribution review, and operator guidance testing remain outstanding. |
