@@ -52,6 +52,23 @@ describe('loopback simulator gateway', () => {
     expect((await request()).status).toBe(200);
   });
 
+  it('isolates unauthenticated traffic from the authenticated peer quota', async () => {
+    const server = createGatewayServer(TOKEN, { rateLimit: 1, rateWindowMs: 10_000 });
+    servers.push(server);
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const address = server.address();
+    if (!address || typeof address === 'string') throw new Error('Test gateway failed to bind.');
+    const url = `http://127.0.0.1:${address.port}/v1/health`;
+
+    const unauthorized = await fetch(url);
+    expect(unauthorized.status).toBe(401);
+
+    const authorized = () => fetch(url, { headers: { authorization: `Bearer ${TOKEN}` } });
+    expect((await authorized()).status).toBe(200);
+    const limited = await authorized();
+    expect(limited.status).toBe(429);
+  });
+
   it('rejects invalid rate limit configuration', () => {
     expect(() => createGatewayServer(TOKEN, { rateLimit: 0 })).toThrow(/positive integer/);
     expect(() => createGatewayServer(TOKEN, { rateWindowMs: 0 })).toThrow(/positive integer/);

@@ -74,8 +74,7 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function takeRateLimit(request: IncomingMessage, buckets: Map<string, RateBucket>, now: number, limit: number, windowMs: number): number | null {
-  const key = request.socket.remoteAddress ?? 'unknown';
+function takeRateLimit(key: string, buckets: Map<string, RateBucket>, now: number, limit: number, windowMs: number): number | null {
   let bucket = buckets.get(key);
   if (!bucket || now - bucket.startedAt >= windowMs) {
     bucket = { startedAt: now, requests: 0 };
@@ -89,14 +88,16 @@ function takeRateLimit(request: IncomingMessage, buckets: Map<string, RateBucket
 function route(request: IncomingMessage, response: ServerResponse, token: Buffer, buckets: Map<string, RateBucket>, limit: number, windowMs: number): void {
   void (async () => {
     try {
-      const retryAfter = takeRateLimit(request, buckets, Date.now(), limit, windowMs);
+      if (!isLoopbackHost(request.headers.host)) throw fault(421, 'LOOPBACK_HOST_REQUIRED', 'The local simulator gateway accepts loopback Host values only.');
+      const authorized = isAuthorized(request, token);
+      const peer = request.socket.remoteAddress ?? 'unknown';
+      const retryAfter = takeRateLimit(`${peer}:${authorized ? 'authorized' : 'unauthorized'}`, buckets, Date.now(), limit, windowMs);
       if (retryAfter !== null) {
         response.setHeader('retry-after', String(retryAfter));
         send(response, 429, { apiVersion: API_VERSION, error: { code: 'RATE_LIMITED', message: 'Local simulator gateway request limit exceeded.' } });
         return;
       }
-      if (!isLoopbackHost(request.headers.host)) throw fault(421, 'LOOPBACK_HOST_REQUIRED', 'The local simulator gateway accepts loopback Host values only.');
-      if (!isAuthorized(request, token)) {
+      if (!authorized) {
         response.setHeader('www-authenticate', 'Bearer');
         throw fault(401, 'UNAUTHORIZED', 'A valid local gateway token is required.');
       }
