@@ -12,6 +12,10 @@ type Props = {
   selected: ZoneId;
   onSelect: (zone: ZoneId) => void;
   highQuality: boolean;
+  previewActive: boolean;
+  previewMotion: boolean;
+  previewTime: number;
+  previewDuration: number;
   captureRef: MutableRefObject<(() => Promise<Blob>) | null>;
   cameraResetRef: MutableRefObject<(() => void) | null>;
 };
@@ -22,11 +26,12 @@ const sRGB = (rgbw: RGBW) => new THREE.Color(
   Math.min(1, (rgbw.b + rgbw.w * 0.48) / 100),
 );
 
-export default function Cabin3D({ config, zones, effective, intensity, selected, onSelect, highQuality, captureRef, cameraResetRef }: Props) {
+export default function Cabin3D({ config, zones, effective, intensity, selected, onSelect, highQuality, previewActive, previewMotion, previewTime, previewDuration, captureRef, cameraResetRef }: Props) {
   const canvasHost = useRef<HTMLDivElement>(null);
   const api = useRef<{ renderer: THREE.WebGLRenderer; scene: THREE.Scene; camera: THREE.PerspectiveCamera; lights: Map<ZoneId, THREE.PointLight[]>; zoneMaterials: Map<ZoneId, THREE.MeshStandardMaterial[]>; selectable: THREE.Object3D[]; frame: number; resize: ResizeObserver; cameraHome: THREE.Vector3; draw: () => void } | null>(null);
   const [error, setError] = useState('');
   const [help, setHelp] = useState('Drag to look · WASD to move · scroll to move');
+  const motionHome = useRef<{ position: THREE.Vector3; rotation: THREE.Euler } | null>(null);
 
   useEffect(() => {
     const host = canvasHost.current;
@@ -314,17 +319,40 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
   useEffect(() => {
     const current = api.current;
     if (!current) return;
-    current.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, highQuality ? 2 : 1.35));
-    const size = current.renderer.getSize(new THREE.Vector2()); current.renderer.setSize(size.x, size.y, false);
-    current.renderer.shadowMap.enabled = highQuality;
     for (const zone of zones) {
       const color = sRGB(effective[zone.id]);
       const level = Math.max(effective[zone.id].r, effective[zone.id].g, effective[zone.id].b, effective[zone.id].w) / 100 * intensity / 100;
       for (const light of current.lights.get(zone.id) ?? []) { light.color.copy(color); light.intensity = level * (zone.id === 'cabin' ? 18 : 12); }
       for (const material of current.zoneMaterials.get(zone.id) ?? []) { material.emissive.copy(color); material.emissiveIntensity = .15 + level * 1.8; }
     }
+    if (previewMotion) {
+      motionHome.current ??= { position: current.camera.position.clone(), rotation: current.camera.rotation.clone() };
+      const phase = previewDuration > 0 ? previewTime / previewDuration * Math.PI * 2 : 0;
+      current.camera.position.copy(motionHome.current.position);
+      current.camera.position.x += Math.sin(phase) * .14;
+      current.camera.position.y += Math.sin(phase * .5) * .025;
+      current.camera.rotation.copy(motionHome.current.rotation);
+      current.camera.rotation.y += Math.sin(phase) * .008;
+    } else if (motionHome.current) {
+      current.camera.position.copy(motionHome.current.position);
+      current.camera.rotation.copy(motionHome.current.rotation);
+      motionHome.current = null;
+    }
     current.draw();
-  }, [zones, effective, intensity, highQuality]);
+  }, [zones, effective, intensity, previewMotion, previewTime, previewDuration]);
+
+  useEffect(() => {
+    const current = api.current;
+    if (!current) return;
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, previewActive ? 1 : highQuality ? 2 : 1.35);
+    if (current.renderer.getPixelRatio() !== pixelRatio) {
+      current.renderer.setPixelRatio(pixelRatio);
+      const size = current.renderer.getSize(new THREE.Vector2());
+      current.renderer.setSize(size.x, size.y, false);
+    }
+    current.renderer.shadowMap.enabled = highQuality && !previewActive;
+    current.draw();
+  }, [highQuality, previewActive]);
 
   useEffect(() => {
     const current = api.current; if (!current) return;

@@ -4,7 +4,7 @@ import {
   CircleHelp, Clock3, Download, Gauge, LayoutGrid,
   Lightbulb, MoreHorizontal, Pause, Play, Plus, Radio, Redo2, RotateCcw,
   Save, Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Trash2, Undo2, Upload,
-  Waves, X,
+  Move3D, Volume2, Waves, X,
 } from 'lucide-react';
 import {
   interpolateRGBW, interpolateScene, makeDefaultZones, makeZones, normalizeRGBW, PRESETS, toHex, validateSceneFile,
@@ -223,6 +223,8 @@ function Studio() {
   const [time, setTime] = useState(0);
   const [effectiveRGBW, setEffectiveRGBW] = useState<Record<ZoneId, RGBW>>(() => Object.fromEntries(zones.map((zone) => [zone.id, { ...zone.rgbw }])) as Record<ZoneId, RGBW>);
   const [playing, setPlaying] = useState(false);
+  const [motionPreview, setMotionPreview] = useState(false);
+  const [audioCues, setAudioCues] = useState(false);
   const [notice, setNotice] = useState('');
   const [tab, setTab] = useState('scene');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -236,11 +238,32 @@ function Studio() {
   const cabinCaptureRef = useRef<(() => Promise<Blob>) | null>(null);
   const cameraResetRef = useRef<(() => void) | null>(null);
   const playStart = useRef(0);
+  const audioContext = useRef<AudioContext | null>(null);
   const effectiveRef = useRef(effectiveRGBW);
   const fadeTransitions = useRef<Partial<Record<ZoneId, { from: RGBW; to: RGBW; started: number; durationMs: number }>>>({});
   const fadeFrame = useRef<number | null>(null);
   const scene = scenes.find((item) => item.id === activeSceneId) ?? scenes[0] ?? PRESETS[0];
   const currentZone = zones.find((zone) => zone.id === selected) ?? zones[0];
+  const playCue = () => {
+    const context = audioContext.current;
+    if (!context || context.state !== 'running') return;
+    const oscillator = context.createOscillator(); const gain = context.createGain();
+    oscillator.type = 'sine'; oscillator.frequency.setValueAtTime(660, context.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(880, context.currentTime + .055);
+    gain.gain.setValueAtTime(.0001, context.currentTime); gain.gain.exponentialRampToValueAtTime(.035, context.currentTime + .012); gain.gain.exponentialRampToValueAtTime(.0001, context.currentTime + .12);
+    oscillator.connect(gain); gain.connect(context.destination); oscillator.start(); oscillator.stop(context.currentTime + .125);
+  };
+  const startTransitionPreview = () => {
+    if (time >= scene.durationSeconds) applySceneAt(0);
+    if (audioCues) {
+      if (!window.AudioContext) setNotice('Audio cues are not supported in this browser.');
+      else {
+        audioContext.current ??= new window.AudioContext();
+        void audioContext.current.resume().then(playCue).catch(() => setNotice('Browser audio permission prevented preview cues.'));
+      }
+    }
+    setPlaying(true);
+  };
 
   const stopFadeFrame = () => {
     if (fadeFrame.current !== null) cancelAnimationFrame(fadeFrame.current);
@@ -286,9 +309,12 @@ function Studio() {
   useEffect(() => {
     if (!playing) return;
     playStart.current = performance.now() - time * 1000;
+    let lastCueTime = time;
     let animation = 0;
     const tick = (now: number) => {
       const next = Math.min(scene.durationSeconds, (now - playStart.current) / 1000);
+      if (audioCues && scene.keyframes.some((frame) => frame.atSeconds > lastCueTime && frame.atSeconds <= next)) playCue();
+      lastCueTime = next;
       setTime(next);
       setEffectiveImmediately(interpolateScene(scene, next));
       if (next >= scene.durationSeconds) { setPlaying(false); return; }
@@ -296,7 +322,7 @@ function Studio() {
     };
     animation = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(animation);
-  }, [playing, scene]);
+  }, [playing, scene, audioCues]);
   useEffect(() => () => stopFadeFrame(), []);
   useEffect(() => {
     if (!notice) return;
@@ -479,10 +505,10 @@ function Studio() {
     <div className="studio-layout">
       <aside className="studio-rail" aria-label="Studio sections">
         <span className="rail-label">WORKSPACE</span>
-        <button aria-label="Cabin overview" title="Cabin overview" className={tab === 'scene' ? 'active' : ''} onClick={() => chooseTab('scene', 'cabin-view')}><LayoutGrid size={18} /><span>Cabin overview</span></button>
-        <button aria-label="Zone mapping" title="Zone mapping" className={tab === 'zones' ? 'active' : ''} onClick={() => chooseTab('zones', 'zone-inspector')}><SlidersHorizontal size={18} /><span>Zone mapping</span></button>
-        <button aria-label="Choreography" title="Choreography" className={tab === 'timeline' ? 'active' : ''} onClick={() => chooseTab('timeline', 'timeline')}><Waves size={18} /><span>Choreography</span></button>
-        <button aria-label="Scene library" title="Scene library" className={tab === 'library' ? 'active' : ''} onClick={() => chooseTab('library', 'scene-library')}><Bookmark size={18} /><span>Scene library</span></button>
+        <button aria-label="Cabin overview" title="Cabin overview" aria-current={tab === 'scene' ? 'page' : undefined} className={tab === 'scene' ? 'active' : ''} onClick={() => chooseTab('scene', 'cabin-view')}><LayoutGrid size={18} /><span>Cabin overview</span></button>
+        <button aria-label="Zone mapping" title="Zone mapping" aria-current={tab === 'zones' ? 'page' : undefined} className={tab === 'zones' ? 'active' : ''} onClick={() => chooseTab('zones', 'zone-inspector')}><SlidersHorizontal size={18} /><span>Zone mapping</span></button>
+        <button aria-label="Choreography" title="Choreography" aria-current={tab === 'timeline' ? 'page' : undefined} className={tab === 'timeline' ? 'active' : ''} onClick={() => chooseTab('timeline', 'timeline')}><Waves size={18} /><span>Choreography</span></button>
+        <button aria-label="Scene library" title="Scene library" aria-current={tab === 'library' ? 'page' : undefined} className={tab === 'library' ? 'active' : ''} onClick={() => chooseTab('library', 'scene-library')}><Bookmark size={18} /><span>Scene library</span></button>
         <div className="rail-divider" />
         <span className="rail-label">PROJECT</span>
         <button aria-label="Save scene" title="Save scene locally" onClick={saveScene}><Save size={18} /><span>Save scene</span></button>
@@ -510,13 +536,13 @@ function Studio() {
                 <button type="submit" className="button button-quiet button-sm">Load cabin layout</button>
               </form>}
               <div className={`cabin-stage ${hq4k ? 'quality-high' : ''}`} data-view-mode={viewMode} ref={stageRef}><div className="stage-grid" /><div className="stage-crosshair" />
-                {viewMode === '3d' ? <Suspense fallback={<div className="cabin3d-loading" role="status">Preparing the configurable reference cabin…</div>}><Cabin3D key={JSON.stringify(cabinConfig)} config={cabinConfig} zones={zones} effective={effectiveRGBW} intensity={intensity} selected={selected} onSelect={setSelected} highQuality={hq4k} captureRef={cabinCaptureRef} cameraResetRef={cameraResetRef} /></Suspense> : <><CabinDrawing zones={zones.map((zone) => ({ ...zone, rgbw: Object.fromEntries(Object.entries(effectiveRGBW[zone.id]).map(([key, value]) => [key, value * intensity / 100])) as RGBW }))} selected={selected} onSelect={setSelected} /><div className="stage-scale"><span /> 2D ZONE MAP · ILLUSTRATIVE ONLY</div></>}
+                {viewMode === '3d' ? <Suspense fallback={<div className="cabin3d-loading" role="status">Preparing the configurable reference cabin…</div>}><Cabin3D key={JSON.stringify(cabinConfig)} config={cabinConfig} zones={zones} effective={effectiveRGBW} intensity={intensity} selected={selected} onSelect={setSelected} highQuality={hq4k} previewActive={playing} previewMotion={playing && motionPreview} previewTime={time} previewDuration={scene.durationSeconds} captureRef={cabinCaptureRef} cameraResetRef={cameraResetRef} /></Suspense> : <><CabinDrawing zones={zones.map((zone) => ({ ...zone, rgbw: Object.fromEntries(Object.entries(effectiveRGBW[zone.id]).map(([key, value]) => [key, value * intensity / 100])) as RGBW }))} selected={selected} onSelect={setSelected} /><div className="stage-scale"><span /> 2D ZONE MAP · ILLUSTRATIVE ONLY</div></>}
               </div>
               <div className="cabin-legend"><span><i className="legend-active" /> Active zone: {currentZone.name}</span><span><i className="legend-zone" /> Double-click a 3D fixture to select its zone</span><span className="legend-revision">Configurable reference geometry · not an aircraft fit</span></div>
             </section>
             <section className="panel timeline-panel" id="timeline" tabIndex={-1}>
-              <div className="timeline-head"><div><span className="panel-overline">CHOREOGRAPHY TIMELINE</span><h2>Transition preview</h2></div><button className="button button-quiet button-sm" onClick={addKeyframe}><Plus size={14} /> Add keyframe</button></div>
-              <div className="transport"><button className="play-button" aria-label={playing ? 'Pause preview' : 'Play preview'} onClick={() => { if (playing) setPlaying(false); else { if (time >= scene.durationSeconds) applySceneAt(0); setPlaying(true); } }}>{playing ? <Pause size={17} /> : <Play size={17} fill="currentColor" />}</button>
+              <div className="timeline-head"><div><span className="panel-overline">CHOREOGRAPHY TIMELINE</span><h2>Transition preview</h2></div><div className="timeline-actions"><button className={`preview-toggle ${motionPreview ? 'is-on' : ''}`} aria-label="Camera motion preview" aria-pressed={motionPreview} title="Subtle camera motion during playback" onClick={() => setMotionPreview((value) => !value)}><Move3D size={13} /> Motion</button><button className={`preview-toggle ${audioCues ? 'is-on' : ''}`} aria-label="Audio keyframe cues" aria-pressed={audioCues} title="Play a quiet synthesized cue at keyframes" onClick={() => setAudioCues((value) => !value)}><Volume2 size={13} /> Sound</button><button className="button button-quiet button-sm" onClick={addKeyframe}><Plus size={14} /> Add keyframe</button></div></div>
+              <div className="transport"><button className="play-button" aria-label={playing ? 'Pause preview' : 'Play preview'} onClick={() => { if (playing) setPlaying(false); else startTransitionPreview(); }}>{playing ? <Pause size={17} /> : <Play size={17} fill="currentColor" />}</button>
                 <div className="timeline-track-wrap"><div className="timeline-label-row"><span>{scene.name.toUpperCase()} <i>·</i> {scene.keyframes.length} KEYFRAMES</span><span className="time-readout">{formatTime(time)} <small>/ {formatTime(scene.durationSeconds)}</small></span></div>
                   <div className="timeline-track"><div className="timeline-progress" style={{ width: `${scene.durationSeconds ? time / scene.durationSeconds * 100 : 0}%` }} /><input aria-label="Scene timeline position" type="range" min="0" max={scene.durationSeconds} step="0.1" value={time} onChange={(e) => { setPlaying(false); applySceneAt(Number(e.target.value)); }} />
                     {scene.keyframes.map((frame, index) => <span key={frame.atSeconds} className="timeline-key" style={{ left: `${frame.atSeconds / scene.durationSeconds * 100}%` }} title={`Keyframe ${index + 1} · ${formatTime(frame.atSeconds)}`} />)}
