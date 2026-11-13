@@ -1,0 +1,38 @@
+name: ESP32-S3 firmware
+
+on:
+  pull_request:
+    paths:
+      - "firmware/**"
+      - ".github/workflows/firmware.yml"
+  push:
+    branches: [main]
+    paths:
+      - "firmware/**"
+      - ".github/workflows/firmware.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ESP-IDF v6.1
+        uses: espressif/install-esp-idf-action@v1
+        with:
+          version: v6.1
+      - name: Build for ESP32-S3
+        working-directory: firmware/bench-controller
+        run: |
+          idf.py set-target esp32s3
+          idf.py build
+      - name: Run portable firmware-core checks
+        run: |
+          cc -std=c11 -Wall -Wextra -Werror \
+            -Ifirmware/bench-controller/main \
+            firmware/bench-controller/main/firmware_core.c \
+            firmware/bench-controller/tests/host_test.c \
+            -o /tmp/adigun-fw-host-test
+          /tmp/adigun-fw-host-test
