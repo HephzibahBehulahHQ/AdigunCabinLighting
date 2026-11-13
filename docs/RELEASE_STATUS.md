@@ -4,13 +4,14 @@
 
 ## Latest deployed release checkpoint
 
-- **Latest functional milestone:** [PR #28 — Reject duplicate and stale firmware frames](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/pull/28), merged.
-- **Merge commit:** [`45b9cf4b26285011343656a1112864e7af3968fd`](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/commit/45b9cf4b26285011343656a1112864e7af3968fd).
-- **PR CI:** [Run 43401758355](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43401758355) and firmware build [43401758492](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43401758492) passed.
-- **Post-merge CI:** [Run 43402682555](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43402682555) and firmware build/portable host checks [43402682574](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43402682574) passed.
-- **GitHub Pages:** [Run 43402682684](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43402682684) succeeded for the merge commit.
-- **Production smoke:** Not rerun after PR #28. The prior recorded HTTPS HEAD checks returned 200 for the [landing page](https://adiguncabinlighting.hephzibahbehulah.com/) and [Studio](https://adiguncabinlighting.hephzibahbehulah.com/studio/) after PR #25.
-- **Studio boundary:** PR #28 changes only firmware core/tests and traceability/docs; it changes no Studio application source, layout, styling, navigation, panels, labels, or controls. Studio remains locked.
+- **Latest functional milestone:** [PR #30 — Add scene integrity receipts](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/pull/30), merged.
+- **Merge commit:** [`a65926e4324d5e840898ba450352c34c4a90357f`](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/commit/a65926e4324d5e840898ba450352c34c4a90357f).
+- **PR CI:** [Run 43407100377](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43407100377) passed, including lint, typecheck, unit tests, production build, and Playwright E2E.
+- **Post-merge CI:** [Run 43407645973](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43407645973) exposed one existing manual-setpoint E2E timing failure. [PR #31](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/pull/31) adjusted only that test to align the fade duration with its assertion window. Its PR CI [43408816304](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43408816304) and post-merge CI [43409596794](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43409596794) passed.
+- **GitHub Pages:** [Run 43407646172](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43407646172) and post-PR #31 [Run 43409596667](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43409596667) succeeded.
+- **Production smoke:** Not rerun after PR #30 or #31. The prior recorded HTTPS HEAD checks returned 200 for the [landing page](https://adiguncabinlighting.hephzibahbehulah.com/) and [Studio](https://adiguncabinlighting.hephzibahbehulah.com/studio/) after PR #25.
+- **Studio boundary:** PR #30 adds operator CLI/docs/tests only; PR #31 changes one Playwright assertion sequence. Neither changes Studio application source, layout, styling, navigation, panels, labels, or controls.
+
 
 ## Current deployed scope
 
