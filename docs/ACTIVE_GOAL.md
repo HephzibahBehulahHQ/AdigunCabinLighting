@@ -1,11 +1,23 @@
-# Active Goal — source-backed cabin reference profiles
+# Active Goal — complete the AdigunCabinLighting roadmap
 
-**Pursuing now — `FORCE_REAL_AIRCRAFT_3D_IMPLEMENTATION_NOW`:** Continue extending the working Three.js cabin reference inside the existing Cabin Studio. Preserve the owner-locked single-screen layout. New cabin choices belong in the existing **Change cabin** control; do not rearrange the header, left rail, cabin viewport, inspector, timeline or scene library.
+**Pursuing now:** Deliver the remaining gateway, bench firmware and hardware tests, advisory AI copilot, OEM SDK, operator workflows, localization, and safety/security evidence as small verified releases. Keep the approved Studio interface unchanged: do not alter its layout, styles, navigation, panels, or controls. Changes for these milestones belong in separate engineering layers and documentation unless a requirement cannot be met without a Studio change; in that case record the dependency and stop before changing the interface.
 
-**Current implementation:** The viewport renders the configurable reference cabin and source-backed A350-900 two-class planning profile. That profile uses Airbus-published cabin length, maximum width, passenger seat totals and class pitches. It renders 315 seats using an explicitly derived row arrangement. Other cabin geometry such as cabin height, windows, bins, monuments and lighting fixture placement remains generic illustration. See [AIRCRAFT_REFERENCE_DATA.md](AIRCRAFT_REFERENCE_DATA.md).
+## Current milestone — simulation-only local gateway
 
-**Aircraft identity gate:** The A350-900 option is a manufacturer-data reference, not an airline cabin fit, exact Airbus plan drawing, OEM model or certified digital twin. Keep all descriptions clear about derived geometry and source limits. Do not claim aircraft-specific compatibility, airline approval or certification without the exact approved model and configuration evidence.
+The first gateway increment is a separate Node service bound to `127.0.0.1`. It requires a strong bearer token, exposes health/capability and deterministic scene-preview routes, and explicitly reports simulation mode with physical output disabled. It has no actuator route, device transport, telemetry, or connection to the Studio. The local host denies loopback sockets, so its HTTP integration tests must be run in CI before merge. Type checks, lint, and gateway compilation pass locally.
 
-**Safety:** This is an offline visual simulator. No aircraft or hardware output is connected or enabled. Hardware actuation, flight integration, certification and airline authorization remain out of scope until their independent engineering, authorization and safety gates are met.
+See [GATEWAY.md](GATEWAY.md) for its contract and [APPROVED_UI_BASELINE.md](APPROVED_UI_BASELINE.md) for the locked interface boundary.
 
-**Verification:** PR #13 CI passed, including browser tests. The merged feature is at `962c7c2717f451f245b6e77647fe8ed8d080d01c`; GitHub Pages run 43356997937 deployed it successfully. Preserve the approved Studio layout baseline in [APPROVED_UI_BASELINE.md](APPROVED_UI_BASELINE.md).
+## Roadmap status
+
+- **Gateway:** simulation-only local API in progress. Authenticated hardware gateway, protocol adapters, and deployment hardening remain unbuilt.
+- **Bench firmware and hardware tests:** not started; no target board, validated firmware, isolated current-limited test rig, interlock, or physical test evidence is available.
+- **Adigun BOT:** advisory-only integration is not implemented. It must never have direct hardware control.
+- **OEM SDK:** not implemented; no OEM contract, approved aircraft configuration, SDK interface agreement, or conformance evidence is present.
+- **Operator workflows:** not implemented beyond local browser projects and scene import/export.
+- **Localization:** English only. German, Yoruba, and Nigerian Pidgin are roadmap items and require reviewed translations.
+- **Safety/security evidence:** baseline documents and explicit simulation boundaries exist; threat model, security verification, risk analysis, traceability, and hardware evidence remain outstanding.
+
+## Non-negotiable limits
+
+The app remains an offline visual simulator until each independent engineering and authorization gate is satisfied. Do not claim hardware readiness, aircraft connection, operator approval, OEM compatibility, airworthiness, certification, or verified physical behavior without evidence. Never expose aircraft actuation through this gateway. Keep all work incremental, reviewable, and tested; publish releases only after required CI and deployment checks pass.
