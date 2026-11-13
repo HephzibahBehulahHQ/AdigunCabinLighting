@@ -38,6 +38,7 @@ typedef enum {
     FW_RESULT_OUTPUTS_DISABLED,
     FW_RESULT_FAULT_LATCHED,
     FW_RESULT_INVALID_FRAME,
+    FW_RESULT_STALE_SEQUENCE,
     FW_RESULT_UNSUPPORTED_MESSAGE
 } fw_result_t;
 
@@ -51,6 +52,8 @@ typedef struct {
 
 typedef struct {
     fw_state_t state;
+    bool has_last_sequence;
+    uint16_t last_sequence;
 } fw_controller_t;
 
 uint32_t fw_crc32(const uint8_t *data, size_t length);

@@ -36,6 +36,12 @@ int main(void)
     assert(fw_decode_frame(bytes, length, &frame));
     assert(frame.sequence == 0x1234u);
     assert(frame.type == FW_MSG_READ_STATUS);
+    assert(!fw_decode_frame(bytes, FW_FRAME_OVERHEAD - 1u, &frame));
+    assert(!fw_decode_frame(bytes, FW_MAX_FRAME + 1u, &frame));
+    bytes[4] = (uint8_t)(FW_MAX_PAYLOAD + 1u);
+    assert(!fw_decode_frame(bytes, length, &frame));
+    length = make_frame(bytes, FW_MSG_READ_STATUS, 0x1234u);
+    assert(fw_decode_frame(bytes, length, &frame));
 
     fw_controller_t controller;
     fw_controller_init(&controller);
@@ -43,17 +49,48 @@ int main(void)
     fw_controller_self_test_complete(&controller, true);
     assert(controller.state == FW_STATE_SAFE_DISABLED);
     assert(fw_controller_accept(&controller, &frame) == FW_RESULT_ACCEPTED_NO_OUTPUT);
+    assert(fw_controller_accept(&controller, &frame) == FW_RESULT_STALE_SEQUENCE);
     assert(!fw_physical_outputs_enabled());
 
-    length = make_frame(bytes, FW_MSG_SET_TARGETS, 7u);
+    length = make_frame(bytes, FW_MSG_SET_TARGETS, 0x1235u);
     assert(fw_decode_frame(bytes, length, &frame));
     assert(fw_controller_accept(&controller, &frame) == FW_RESULT_OUTPUTS_DISABLED);
 
+    length = make_frame(bytes, FW_MSG_HEARTBEAT, 0x1234u);
+    assert(fw_decode_frame(bytes, length, &frame));
+    assert(fw_controller_accept(&controller, &frame) == FW_RESULT_STALE_SEQUENCE);
+
+    fw_controller_init(&controller);
+    fw_controller_self_test_complete(&controller, true);
+    length = make_frame(bytes, FW_MSG_HEARTBEAT, 0xFFFFu);
+    assert(fw_decode_frame(bytes, length, &frame));
+    assert(fw_controller_accept(&controller, &frame) == FW_RESULT_ACCEPTED_NO_OUTPUT);
+    length = make_frame(bytes, FW_MSG_HEARTBEAT, 0u);
+    assert(fw_decode_frame(bytes, length, &frame));
+    assert(fw_controller_accept(&controller, &frame) == FW_RESULT_ACCEPTED_NO_OUTPUT);
+    length = make_frame(bytes, FW_MSG_HEARTBEAT, 0x8000u);
+    assert(fw_decode_frame(bytes, length, &frame));
+    assert(fw_controller_accept(&controller, &frame) == FW_RESULT_STALE_SEQUENCE);
+
+    fw_controller_init(&controller);
+    fw_controller_self_test_complete(&controller, true);
+    frame.version = (uint8_t)(FW_PROTOCOL_VERSION + 1u);
+    assert(fw_controller_accept(&controller, &frame) == FW_RESULT_INVALID_FRAME);
+    frame.version = FW_PROTOCOL_VERSION;
+    frame.payload_length = 1u;
+    frame.payload = NULL;
+    assert(fw_controller_accept(&controller, &frame) == FW_RESULT_INVALID_FRAME);
+    frame.payload_length = 0u;
+    frame.payload = bytes;
+    assert(fw_controller_accept(&controller, &frame) == FW_RESULT_ACCEPTED_NO_OUTPUT);
+
     bytes[7] ^= 0x01u;
-    assert(!fw_decode_frame(bytes, length, &frame));
+    assert(!fw_decode_frame(bytes, FW_FRAME_OVERHEAD, &frame));
 
     fw_controller_init(&controller);
     fw_controller_self_test_complete(&controller, false);
+    length = make_frame(bytes, FW_MSG_READ_STATUS, 1u);
+    assert(fw_decode_frame(bytes, length, &frame));
     assert(fw_controller_accept(&controller, &frame) == FW_RESULT_FAULT_LATCHED);
     puts("firmware host checks passed (protocol core only; no hardware tested)");
     return 0;
