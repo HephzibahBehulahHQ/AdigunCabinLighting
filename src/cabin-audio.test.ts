@@ -66,7 +66,7 @@ describe('cabin audio direction', () => {
       handle.setVolume(65);
       const volumeUpdate = context.gains[0].gain.setTargetAtTime.mock.calls[0];
       expect(volumeUpdate[0]).toBeCloseTo(.104, 10);
-      expect(volumeUpdate.slice(1)).toEqual([12, .035]);
+      expect(volumeUpdate.slice(1)).toEqual([context.currentTime, .035]);
       handle.stop();
       vi.advanceTimersByTime(100);
       expect(context.oscillators.every((voice) => voice.stop.mock.calls.length >= 2)).toBe(true);
