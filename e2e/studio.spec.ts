@@ -189,8 +189,12 @@ test('transition preview runs scene-specific instrumental audio and exposes cabi
   await expect(page.getByText('HB380 welcome test', { exact: true })).toBeVisible();
   await page.locator('.audio-voice-actions').getByRole('button', { name: 'Welcome announcement' }).click();
   const voicePlayer = page.locator('audio[data-testid="local-voice-audio"]');
-  await expect.poll(() => voicePlayer.evaluate((audio: HTMLAudioElement) => audio.currentSrc)).toMatch(/^blob:/);
-  await expect.poll(() => voicePlayer.evaluate((audio: HTMLAudioElement) => !audio.paused)).toBe(true);
+  await expect.poll(() => voicePlayer.evaluate((audio: HTMLAudioElement) => ({
+    hasSource: audio.src.startsWith('blob:'),
+    playing: !audio.paused,
+    currentTime: audio.currentTime,
+    mediaError: audio.error?.code ?? 0,
+  }))).toMatchObject({ hasSource: true, playing: true });
   await page.getByRole('button', { name: 'Close audio controls' }).click();
   await page.getByRole('button', { name: 'Play preview' }).click();
   await expect(page.getByRole('button', { name: 'Pause preview' })).toBeVisible();
