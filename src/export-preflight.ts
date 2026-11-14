@@ -129,8 +129,11 @@ export function createExportPreflightReport(
   });
   if ('seatPlan' in profile) {
     fieldEvidence.push(evidenceField('seatCount', profile.seatCount, 'MANUFACTURER_PLANNING_DATA', profile.seatCountBasis));
-    for (const [sectionIndex, section] of profile.seatPlan.entries()) {
-      const sectionKey = `${section.cabinClass}[${sectionIndex + 1}]`;
+    const sectionOccurrences = new Map<string, number>();
+    for (const section of profile.seatPlan) {
+      const sectionIndex = (sectionOccurrences.get(section.cabinClass) ?? 0) + 1;
+      sectionOccurrences.set(section.cabinClass, sectionIndex);
+      const sectionKey = `${section.cabinClass}[${sectionIndex}]`;
       fieldEvidence.push(evidenceField(
         `seatPlan.${sectionKey}.seatCount`, section.seatCount, 'MANUFACTURER_PLANNING_DATA',
         'Class seat total from the cited planning example.',
