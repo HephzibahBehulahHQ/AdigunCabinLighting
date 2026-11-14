@@ -120,7 +120,7 @@ function CabinDrawing({ zones, selected, onSelect, compact = false, config = DEF
           const totalSeats = groups.reduce((sum, count) => sum + count, 0);
           const aisleCount = groups.length - 1;
           const seatWidth = Math.min(config.layoutId === 'ownerVvip' ? 48 : 34, 340 / (totalSeats + aisleCount * 1.5));
-          const aisleGap = 15;
+          const aisleGap = config.layoutId === 'ownerVvip' ? 52 : 15;
           const occupiedWidth = totalSeats * seatWidth + aisleCount * aisleGap;
           const rowY = 157 + row * (186 / Math.max(1, visibleRows.length - 1));
           let x = 490 - occupiedWidth / 2 + seatWidth / 2;
