@@ -19,9 +19,42 @@ describe('offline export preflight report', () => {
     expect(report.cabinProfile.sourceRevision).toContain('Dec 01/25');
     expect(report.cabinProfile.planningDocumentUrl).toContain('AC_A330_20251201.pdf');
     expect(report.cabinProfile.assetRights).toContain('permission not recorded');
+    expect(report.reportVersion).toBe(2);
+    expect(report.cabinProfile.fieldEvidence).toContainEqual(expect.objectContaining({
+      field: 'lengthMeters', value: 50.36, classification: 'MANUFACTURER_PLANNING_DATA',
+      sourceUrl: report.cabinProfile.planningDocumentUrl,
+    }));
+    expect(report.cabinProfile.fieldEvidence).toContainEqual(expect.objectContaining({
+      field: 'seatPlan.Economy[1].displayRows', value: 33, classification: 'DERIVED_FOR_RENDERING',
+    }));
+    expect(report.cabinProfile.fieldEvidence).toContainEqual(expect.objectContaining({
+      field: 'ceilingHeightMeters', classification: 'ILLUSTRATIVE_MODEL', sourceUrl: null,
+    }));
+    expect(report.cabinProfile.fieldEvidence).toContainEqual(expect.objectContaining({
+      field: 'seatPitchMeters', classification: 'DERIVED_FOR_RENDERING',
+      sourceUrl: report.cabinProfile.planningDocumentUrl,
+    }));
     expect(report.fixtureCoverage.checkedZoneCount).toBe(11);
     expect(report.fixtureCoverage.documentedZoneCount).toBe(0);
+    expect(report.fixtureEvidence).toHaveLength(11);
+    expect(report.fixtureEvidence).toContainEqual(expect.objectContaining({
+      zoneId: 'ceiling', documentationStatus: 'MISSING', fixtureIdentity: null,
+      installationCoordinates: null, photometricData: null, source: null,
+    }));
     expect(report.physicalOutputEnabled).toBe(false);
+  });
+
+  it('marks changed manufacturer dimensions as user edits and generic values as illustrative', () => {
+    const edited = createExportPreflightReport(PRESETS[0], { ...CABIN_PROFILES.a350900, lengthMeters: 48.5 });
+    expect(edited.cabinProfile.fieldEvidence).toContainEqual(expect.objectContaining({
+      field: 'lengthMeters', value: 48.5, classification: 'USER_EDITED', referenceValue: 51.04,
+      sourceUrl: edited.cabinProfile.planningDocumentUrl,
+    }));
+
+    const generic = createExportPreflightReport(PRESETS[0], CABIN_PROFILES.widebody);
+    expect(generic.cabinProfile.fieldEvidence).toContainEqual(expect.objectContaining({
+      field: 'lengthMeters', value: CABIN_PROFILES.widebody.lengthMeters, classification: 'ILLUSTRATIVE_MODEL', sourceUrl: null,
+    }));
   });
 
   it('reports invalid channel values instead of exporting them as valid', () => {
@@ -44,3 +77,4 @@ describe('offline export preflight report', () => {
     expect(report.cabinProfile.assetRights).toContain('no manufacturer source');
   });
 });
+
