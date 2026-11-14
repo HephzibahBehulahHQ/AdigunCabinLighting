@@ -1,4 +1,4 @@
-import { CABIN_LAYOUTS, type CabinConfig } from './cabin-config';
+import { CABIN_LAYOUTS, CABIN_PROFILES, type CabinConfig } from './cabin-config';
 import { diffScenes } from '../operator/scene-diff.js';
 import { reviewScene } from '../operator/scene-review.js';
 import { ZONE_IDS } from './scene-engine';
