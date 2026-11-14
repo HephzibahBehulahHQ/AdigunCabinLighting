@@ -40,6 +40,35 @@ The command reads the file through the same 64 KiB bounded reader, validates it 
 
 The receipt is an integrity fingerprint and schema result only. It does not identify an operator, record an approval, contain a signature, or provide an immutable audit log. It does not validate aircraft fit, OEM limits, electrical safety, or hardware behavior. No gateway/device command is sent and physical output remains disabled.
 
+## Offline scenario package
+
+Create a request file, for example:
+
+```json
+{
+  "schemaVersion": 1,
+  "packageType": "adigun-cabin-scenario-request",
+  "projectName": "A330 lighting review",
+  "cabinLayoutId": "a330300",
+  "activeSceneId": "boarding",
+  "sceneFiles": ["./boarding.json", "./sleep.json"],
+  "outputPath": "./review-package.json",
+  "masterIntensity": 72
+}
+```
+
+Then run:
+
+```sh
+npm run operator:pack-scenario -- path/to/scenario-request.json
+npm run operator:review-scenario -- path/to/review-package.json
+```
+
+Scene and output paths in the request are resolved relative to that request file. The package records the layout ID, cabin dimensions, source URL and evidence status for the selected profile; it also stores the zones, scenes, active scene, master intensity, and explicit simulation-only/no-physical-output state. Profile evidence is derived from the checked-in registry; edited source-backed dimensions are marked as a user-adjusted reference. Every scene is checked by the Studio's shared schema. The active scene must be included, IDs must be unique, and channel/duration limits are enforced.
+
+The output path is created only if it does not already exist. The package and each source scene are bounded to 64 KiB. The review report includes current fixture-documentation coverage, which remains missing for the simulator zones. Cabin geometry remains illustrative or planning-reference data, not an airline fit. The package is not digitally signed, is not imported into browser-local Studio storage, does not record an operator identity or approval, and cannot send hardware commands.
+
 ## Workflows not available
 
-Role-based approval, operator accounts, audit sign-off, device discovery, bench prepare/commit, physical interlock checks, telemetry reconciliation, aircraft CMS control, and dispatch/crew workflows are not implemented. The locked Studio interface is unchanged, and the current gateway has no hardware command route. Do not interpret the scene preflight report as operator approval, bench verification, or OEM acceptance.
+Role-based approval, operator accounts, audit sign-off, device discovery, bench prepare/commit, physical interlock checks, telemetry reconciliation, aircraft CMS control, and dispatch/crew workflows are not implemented. Scenario packages are offline artifacts and are not imported into the locked Studio. The current gateway has no hardware command route. Do not interpret any review report as operator approval, bench verification, or OEM acceptance.
+
