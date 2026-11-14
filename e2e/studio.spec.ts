@@ -150,18 +150,28 @@ test('desktop workspace navigation focuses and marks each fixed panel', async ({
   }
 });
 
-test('transition preview changes cabin output with optional motion and sound cues', async ({ page }) => {
+test('transition preview runs scene-specific instrumental audio and exposes cabin announcement controls', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/studio');
   const motion = page.getByRole('button', { name: 'Camera motion preview' });
-  const sound = page.getByRole('button', { name: 'Audio keyframe cues' });
+  const sound = page.getByRole('button', { name: 'Mood music' });
   await expect(motion).toHaveAttribute('aria-pressed', 'false');
   await motion.click();
   await expect(motion).toHaveAttribute('aria-pressed', 'true');
   await motion.click();
   await expect(motion).toHaveAttribute('aria-pressed', 'false');
+  await expect(sound).toHaveAttribute('aria-pressed', 'true');
+  await sound.click();
+  await expect(sound).toHaveAttribute('aria-pressed', 'false');
   await sound.click();
   await expect(sound).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: 'Audio announcements and volume' }).click();
+  await expect(page.getByRole('group', { name: 'Cabin audio controls' })).toBeVisible();
+  await expect(page.getByText(/Aurora · soft piano · 56 BPM/i)).toBeVisible();
+  await expect(page.getByRole('slider', { name: 'Playback volume' })).toHaveValue('38');
+  await expect(page.getByRole('button', { name: 'Welcome announcement' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Guided cabin tour' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close audio controls' }).click();
   await page.getByRole('button', { name: 'Play preview' }).click();
   await expect(page.getByRole('button', { name: 'Pause preview' })).toBeVisible();
   const initialTime = await page.locator('.time-readout').innerText();
