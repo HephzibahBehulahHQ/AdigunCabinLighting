@@ -54,10 +54,16 @@ function cabinGlows(zones: ZoneState[]) {
   return Object.fromEntries(zones.map((zone) => [zone.id, toHex({ ...composePreviewRGB(zone.rgbw), w: 0 })])) as Record<ZoneId, string>;
 }
 
-function CabinDrawing({ zones, selected, onSelect, compact = false }: {
-  zones: ZoneState[]; selected: ZoneId; onSelect?: (id: ZoneId) => void; compact?: boolean;
+function CabinDrawing({ zones, selected, onSelect, compact = false, config = DEFAULT_CABIN_CONFIG }: {
+  zones: ZoneState[]; selected: ZoneId; onSelect?: (id: ZoneId) => void; compact?: boolean; config?: CabinConfig;
 }) {
   const glows = cabinGlows(zones);
+  const layout = CABIN_LAYOUTS[config.layoutId];
+  const rowTemplates = 'seatPlan' in layout
+    ? layout.seatPlan.flatMap((section) => Array.from({ length: section.rows }, () => section.groups))
+    : Array.from({ length: config.seatRows }, () => layout.groups);
+  const visibleRowCount = Math.min(18, rowTemplates.length);
+  const visibleRows = Array.from({ length: visibleRowCount }, (_, index) => rowTemplates[Math.round(index * (rowTemplates.length - 1) / Math.max(1, visibleRowCount - 1))]);
   const labelPositions: Record<ZoneId, { x: number; y: number }> = {
     ceiling: { x: 490, y: 147 }, windows: { x: 490, y: 190 }, sidewalls: { x: 222, y: 310 },
     footwell: { x: 490, y: 411 }, reading: { x: 655, y: 331 }, entry: { x: 193, y: 359 },
@@ -76,7 +82,7 @@ function CabinDrawing({ zones, selected, onSelect, compact = false }: {
     </g>
   );
   return (
-    <svg className={`cabin-drawing ${compact ? 'compact' : ''}`} viewBox={compact ? '0 0 980 470' : '40 25 900 415'} role={compact ? 'img' : 'group'} aria-label={compact ? 'Illustrative cabin zone preview' : 'Interactive cabin zone map'}>
+    <svg className={`cabin-drawing ${compact ? 'compact' : ''}`} data-layout-id={config.layoutId} viewBox={compact ? '0 0 980 470' : '40 25 900 415'} role={compact ? 'img' : 'group'} aria-label={compact ? `Illustrative ${layout.name} cabin preview` : `Interactive ${layout.name} cabin map`}>
       <defs>
         <linearGradient id="shell" x1="0" x2="0" y1="0" y2="1"><stop stopColor="#26384c" /><stop offset=".52" stopColor="#111d2b" /><stop offset="1" stopColor="#08111c" /></linearGradient>
         <linearGradient id="floor" x1="0" x2="1"><stop stopColor="#122131" /><stop offset=".5" stopColor="#213247" /><stop offset="1" stopColor="#0e1b29" /></linearGradient>
@@ -96,23 +102,40 @@ function CabinDrawing({ zones, selected, onSelect, compact = false }: {
       </>, 'ceiling-zone')}
       {/* windows */}
       {group('windows', 'WINDOW REVEALS', <>
-        {[0, 1, 2, 3].map((i) => <g key={`win-${i}`}>
-          <path d={`M${281 + i * 63} ${207 - Math.sin((i / 3) * Math.PI) * 18} l42 -11 l15 51 l-53 8 z`} fill="#172a3a" stroke="#7690a4" strokeWidth="2" />
-          <path d={`M${284 + i * 63} ${210 - Math.sin((i / 3) * Math.PI) * 18} l36 -8 l11 43 l-44 6 z`} fill="#19374a" stroke={glows.windows} strokeWidth="2" />
-          <path d={`M${286 + i * 63} ${212 - Math.sin((i / 3) * Math.PI) * 18} l31 -6 l8 33 l-37 5 z`} fill="#60acc3" opacity=".12" />
-        </g>)}
+        {Array.from({ length: config.windowCountPerSide }, (_, index) => {
+          const y = 132 + (index + 1) * 212 / (config.windowCountPerSide + 1);
+          const xOffset = Math.min(285, config.widthMeters * 52);
+          return [-1, 1].map((side) => {
+            const x = 490 + side * xOffset;
+            return <g key={`win-${side}-${index}`} aria-label={`Cabin window ${index + 1} on ${side < 0 ? 'left' : 'right'} side`}>
+              <rect x={x - 8} y={y - 12} width="16" height="25" rx="8" fill="#172a3a" stroke="#7690a4" strokeWidth="2" />
+              <rect x={x - 5} y={y - 9} width="10" height="19" rx="5" fill="#19374a" stroke={glows.windows} strokeWidth="1.6" />
+              <rect x={x - 3} y={y - 7} width="6" height="15" rx="3" fill="#60acc3" opacity=".18" />
+            </g>;
+          });
+        }).flat()}
       </>, 'windows-zone')}
       {/* seat rows */}
-      {[0, 1, 2, 3].map((row) => {
-        const y = 276 + row * 25; const scale = 0.7 + row * 0.11;
-        return <g key={row} opacity={.8}>
-          {[-1, 1].map((side) => <g key={side} transform={`translate(${490 + side * (120 + row * 25)} ${y}) scale(${scale})`}>
-            <path d="M-39 0 Q-39 -32 -17 -32 L17 -32 Q39 -32 39 0 L28 10 L-28 10 Z" fill="#344658" stroke="#53697e" />
-            <path d="M-31 -12 Q-31 -25 -14 -25 L14 -25 Q31 -25 31 -12 L23 -4 L-23 -4 Z" fill="#455b6f" />
-            <path d="M-32 12 L-38 37 M32 12 L38 37" stroke="#40536a" strokeWidth="4" />
-          </g>)}
-        </g>;
-      })}
+      {visibleRows.map((groups, row) => {
+          const totalSeats = groups.reduce((sum, count) => sum + count, 0);
+          const aisleCount = groups.length - 1;
+          const seatWidth = Math.min(config.layoutId === 'ownerVvip' ? 48 : 34, 340 / (totalSeats + aisleCount * 1.5));
+          const aisleGap = 15;
+          const occupiedWidth = totalSeats * seatWidth + aisleCount * aisleGap;
+          const rowY = 157 + row * (186 / Math.max(1, visibleRows.length - 1));
+          let x = 490 - occupiedWidth / 2 + seatWidth / 2;
+          const seats: number[] = [];
+          groups.forEach((count, groupIndex) => {
+            for (let seat = 0; seat < count; seat++) { seats.push(x); x += seatWidth + 3; }
+            if (groupIndex < groups.length - 1) x += aisleGap - 3;
+          });
+          return <g key={row} aria-label={`Cabin row ${row + 1}`}>
+            {seats.map((seatX, index) => <g key={index}>
+              <rect x={seatX - seatWidth / 2} y={rowY - (config.layoutId === 'ownerVvip' ? 8 : 5)} width={seatWidth} height={config.layoutId === 'ownerVvip' ? 16 : 10} rx={Math.min(8, seatWidth / 3)} fill={config.layoutId === 'ownerVvip' ? '#627b91' : '#344658'} stroke="#8298aa" strokeWidth="1.5" />
+              <rect x={seatX - seatWidth * .34} y={rowY - (config.layoutId === 'ownerVvip' ? 6 : 3)} width={seatWidth * .68} height={config.layoutId === 'ownerVvip' ? 5 : 3} rx="2" fill="#9eb2c3" opacity=".72" />
+            </g>)}
+          </g>;
+        })}
       {/* sidewall accents */}
       {group('sidewalls', 'SIDEWALL ACCENTS', <>
         <path d="M182 331 C216 250 230 193 253 170" fill="none" stroke={glows.sidewalls} strokeWidth="15" opacity=".25" filter="url(#softglow)" />
@@ -146,7 +169,7 @@ function CabinDrawing({ zones, selected, onSelect, compact = false }: {
       {group('handrail', 'HANDRAIL', <><path d="M300 365 Q490 390 680 365" fill="none" stroke={glows.handrail} strokeWidth="5" /><path d="M300 365 Q490 390 680 365" fill="none" stroke={glows.handrail} strokeWidth="13" opacity=".2" filter="url(#softglow)" /></>)}
       {group('trolley', 'TROLLEY', <><rect x="739" y="309" width="35" height="42" rx="4" fill={glows.trolley} fillOpacity=".28" stroke={glows.trolley} strokeWidth="3" /><circle cx="747" cy="355" r="3" fill="#9ab0c4"/><circle cx="767" cy="355" r="3" fill="#9ab0c4"/></>)}
       {group('cabin', 'CABIN AMBIENT', <><path d="M215 336 Q250 290 300 276 M765 336 Q730 290 680 276" fill="none" stroke={glows.cabin} strokeWidth="4" opacity=".85" /><path d="M215 336 Q250 290 300 276 M765 336 Q730 290 680 276" fill="none" stroke={glows.cabin} strokeWidth="14" opacity=".18" filter="url(#softglow)" /></>)}
-      <g className="map-axis"><text x="490" y="438" textAnchor="middle">ILLUSTRATIVE CABIN MAP · SIMULATION PROFILE 01</text></g>
+      <g className="map-axis"><text x="490" y="438" textAnchor="middle">{layout.name.toUpperCase()} · 2D REFERENCE MAP · SIMULATION</text></g>
     </svg>
   );
 }
