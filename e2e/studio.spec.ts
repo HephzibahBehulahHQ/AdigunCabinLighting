@@ -174,7 +174,7 @@ test('transition preview runs scene-specific instrumental audio and exposes cabi
   await expect(page.getByRole('button', { name: 'Guided cabin tour' })).toBeVisible();
   await page.getByLabel('Local audio cue role').selectOption('welcome');
   const sampleRate = 8000;
-  const sampleCount = sampleRate * 5;
+  const sampleCount = sampleRate * 30;
   const wav = Buffer.alloc(44 + sampleCount * 2);
   wav.write('RIFF', 0); wav.writeUInt32LE(wav.length - 8, 4); wav.write('WAVE', 8);
   wav.write('fmt ', 12); wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20);
@@ -188,7 +188,9 @@ test('transition preview runs scene-specific instrumental audio and exposes cabi
   await page.getByRole('button', { name: 'Add welcome announcement recording' }).click();
   await expect(page.getByText('HB380 welcome test', { exact: true })).toBeVisible();
   await page.locator('.audio-voice-actions').getByRole('button', { name: 'Welcome announcement' }).click();
-  await expect.poll(() => page.locator('audio[data-testid="local-voice-audio"]').evaluate((audio: HTMLAudioElement) => audio.currentSrc.startsWith('blob:') && !audio.paused)).toBe(true);
+  const voicePlayer = page.locator('audio[data-testid="local-voice-audio"]');
+  await expect.poll(() => voicePlayer.evaluate((audio: HTMLAudioElement) => audio.currentSrc)).toMatch(/^blob:/);
+  await expect.poll(() => voicePlayer.evaluate((audio: HTMLAudioElement) => !audio.paused)).toBe(true);
   await page.getByRole('button', { name: 'Close audio controls' }).click();
   await page.getByRole('button', { name: 'Play preview' }).click();
   await expect(page.getByRole('button', { name: 'Pause preview' })).toBeVisible();
