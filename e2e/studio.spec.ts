@@ -353,6 +353,27 @@ test('Change cabin switches the 3D reference geometry from the left rail', async
   await expect(page.locator('.cabin3d-badge')).toContainText('Wide cabin');
 });
 
+test('owner image-derived VVIP cabin profile switches the matching seat and window layout in 2D and 3D', async ({ page }) => {
+  await page.goto('/studio');
+  const cabinView = page.getByRole('group', { name: 'Cabin view' });
+  await cabinView.getByRole('button', { name: '2D' }).click();
+  await page.getByRole('button', { name: 'Change cabin' }).click();
+  await page.getByLabel('Cabin layout').selectOption('ownerVvip');
+  await expect(page.locator('.cabin-profile-summary')).toContainText('Two private seats per row');
+  await expect(page.locator('.cabin-profile-note')).toContainText('visually inferred');
+  await page.getByRole('button', { name: 'Load cabin layout' }).click();
+  const map = page.locator('.cabin-drawing');
+  await expect(map).toHaveAttribute('data-layout-id', 'ownerVvip');
+  await expect(map.locator('g[aria-label^="Cabin row "]')).toHaveCount(7);
+  await expect(map.locator('g[aria-label^="Cabin window "]')).toHaveCount(22);
+
+  await cabinView.getByRole('button', { name: '3D' }).click();
+  const model = page.locator('.cabin3d-root');
+  await expect(model).toHaveAttribute('data-cabin-layout', 'ownerVvip');
+  await expect(model).toHaveAttribute('data-rendered-seat-count', '14');
+  await expect(page.locator('.cabin-webgl-canvas')).toHaveAttribute('aria-label', /VVIP suite.*visually inferred geometry/i);
+});
+
 test('A350-900 reference loads source-backed cabin dimensions and the derived 315-seat plan', async ({ page }) => {
   await page.goto('/studio');
   await page.getByRole('button', { name: 'Change cabin' }).click();
