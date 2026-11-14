@@ -1,6 +1,6 @@
 # Initial safety and security evidence ledger
 
-**Revision:** 0.5 · **Date:** 2026-11-13 · **Scope:** PR #18 gateway limits, PR #19 firmware core, and typed unsupported OEM contract
+**Revision:** 0.6 · **Date:** 2026-11-14 · **Scope:** PR #18 gateway limits, PR #19 firmware core, typed unsupported OEM contract, and static-release inspection
 **Status:** Engineering evidence in progress. This ledger is not a safety case, certification package, aircraft approval, penetration-test report, or substitute for review by qualified aviation safety and security specialists.
 
 ## 1. System boundary and intended use
@@ -41,6 +41,7 @@ Assumptions: the local machine and Node runtime are controlled by the operator; 
 | C-12 Local request flood bound | Gateway applies an in-memory fixed-window limit of 120 requests per peer per minute by default, before host/auth/route handling; rejected requests receive HTTP 429 and `Retry-After`. | `gateway/server.ts`; tests cover rejection, retry header, window reset, and invalid configuration. This is a single-process local safeguard, not distributed abuse protection or a substitute for OS process supervision. |
 | C-13 Bounded process shutdown | SIGINT/SIGTERM closes the listener, allows in-flight work to drain for up to 20 seconds, then closes remaining connections and exits with failure status. | `gateway/shutdown.ts` and `gateway/shutdown.test.ts`; graceful, forced, idempotent, and invalid-timeout paths are unit-tested. This is shutdown handling, not an external service supervisor or restart policy. |
 | C-14 Local gateway token lifecycle guidance | Operators generate 32 random bytes locally, keep the bearer token in the current shell environment, and rotate it by stopping the old process before starting a replacement with a fresh token. | `docs/GATEWAY_OPERATIONS.md`; the service never prints or persists the token. This is procedural guidance, not online rotation or a production secret manager. |
+| C-15 Static release inspection | CI scans the built static artifact for source markers from the separate gateway, private-key headers, common credential patterns, bearer-like secrets, missing root HTML, and symlinks; findings identify only the file and rule, never print matched text. | `scripts/check-static-release.mjs` runs after production build; native Node tests cover clean/flagged artifacts and fail-closed filesystem cases. This is a narrow pattern scan, not a complete secret scanner or source-history review. |
 
 ## 4. Preliminary hazard and threat register
 
