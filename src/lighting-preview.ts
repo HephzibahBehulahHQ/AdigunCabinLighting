@@ -5,7 +5,10 @@ export type PreviewRGB = { r: number; g: number; b: number };
 /** Blend RGBW setpoints into an approximate on-screen RGB color. */
 export function composePreviewRGB(rgbw: RGBW): PreviewRGB {
   const white = Math.max(0, Math.min(100, Number.isFinite(rgbw.w) ? rgbw.w : 0));
-  const channel = (value: number) => Math.min(100, Math.max(0, Number.isFinite(value) ? value : 0) + white);
+  const channel = (value: number) => {
+    const mixed = Math.min(100, Math.max(0, Number.isFinite(value) ? value : 0) + white);
+    return mixed === 0 ? 0 : Math.round(100 * (mixed / 100) ** .82);
+  };
   return { r: channel(rgbw.r), g: channel(rgbw.g), b: channel(rgbw.b) };
 }
 
@@ -17,3 +20,4 @@ export function previewLightLevel(rgbw: RGBW, masterIntensity: number): number {
   const drive = Math.max(0, Math.min(1, setpoint * master));
   return drive === 0 ? 0 : drive ** .82;
 }
+
