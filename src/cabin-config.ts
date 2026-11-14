@@ -3,6 +3,19 @@ export const CABIN_LAYOUTS = {
   singleAisle: { name: 'Single aisle · 3–3', description: 'Six seats per row · one aisle', groups: [3, 3] },
   widebody: { name: 'Wide cabin · 3–3–3', description: 'Nine seats per row · two aisles', groups: [3, 3, 3] },
   premium: { name: 'Premium · 1–2–1', description: 'Four seats per row · two aisles', groups: [1, 2, 1] },
+  a330300: {
+    name: 'A330-300 · standard reference',
+    description: 'Airbus A330-300 planning dimensions and two-class seat data; row distribution is derived for illustration.',
+    groups: [2, 4, 2],
+    source: 'https://www.aircraft.airbus.com/en/aircraft/a330/a330-300',
+    seatPlan: [
+      { groups: [2, 2, 2], rows: 6, pitchMeters: 1.524, seatCount: 36, cabinClass: 'Business' },
+      { groups: [2, 4, 2], rows: 33, pitchMeters: .8128, seatCount: 264, cabinClass: 'Economy' },
+    ],
+    seatCount: 300,
+    seatCountBasis: 'Airbus A330-300 two-class planning configuration',
+    geometryNote: 'Cabin length, maximum width and planning seat totals are sourced. Class order and row distribution are derived for display from published totals and pitch. Ceiling, windows, bins and monuments remain generic reference geometry; this is not an Airbus plan drawing or airline fit.',
+  },
   a350900: {
     name: 'A350-900 · standard reference',
     description: 'Airbus planning dimensions and two-class seat data; row distribution is derived for illustration.',
@@ -36,6 +49,7 @@ export const CABIN_PROFILES: Record<CabinLayoutId, CabinConfig> = {
   singleAisle: { layoutId: 'singleAisle', lengthMeters: 18.4, widthMeters: 4.4, ceilingHeightMeters: 2.65, seatRows: 12, seatPitchMeters: .76, windowCountPerSide: 11, overheadBinDepthMeters: .58 },
   widebody: { layoutId: 'widebody', lengthMeters: 27.6, widthMeters: 5.75, ceilingHeightMeters: 2.85, seatRows: 15, seatPitchMeters: .79, windowCountPerSide: 16, overheadBinDepthMeters: .75 },
   premium: { layoutId: 'premium', lengthMeters: 20.2, widthMeters: 5.25, ceilingHeightMeters: 2.72, seatRows: 9, seatPitchMeters: 1.05, windowCountPerSide: 12, overheadBinDepthMeters: .62 },
+  a330300: { layoutId: 'a330300', lengthMeters: 50.36, widthMeters: 5.26, ceilingHeightMeters: 2.85, seatRows: 39, seatPitchMeters: .8128, windowCountPerSide: 16, overheadBinDepthMeters: .72 },
   a350900: { layoutId: 'a350900', lengthMeters: 51.04, widthMeters: 5.71, ceilingHeightMeters: 2.85, seatRows: 38, seatPitchMeters: .8128, windowCountPerSide: 16, overheadBinDepthMeters: .75 },
 };
 

@@ -266,6 +266,25 @@ test('A350-900 reference loads source-backed cabin dimensions and the derived 31
   await expect(page.locator('.cabin3d-badge')).toContainText('Not an aircraft-specific fit');
 });
 
+test('A330-300 reference loads source-backed dimensions and its derived 300-seat plan', async ({ page }) => {
+  await page.goto('/studio');
+  await page.getByRole('button', { name: 'Change cabin' }).click();
+  await page.getByLabel('Cabin layout').selectOption('a330300');
+  await expect(page.locator('.cabin-profile-summary')).toContainText('300 passengers');
+  await expect(page.locator('.cabin-profile-summary')).toContainText('36 business');
+  await expect(page.locator('.cabin-profile-summary')).toContainText('264 economy');
+  await expect(page.getByLabel('Cabin length (m)')).toHaveValue('50.36');
+  await expect(page.getByLabel('Max cabin width (m)')).toHaveValue('5.26');
+  await expect(page.getByLabel('Cabin length (m)')).toBeDisabled();
+  await expect(page.getByLabel('Seat rows')).toBeDisabled();
+  await expect(page.locator('.cabin-profile-note')).toContainText('derived for display');
+  await page.getByRole('button', { name: 'Load cabin layout' }).click();
+  await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-cabin-layout', 'a330300');
+  await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-rendered-seat-count', '300');
+  await expect(page.locator('.cabin3d-badge')).toContainText('A330-300');
+  await expect(page.locator('.cabin3d-badge')).toContainText('Not an aircraft-specific fit');
+});
+
 test('Studio fits one viewport with docked panels at all required desktop sizes', async ({ page }) => {
   const directory = 'artifacts/screenshots';
   await mkdir(directory, { recursive: true });
