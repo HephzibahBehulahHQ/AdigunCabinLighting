@@ -157,38 +157,127 @@ function Brand({ small = false }: { small?: boolean }) {
   </a>;
 }
 
+const LANDING_COPY = {
+  en: {
+    language: 'Language', navLabel: 'Main navigation', nav: ['Capabilities', 'Engineering', 'Safety'], open: 'Open Studio',
+    eyebrow: 'CABIN LIGHTING · ENGINEERING STUDIO', title: 'Shape the cabin', titleEnd: 'around the', moment: 'moment.',
+    intro: 'Design considered RGBW lighting scenes for cabin environments. Explore zones, tune transitions, and review every idea in an offline simulator.',
+    enter: 'Enter Cabin Studio', explore: 'Explore the system', offline: 'Offline by design', noOutput: 'No physical outputs',
+    sceneStudy: '01 / SCENE STUDY', simProfile: 'SIMULATION PROFILE', aurora: 'Aurora / cabin wash', zoneCount: 'RGBW · ILLUSTRATIVE ZONE VIEW',
+    zoneMap: 'Illustrative zone map', notConnected: 'Not connected to aircraft', statusLabel: 'Product status',
+    ribbon: ['OFFLINE SIMULATION', 'Local scene editing', 'Deterministic timeline preview', 'Validated scene files'],
+    sectionEyebrow: 'A WORKSPACE FOR LIGHT', sectionTitle: 'From zone to', atmosphere: 'atmosphere.',
+    sectionBody: 'Every control is tied to an editable cabin zone. Every scene is yours to shape, preview, and save locally.',
+    cards: [
+      ['01 · SPATIAL DESIGN', 'Zone by zone', 'Select ceiling coves, window reveals, sidewalls, footwell, reading lights, and entry accents in an interactive cabin map.'],
+      ['02 · RGBW CONTROL', 'Precise, editable scenes', 'Shape red, green, blue, and white output per zone. Refine a fade and see the simulator respond immediately.'],
+      ['03 · CHOREOGRAPHY', 'Time has a texture', 'Build a paced transition with real keyframes, scrub the deterministic preview, and export a versioned scene file.'],
+    ],
+    engineeringEyebrow: 'BUILT FOR CAREFUL WORK', engineeringTitle: 'Design intent, clearly bounded.',
+    engineeringBody: 'AdigunCabinLighting Studio is an offline software simulator. It does not connect to aircraft or lighting hardware, and it does not claim certification or OEM compatibility.',
+    exploreStudio: 'Explore the Studio', safetyTitle: 'Safety is explicit in every session.',
+    safetyBody: 'SIMULATION · OFFLINE · NO HARDWARE CONNECTED. Physical bench and aircraft integration require independent authorization, validated equipment, and their own safety gates.',
+    review: 'Review the simulator', footer: 'Engineering simulator · 2026',
+  },
+  de: {
+    language: 'Sprache', navLabel: 'Hauptnavigation', nav: ['Funktionen', 'Technik', 'Sicherheit'], open: 'Studio öffnen',
+    eyebrow: 'KABINENBELEUCHTUNG · ENGINEERING-STUDIO', title: 'Gestalten Sie die Kabine', titleEnd: 'für den', moment: 'Moment.',
+    intro: 'Entwerfen Sie abgestimmte RGBW-Lichtszenen für Kabinen. Erkunden Sie Zonen, stimmen Sie Übergänge ab und prüfen Sie Ihre Ideen in einem Offline-Simulator.',
+    enter: 'Kabinen-Studio öffnen', explore: 'System entdecken', offline: 'Offline konzipiert', noOutput: 'Keine physische Ausgabe',
+    sceneStudy: '01 / SZENENSTUDIE', simProfile: 'SIMULATIONSPROFIL', aurora: 'Aurora / Kabinenlicht', zoneCount: 'RGBW · ILLUSTRATIVE ZONENANSICHT',
+    zoneMap: 'Illustrative Zonenkarte', notConnected: 'Nicht mit einem Flugzeug verbunden', statusLabel: 'Produktstatus',
+    ribbon: ['OFFLINE-SIMULATION', 'Lokale Szenenbearbeitung', 'Deterministische Timeline-Vorschau', 'Validierte Szenendateien'],
+    sectionEyebrow: 'EIN ARBEITSPLATZ FÜR LICHT', sectionTitle: 'Von der Zone zur', atmosphere: 'Atmosphäre.',
+    sectionBody: 'Jede Steuerung ist einer bearbeitbaren Kabinenzone zugeordnet. Jede Szene können Sie selbst gestalten, prüfen und lokal speichern.',
+    cards: [
+      ['01 · RÄUMLICHES DESIGN', 'Zone für Zone', 'Wählen Sie Deckenlichtleisten, Fensterumrandungen, Seitenwände, Fußraum, Leselichter und Einstiegsakzente in einer interaktiven Kabinenkarte.'],
+      ['02 · RGBW-STEUERUNG', 'Präzise, bearbeitbare Szenen', 'Stimmen Sie Rot, Grün, Blau und Weiß je Zone ab. Passen Sie Überblendungen an und sehen Sie die Reaktion des Simulators sofort.'],
+      ['03 · CHOREOGRAFIE', 'Zeit wird erlebbar', 'Erstellen Sie Übergänge mit Keyframes, prüfen Sie die deterministische Vorschau und exportieren Sie versionierte Szenendateien.'],
+    ],
+    engineeringEyebrow: 'FÜR SORGFÄLTIGE ARBEIT', engineeringTitle: 'Gestaltungsabsicht, klar abgegrenzt.',
+    engineeringBody: 'AdigunCabinLighting Studio ist ein Offline-Software-Simulator. Es verbindet sich weder mit Flugzeugen noch mit Beleuchtungshardware und beansprucht keine Zertifizierung oder OEM-Kompatibilität.',
+    exploreStudio: 'Studio ansehen', safetyTitle: 'Sicherheit ist in jeder Sitzung ausdrücklich ausgewiesen.',
+    safetyBody: 'SIMULATION · OFFLINE · KEINE HARDWARE VERBUNDEN. Prüfstand- und Flugzeugintegration erfordern eine unabhängige Genehmigung, validierte Ausrüstung und eigene Sicherheitsfreigaben.',
+    review: 'Simulator ansehen', footer: 'Engineering-Simulator · 2026',
+  },
+  yo: {
+    language: 'Èdè', navLabel: 'Àkójọ ìtọ́kasí àkọ́kọ́', nav: ['Àwọn iṣẹ́', 'Ìmọ̀ ẹ̀rọ', 'Ààbò'], open: 'Ṣí Studio',
+    eyebrow: 'ÌMỌ́LẸ̀ ÀGỌ́ · STUDIO ÌṢẸ̀LẸ̀', title: 'Ṣètò àgọ́ náà', titleEnd: 'fún', moment: 'àkókò kọ̀ọ̀kan.',
+    intro: 'Ṣe àgbékalẹ̀ àwọn ìran ìmọ́lẹ̀ RGBW fún inú àgọ́. Yan àwọn agbègbè, ṣètò bí ìyípadà ṣe ń lọ, kí o sì ṣàyẹ̀wò èrò kọ̀ọ̀kan nínú simulator tí kò nílò ìsopọ̀.',
+    enter: 'Wọlé sí Cabin Studio', explore: 'Ṣàyẹ̀wò ètò náà', offline: 'A ṣe é fún lílò láìsí ìsopọ̀', noOutput: 'Kò sí àbájáde sí ẹ̀rọ gidi',
+    sceneStudy: '01 / ÌWÁDÌÍ ÌRÍNṢẸ̀', simProfile: 'ÀPẸẸRẸ ÌṢẸ̀LẸ̀', aurora: 'Aurora / ìmọ́lẹ̀ àgọ́', zoneCount: 'RGBW · ÀWÒRÁN ÀPẸẸRẸ',
+    zoneMap: 'Àwòrán agbègbè àpẹẹrẹ', notConnected: 'Kò sopọ̀ mọ́ ọkọ̀ òfurufú', statusLabel: 'Ipò ọjà',
+    ribbon: ['ÌṢẸ̀LẸ̀ LÁÌSÍ ÌSỌ̀DỌ̀', 'Ṣíṣe àtúnṣe ìran ní agbègbè tirẹ', 'Àyẹ̀wò àkókò tó ṣeé tún ṣe', 'Àwọn fáìlì ìran tí a ti ṣàyẹ̀wò'],
+    sectionEyebrow: 'IṢẸ́ FÚN ÌṢẸ̀LẸ̀ ÌMỌ́LẸ̀', sectionTitle: 'Láti agbègbè sí', atmosphere: 'ìrísí àyíká.',
+    sectionBody: 'A so gbogbo ìṣàkóso mọ́ agbègbè àgọ́ tí o lè ṣàtúnṣe. Ìwọ ló ń ṣe àgbékalẹ̀, ṣàyẹ̀wò, àti fi gbogbo ìran pamọ́ sí ẹ̀rọ rẹ.',
+    cards: [
+      ['01 · ÀWÒRÁN ÀGBÈGBÈ', 'Agbègbè kọ̀ọ̀kan', 'Yan ìmọ́lẹ̀ òrùlé, etí fèrèsé, ògiri ẹ̀gbẹ́, ìsàlẹ̀ ọ̀nà, ìmọ́lẹ̀ ìkàwé, àti ìmọ́lẹ̀ ẹnu-ọ̀nà lórí àwòrán àgọ́ tó ń ṣiṣẹ́.'],
+      ['02 · ÌṢÀKÓSO RGBW', 'Àwọn ìran tó ṣe kedere, tó ṣeé ṣàtúnṣe', 'Ṣètò ìmọ́lẹ̀ pupa, ewé, búlúù, àti funfun fún agbègbè kọ̀ọ̀kan. Ṣàtúnṣe ìrọ̀rùn ìyípadà, kí o sì wo èsì simulator lẹ́sẹ̀kẹsẹ̀.'],
+      ['03 · ÌLÀKỌRÍ ÀKÓKÒ', 'Àkókò ní ìrísí tirẹ̀', 'Ṣẹ̀dá ìyípadà pẹ̀lú keyframe, ṣàyẹ̀wò rẹ̀ lórí àkókò tó ṣeé tún ṣe, kí o sì gbé fáìlì ìran tó ní ẹ̀dà jáde.'],
+    ],
+    engineeringEyebrow: 'A ṢE É FÚN IṢẸ́ PẸ̀LÚ ÌṢỌ́RA', engineeringTitle: 'Aala ìlò rẹ̀ ṣe kedere.',
+    engineeringBody: 'AdigunCabinLighting Studio jẹ́ simulator sọ́fítíwẹ̀ tí kò nílò ìsopọ̀. Kò sopọ̀ mọ́ ọkọ̀ òfurufú tàbí ẹ̀rọ ìmọ́lẹ̀, kò sì sọ pé ó ní ìjẹ́rìí tàbí ìbámu OEM.',
+    exploreStudio: 'Ṣàyẹ̀wò Studio', safetyTitle: 'A ń ṣàlàyé ààbò ní gbogbo ìgbà ìlò.',
+    safetyBody: 'ÌṢẸ̀LẸ̀ · LÁÌSÍ ÌSỌ̀DỌ̀ · KÒ SÍ Ẹ̀RỌ̀ GIDI TÍ A SOPỌ̀. Ìdánwò pẹ̀lú ohun èlò àti ìsopọ̀ ọkọ̀ òfurufú nílò àṣẹ olómìnira, ohun èlò tí a ti fọwọ́sí, àti ìgbésẹ̀ ààbò lọ́tọ̀ọ̀tọ̀.',
+    review: 'Ṣàyẹ̀wò simulator', footer: 'Simulator ìmọ̀ ẹ̀rọ · 2026',
+  },
+  pcm: {
+    language: 'Language', navLabel: 'Main navigation', nav: ['Wetin e fit do', 'Engineering', 'Safety'], open: 'Open Studio',
+    eyebrow: 'CABIN LIGHTING · ENGINEERING STUDIO', title: 'Set the cabin light', titleEnd: 'make e fit', moment: 'the moment.',
+    intro: 'Design correct RGBW light scenes for cabin space. Check zones, tune how light dey change, and review each idea for offline simulator.',
+    enter: 'Enter Cabin Studio', explore: 'See how the system work', offline: 'E dey work offline by design', noOutput: 'E no send output to hardware',
+    sceneStudy: '01 / SCENE STUDY', simProfile: 'SIMULATION PROFILE', aurora: 'Aurora / cabin light', zoneCount: 'RGBW · EXAMPLE ZONE VIEW',
+    zoneMap: 'Example zone map', notConnected: 'E no connect to aircraft', statusLabel: 'Product status',
+    ribbon: ['OFFLINE SIMULATION', 'Edit scenes for this browser', 'Timeline preview dey repeat the same result', 'Scene files wey pass validation'],
+    sectionEyebrow: 'WORKSPACE FOR LIGHT', sectionTitle: 'From zone reach', atmosphere: 'atmosphere.',
+    sectionBody: 'Every control connect to cabin zone wey you fit edit. Na you go shape the scene, preview am, and save am for this browser.',
+    cards: [
+      ['01 · CABIN ZONES', 'Zone by zone', 'Select ceiling light, window edge, side wall, footwell, reading light, and entry accent for the cabin map.'],
+      ['02 · RGBW CONTROL', 'Scenes wey you fit edit', 'Set red, green, blue, and white for each zone. Change the fade and see the simulator respond sharp-sharp.'],
+      ['03 · CHOREOGRAPHY', 'Time get texture', 'Build transition with real keyframes, scrub the timeline preview, and export versioned scene file.'],
+    ],
+    engineeringEyebrow: 'BUILT FOR CAREFUL WORK', engineeringTitle: 'Clear limit for wetin this tool fit do.',
+    engineeringBody: 'AdigunCabinLighting Studio na offline software simulator. E no connect to aircraft or lighting hardware, and e no claim certification or OEM compatibility.',
+    exploreStudio: 'Check the Studio', safetyTitle: 'Safety dey clear for every session.',
+    safetyBody: 'SIMULATION · OFFLINE · NO HARDWARE CONNECTED. Bench test and aircraft integration need independent authorization, validated equipment, and separate safety checks.',
+    review: 'Review the simulator', footer: 'Engineering simulator · 2026',
+  },
+} as const;
+type LandingLocale = keyof typeof LANDING_COPY;
+
 function Landing() {
-  return <main className="landing">
+  const [locale, setLocale] = useState<LandingLocale>('en');
+  const text = LANDING_COPY[locale];
+  return <main className="landing" lang={locale}>
     <header className="landing-nav"><Brand />
-      <nav aria-label="Main navigation"><a href="#capabilities">Capabilities</a><a href="#engineering">Engineering</a><a href="#safety">Safety</a></nav>
-      <a className="button button-primary nav-cta" href="/studio">Open Studio <ArrowRight size={16} /></a>
+      <nav aria-label={text.navLabel}><a href="#capabilities">{text.nav[0]}</a><a href="#engineering">{text.nav[1]}</a><a href="#safety">{text.nav[2]}</a></nav>
+      <label className="landing-language"><span className="sr-only">{text.language}</span><select className="landing-locale" aria-label={text.language} value={locale} onChange={(event) => setLocale(event.target.value as LandingLocale)}><option value="en">English</option><option value="de">Deutsch</option><option value="yo">Yorùbá</option><option value="pcm">Nigerian Pidgin</option></select></label>
+      <a className="button button-primary nav-cta" href="/studio">{text.open} <ArrowRight size={16} /></a>
     </header>
     <section className="landing-hero">
       <div className="hero-copy">
-        <div className="eyebrow"><span className="eyebrow-line" /> CABIN LIGHTING · ENGINEERING STUDIO</div>
-        <h1>Shape the cabin<br />around the <em>moment.</em></h1>
-        <p>Design considered RGBW lighting scenes for cabin environments. Explore zones, tune transitions, and review every idea in an offline simulator.</p>
-        <div className="hero-actions"><a className="button button-primary button-large" href="/studio">Enter Cabin Studio <ArrowRight size={18} /></a><a href="#capabilities" className="text-link">Explore the system <ArrowDownToLine size={15} /></a></div>
-        <div className="hero-proof"><span><Radio size={16} /> Offline by design</span><span><ShieldCheck size={16} /> No physical outputs</span></div>
+        <div className="eyebrow"><span className="eyebrow-line" /> {text.eyebrow}</div>
+        <h1>{text.title}<br />{text.titleEnd} <em>{text.moment}</em></h1>
+        <p>{text.intro}</p>
+        <div className="hero-actions"><a className="button button-primary button-large" href="/studio">{text.enter} <ArrowRight size={18} /></a><a href="#capabilities" className="text-link">{text.explore} <ArrowDownToLine size={15} /></a></div>
+        <div className="hero-proof"><span><Radio size={16} /> {text.offline}</span><span><ShieldCheck size={16} /> {text.noOutput}</span></div>
       </div>
-      <div className="hero-art-wrap"><div className="hero-art-label"><span>01 / SCENE STUDY</span><span>SIMULATION PROFILE</span></div>
+      <div className="hero-art-wrap"><div className="hero-art-label"><span>{text.sceneStudy}</span><span>{text.simProfile}</span></div>
         <div className="hero-art"><CabinDrawing zones={PRESETS[1].keyframes[1] ? makeZones().map((zone) => ({ ...zone, rgbw: PRESETS[1].keyframes[1].targets[zone.id] })) : makeZones()} selected="windows" compact />
-          <div className="art-caption"><span className="art-caption-dot" /> Aurora / cabin wash <small>RGBW · 06 ZONES</small></div>
+          <div className="art-caption"><span className="art-caption-dot" /> {text.aurora} <small>{text.zoneCount}</small></div>
         </div>
-        <div className="hero-art-bottom"><span>Illustrative zone map</span><span>Not connected to aircraft</span></div>
+        <div className="hero-art-bottom"><span>{text.zoneMap}</span><span>{text.notConnected}</span></div>
       </div>
     </section>
-    <section className="landing-ribbon" aria-label="Product status"><span><span className="status-pulse" /> OFFLINE SIMULATION</span><span>Local scene editing</span><span>Deterministic timeline preview</span><span>Validated scene files</span></section>
-    <section className="landing-section" id="capabilities"><div className="section-heading"><div><div className="eyebrow">A WORKSPACE FOR LIGHT</div><h2>From zone to <em>atmosphere.</em></h2></div><p>Every control is tied to an editable cabin zone. Every scene is yours to shape, preview, and save locally.</p></div>
+    <section className="landing-ribbon" aria-label={text.statusLabel}><span><span className="status-pulse" /> {text.ribbon[0]}</span><span>{text.ribbon[1]}</span><span>{text.ribbon[2]}</span><span>{text.ribbon[3]}</span></section>
+    <section className="landing-section" id="capabilities"><div className="section-heading"><div><div className="eyebrow">{text.sectionEyebrow}</div><h2>{text.sectionTitle} <em>{text.atmosphere}</em></h2></div><p>{text.sectionBody}</p></div>
       <div className="capability-grid">
-        <article><span className="feature-icon"><LayoutGrid size={19} /></span><small>01 · SPATIAL DESIGN</small><h3>Zone by zone</h3><p>Select ceiling coves, window reveals, sidewalls, footwell, reading lights, and entry accents in an interactive cabin map.</p></article>
-        <article><span className="feature-icon"><SlidersHorizontal size={19} /></span><small>02 · RGBW CONTROL</small><h3>Precise, editable scenes</h3><p>Shape red, green, blue, and white output per zone. Refine a fade and see the simulator respond immediately.</p></article>
-        <article><span className="feature-icon"><Waves size={19} /></span><small>03 · CHOREOGRAPHY</small><h3>Time has a texture</h3><p>Build a paced transition with real keyframes, scrub the deterministic preview, and export a versioned scene file.</p></article>
+        {text.cards.map(([meta, title, body]) => <article key={meta}><span className="feature-icon"><LayoutGrid size={19} /></span><small>{meta}</small><h3>{title}</h3><p>{body}</p></article>)}
       </div>
     </section>
-    <section className="engineering-band" id="engineering"><div className="engineering-mark"><Gauge size={24} /></div><div><div className="eyebrow">BUILT FOR CAREFUL WORK</div><h2>Design intent, clearly bounded.</h2><p>AdigunCabinLighting Studio is an offline software simulator. It does not connect to aircraft or lighting hardware, and it does not claim certification or OEM compatibility.</p></div><a href="/studio" className="button button-quiet">Explore the Studio <ArrowRight size={16} /></a></section>
-    <section className="safety-section" id="safety"><ShieldCheck size={18} /><div><strong>Safety is explicit in every session.</strong><p>SIMULATION · OFFLINE · NO HARDWARE CONNECTED. Physical bench and aircraft integration require independent authorization, validated equipment, and their own safety gates.</p></div><a href="/studio">Review the simulator <ArrowRight size={14} /></a></section>
-    <footer className="landing-footer"><Brand small /><span>AdigunCabinLighting · HB Elektroniker</span><span>Engineering simulator · 2026</span></footer>
+    <section className="engineering-band" id="engineering"><div className="engineering-mark"><Gauge size={24} /></div><div><div className="eyebrow">{text.engineeringEyebrow}</div><h2>{text.engineeringTitle}</h2><p>{text.engineeringBody}</p></div><a href="/studio" className="button button-quiet">{text.exploreStudio} <ArrowRight size={16} /></a></section>
+    <section className="safety-section" id="safety"><ShieldCheck size={18} /><div><strong>{text.safetyTitle}</strong><p>{text.safetyBody}</p></div><a href="/studio">{text.review} <ArrowRight size={14} /></a></section>
+    <footer className="landing-footer"><Brand small /><span>AdigunCabinLighting · HB Elektroniker</span><span>{text.footer}</span></footer>
   </main>;
 }
 
