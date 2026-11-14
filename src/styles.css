@@ -173,6 +173,8 @@
 .audio-cue-import>label{margin-top:3px;color:#91a8bb;font-size:8px}
 .audio-cue-import>input{box-sizing:border-box;width:100%;min-width:0;padding:7px;border:1px solid #30475b;border-radius:4px;background:#0d1925;color:#dce7f0;font:inherit;font-size:9px}
 .audio-cue-import>input[type=file]{padding:6px}
+.audio-cue-import>select{box-sizing:border-box;width:100%;min-width:0;padding:7px;border:1px solid #30475b;border-radius:4px;background:#0d1925;color:#dce7f0;font:inherit;font-size:9px}
+.audio-cue-import>select:focus-visible{outline:2px solid #22d3ee;outline-offset:1px}
 .audio-import-button{min-height:30px;border:1px solid #217b89;border-radius:4px;background:#10333d;color:#cbf8fc;font-size:9px;font-weight:650;cursor:pointer}
 .audio-import-button:disabled{opacity:.45;cursor:not-allowed}
 .audio-cue-active{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px;border:1px solid #286276;border-radius:4px;background:#0d2934}

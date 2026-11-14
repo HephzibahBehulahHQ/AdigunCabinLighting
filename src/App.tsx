@@ -235,6 +235,8 @@ function Studio() {
   const [audioPanelOpen, setAudioPanelOpen] = useState(false);
   const [audioVolume, setAudioVolume] = useState(38);
   const [localMoodAudio, setLocalMoodAudio] = useState<Record<string, LocalMoodAudioCue>>({});
+  const [localVoiceAudio, setLocalVoiceAudio] = useState<Record<string, LocalMoodAudioCue>>({});
+  const [localAudioRole, setLocalAudioRole] = useState<'mood' | 'welcome' | 'tour'>('mood');
   const [localMoodAudioDraft, setLocalMoodAudioDraft] = useState<LocalMoodAudioDraft>({ file: null, title: '', rightsReference: '' });
   const [notice, setNotice] = useState('');
   const [tab, setTab] = useState('scene');
@@ -248,6 +250,7 @@ function Studio() {
   const importRef = useRef<HTMLInputElement>(null);
   const moodAudioFileRef = useRef<HTMLInputElement>(null);
   const localMoodAudioRef = useRef<HTMLAudioElement | null>(null);
+  const localVoiceAudioRef = useRef<HTMLAudioElement | null>(null);
   const localAudioObjectUrls = useRef(new Set<string>());
   const stageRef = useRef<HTMLDivElement>(null);
   const cabinCaptureRef = useRef<(() => Promise<Blob>) | null>(null);
@@ -264,6 +267,8 @@ function Studio() {
   const scene = scenes.find((item) => item.id === activeSceneId) ?? scenes[0] ?? PRESETS[0];
   const audioTrackKey = `${projectId}:${scene.id}`;
   const currentMoodAudio = localMoodAudio[audioTrackKey];
+  const currentVoiceAudio = localAudioRole === 'mood' ? undefined : localVoiceAudio[`${projectId}:${localAudioRole}`];
+  const currentConfiguredAudio = localAudioRole === 'mood' ? currentMoodAudio : currentVoiceAudio;
   const currentZone = zones.find((zone) => zone.id === selected) ?? zones[0];
   const startTransitionPreview = () => {
     const startAt = time >= scene.durationSeconds ? 0 : time;
@@ -288,33 +293,62 @@ function Studio() {
   const importLocalMoodAudio = () => {
     const { file, title, rightsReference } = localMoodAudioDraft;
     if (!file) { setNotice('Choose a local audio file first.'); return; }
-    if (file.size > MAX_LOCAL_MOOD_AUDIO_BYTES) { setNotice('Local mood audio must be 25 MiB or smaller.'); return; }
+    if (file.size > MAX_LOCAL_MOOD_AUDIO_BYTES) { setNotice('Local audio must be 25 MiB or smaller.'); return; }
     const audioExtension = /\.(aac|flac|m4a|mp3|oga|ogg|wav|webm)$/i.test(file.name);
     if (!file.type.startsWith('audio/') && !audioExtension) { setNotice('Choose a supported audio file.'); return; }
     if (!title.trim() || !rightsReference.trim()) { setNotice('Add the track title and a rights/source reference before importing.'); return; }
     const objectUrl = URL.createObjectURL(file);
     localAudioObjectUrls.current.add(objectUrl);
-    const previous = localMoodAudio[audioTrackKey];
-    if (previous) { URL.revokeObjectURL(previous.objectUrl); localAudioObjectUrls.current.delete(previous.objectUrl); }
-    setLocalMoodAudio((current) => ({ ...current, [audioTrackKey]: { objectUrl, fileName: file.name, title: title.trim(), rightsReference: rightsReference.trim() } }));
+    const cue = { objectUrl, fileName: file.name, title: title.trim(), rightsReference: rightsReference.trim() };
+    if (localAudioRole === 'mood') {
+      const previous = localMoodAudio[audioTrackKey];
+      if (previous) { URL.revokeObjectURL(previous.objectUrl); localAudioObjectUrls.current.delete(previous.objectUrl); }
+      setLocalMoodAudio((current) => ({ ...current, [audioTrackKey]: cue }));
+      setNotice('Local instrumental added to ' + scene.name + '; its rights declaration has not been verified.');
+    } else {
+      const roleKey = projectId + ':' + localAudioRole;
+      const previous = localVoiceAudio[roleKey];
+      if (previous) {
+        if (localVoiceAudioRef.current?.src === previous.objectUrl) { localVoiceAudioRef.current.pause(); localVoiceAudioRef.current.removeAttribute('src'); localVoiceAudioRef.current.load(); }
+        URL.revokeObjectURL(previous.objectUrl);
+        localAudioObjectUrls.current.delete(previous.objectUrl);
+      }
+      setLocalVoiceAudio((current) => ({ ...current, [roleKey]: cue }));
+      setNotice('Local ' + (localAudioRole === 'welcome' ? 'welcome' : 'tour') + ' recording added; its rights declaration has not been verified.');
+    }
     setLocalMoodAudioDraft({ file: null, title: '', rightsReference: '' });
     if (moodAudioFileRef.current) moodAudioFileRef.current.value = '';
-    setNotice(`Local cue added to ${scene.name}; its rights declaration has not been verified.`);
   };
   const removeLocalMoodAudio = () => {
-    const cue = localMoodAudio[audioTrackKey];
+    const cue = currentConfiguredAudio;
     if (!cue) return;
+    if (localAudioRole === 'mood') {
+      setLocalMoodAudio((current) => { const next = { ...current }; delete next[audioTrackKey]; return next; });
+      setNotice('Local audio cue removed from ' + scene.name + '.');
+    } else {
+      const roleKey = projectId + ':' + localAudioRole;
+      if (localVoiceAudioRef.current?.src === cue.objectUrl) { localVoiceAudioRef.current.pause(); localVoiceAudioRef.current.removeAttribute('src'); }
+      setLocalVoiceAudio((current) => { const next = { ...current }; delete next[roleKey]; return next; });
+      setNotice('Local ' + (localAudioRole === 'welcome' ? 'welcome' : 'tour') + ' recording removed.');
+    }
     URL.revokeObjectURL(cue.objectUrl);
     localAudioObjectUrls.current.delete(cue.objectUrl);
-    setLocalMoodAudio((current) => { const next = { ...current }; delete next[audioTrackKey]; return next; });
-    setNotice(`Local audio cue removed from ${scene.name}.`);
-  };
-  const speakCabinAudio = (kind: 'welcome' | 'tour') => {
-    if (!('speechSynthesis' in window) || typeof window.SpeechSynthesisUtterance !== 'function') {
-      setNotice('Spoken announcements are not supported in this browser.'); return;
+  };  const speakCabinAudio = (kind: 'welcome' | 'tour') => {
+    const recordedVoice = localVoiceAudio[projectId + ':' + kind];
+    setPlaying(false); moodMusicRef.current?.stop(); localMoodAudioRef.current?.pause();
+    if (recordedVoice) {
+      speechUtterance.current = null;
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      if (speechTimer.current !== null) { window.clearTimeout(speechTimer.current); speechTimer.current = null; }
+      const player = localVoiceAudioRef.current;
+      if (!player) { setNotice('The local recording player is unavailable.'); return; }
+      player.pause(); player.src = recordedVoice.objectUrl; player.currentTime = 0; player.loop = false; player.volume = audioVolume / 100;
+      void player.play().then(() => setNotice('Local ' + (kind === 'welcome' ? 'welcome announcement' : 'guided tour') + ' started · rights/source unverified'))
+        .catch(() => setNotice('The local recording could not play in this browser.'));
+      return;
     }
-    speechUtterance.current = null;
-    window.speechSynthesis.cancel();
+    if (!('speechSynthesis' in window) || typeof window.SpeechSynthesisUtterance !== 'function') { setNotice('Spoken announcements are not supported in this browser.'); return; }
+    speechUtterance.current = null; window.speechSynthesis.cancel();
     if (speechTimer.current !== null) window.clearTimeout(speechTimer.current);
     const announce = () => {
       const utterance = new window.SpeechSynthesisUtterance(kind === 'welcome' ? CABIN_WELCOME_ANNOUNCEMENT : CABIN_GUIDED_TOUR);
@@ -327,15 +361,10 @@ function Studio() {
       utterance.onerror = () => { if (speechUtterance.current === utterance) { speechUtterance.current = null; setNotice('The browser voice could not play. Check its speech settings.'); } };
       window.speechSynthesis.speak(utterance);
     };
-    if (kind === 'welcome') {
-      const context = getAudioContext();
-      if (context) { playWelcomeChime(context, audioVolume); speechTimer.current = window.setTimeout(announce, 850); }
-      else announce();
-    } else announce();
+    if (kind === 'welcome') { const context = getAudioContext(); if (context) { playWelcomeChime(context, audioVolume); speechTimer.current = window.setTimeout(announce, 850); } else announce(); }
+    else announce();
     setNotice(kind === 'welcome' ? 'Welcome announcement started · generated voice preview' : 'Cabin guide started · generated voice preview');
-  };
-
-  const stopFadeFrame = () => {
+  };  const stopFadeFrame = () => {
     if (fadeFrame.current !== null) cancelAnimationFrame(fadeFrame.current);
     fadeFrame.current = null;
   };
@@ -345,6 +374,7 @@ function Studio() {
   useEffect(() => {
     moodMusicRef.current?.setVolume(audioVolume);
     if (speechUtterance.current) speechUtterance.current.volume = audioVolume / 100;
+    if (localVoiceAudioRef.current) localVoiceAudioRef.current.volume = audioVolume / 100;
   }, [audioVolume]);
   useEffect(() => {
     if (!playing || !audioCues || !audioContext.current || currentMoodAudio) return;
@@ -385,12 +415,18 @@ function Studio() {
     else element.addEventListener('loadedmetadata', syncPosition, { once: true });
     return () => element.removeEventListener('loadedmetadata', syncPosition);
   }, [currentMoodAudio, playing, audioCues, audioVolume, scene.id]);
+  useEffect(() => {
+    const player = localVoiceAudioRef.current;
+    if (!player) return;
+    player.pause(); player.removeAttribute('src'); player.load();
+  }, [projectId]);
   useEffect(() => () => {
     if (speechTimer.current !== null) window.clearTimeout(speechTimer.current);
     speechUtterance.current = null;
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     moodMusicRef.current?.stop();
     localMoodAudioRef.current?.pause();
+    localVoiceAudioRef.current?.pause();
     for (const objectUrl of localAudioObjectUrls.current) URL.revokeObjectURL(objectUrl);
     localAudioObjectUrls.current.clear();
     void audioContext.current?.close();
@@ -398,6 +434,7 @@ function Studio() {
   useEffect(() => {
     moodMusicRef.current?.setVolume(audioVolume);
     if (speechUtterance.current) speechUtterance.current.volume = audioVolume / 100;
+    if (localVoiceAudioRef.current) localVoiceAudioRef.current.volume = audioVolume / 100;
   }, [audioVolume]);
   useEffect(() => {
     if (!playing || !audioCues || !audioContext.current) return;
@@ -714,20 +751,27 @@ function Studio() {
                 <input id="cabin-audio-volume" aria-label="Playback volume" type="range" min="0" max="100" value={audioVolume} onChange={(event) => setAudioVolume(Number(event.target.value))} />
                 <div className="audio-voice-actions"><button type="button" onClick={() => speakCabinAudio('welcome')}><Megaphone size={14} /> Welcome announcement</button><button type="button" onClick={() => speakCabinAudio('tour')}><Headphones size={14} /> Guided cabin tour</button></div>
                 <div className="audio-cue-import">
-                  <strong>Airline cue · {scene.name}</strong>
+                  <strong>Airline audio · {localAudioRole === 'mood' ? scene.name : localAudioRole === 'welcome' ? 'Welcome announcement' : 'Guided cabin tour'}</strong>
+                  <label htmlFor="local-audio-role">Assign recording to</label>
+                  <select id="local-audio-role" aria-label="Local audio cue role" value={localAudioRole} onChange={(event) => setLocalAudioRole(event.target.value as typeof localAudioRole)}>
+                    <option value="mood">Instrumental for this mood</option><option value="welcome">HB380 welcome announcement</option><option value="tour">Cabin tour narration</option>
+                  </select>
                   <label htmlFor="mood-audio-file">Audio file · up to 25 MiB</label>
-                  <input ref={moodAudioFileRef} id="mood-audio-file" aria-label="Local mood audio file" type="file" accept="audio/*,.aac,.flac,.m4a,.mp3,.oga,.ogg,.wav,.webm" onChange={(event) => { const file = event.currentTarget.files?.[0] ?? null; setLocalMoodAudioDraft((draft) => ({ ...draft, file })); }} />
-                  <label htmlFor="mood-audio-title">Track title</label>
-                  <input id="mood-audio-title" aria-label="Audio track title" value={localMoodAudioDraft.title} onChange={(event) => setLocalMoodAudioDraft((draft) => ({ ...draft, title: event.target.value }))} placeholder="e.g. Boarding piano cue" />
+                  <input ref={moodAudioFileRef} id="mood-audio-file" aria-label="Local audio file" type="file" accept="audio/*,.aac,.flac,.m4a,.mp3,.oga,.ogg,.wav,.webm" onChange={(event) => { const file = event.currentTarget.files?.[0] ?? null; setLocalMoodAudioDraft((draft) => ({ ...draft, file })); }} />
+                  <label htmlFor="mood-audio-title">Recording title</label>
+                  <input id="mood-audio-title" aria-label="Audio track title" value={localMoodAudioDraft.title} onChange={(event) => setLocalMoodAudioDraft((draft) => ({ ...draft, title: event.target.value }))} placeholder={localAudioRole === 'mood' ? 'e.g. Boarding piano cue' : localAudioRole === 'welcome' ? 'e.g. HB380 welcome · en-GB' : 'e.g. Cabin tour · en-GB'} />
                   <label htmlFor="mood-audio-rights">Rights or source reference</label>
                   <input id="mood-audio-rights" aria-label="Audio rights or source reference" value={localMoodAudioDraft.rightsReference} onChange={(event) => setLocalMoodAudioDraft((draft) => ({ ...draft, rightsReference: event.target.value }))} placeholder="Owner, license, or asset ID" />
-                  <button type="button" className="audio-import-button" onClick={importLocalMoodAudio} disabled={!localMoodAudioDraft.file || !localMoodAudioDraft.title.trim() || !localMoodAudioDraft.rightsReference.trim()}>Add cue to this mood</button>
-                  {currentMoodAudio && <div className="audio-cue-active"><span><b>{currentMoodAudio.title}</b><small>{currentMoodAudio.fileName} · {currentMoodAudio.rightsReference}</small></span><button type="button" aria-label={`Remove ${currentMoodAudio.title}`} onClick={removeLocalMoodAudio}>Remove</button></div>}
-                  <small>Session only: file stays in this browser, is not saved to a project or export, and is never uploaded. Rights/source is uploader-provided and unverified.</small>
+                  <button type="button" className="audio-import-button" onClick={importLocalMoodAudio} disabled={!localMoodAudioDraft.file || !localMoodAudioDraft.title.trim() || !localMoodAudioDraft.rightsReference.trim()}>
+                    {localAudioRole === 'mood' ? 'Add cue to this mood' : localAudioRole === 'welcome' ? 'Add welcome announcement recording' : 'Add cabin tour recording'}
+                  </button>
+                  {currentConfiguredAudio && <div className="audio-cue-active"><span><b>{currentConfiguredAudio.title}</b><small>{currentConfiguredAudio.fileName} · {currentConfiguredAudio.rightsReference}</small></span><button type="button" aria-label={`Remove ${currentConfiguredAudio.title}`} onClick={removeLocalMoodAudio}>Remove</button></div>}
+                  <small>Session only: files remain in this browser tab, are not saved to a project or export, and are never uploaded. Rights/source is uploader-provided and unverified.</small>
                 </div>
                 <small>Generated preview voice and music · not approved operational PA audio</small>
               </div>}
               <audio ref={localMoodAudioRef} preload="metadata" aria-hidden="true" />
+              <audio ref={localVoiceAudioRef} preload="metadata" aria-hidden="true" data-testid="local-voice-audio" />
               <div className="transport"><button className="play-button" aria-label={playing ? 'Pause preview' : 'Play preview'} onClick={() => { if (playing) setPlaying(false); else startTransitionPreview(); }}>{playing ? <Pause size={17} /> : <Play size={17} fill="currentColor" />}</button>
                 <div className="timeline-track-wrap"><div className="timeline-label-row"><span>{scene.name.toUpperCase()} <i>·</i> {scene.keyframes.length} KEYFRAMES</span><span className="time-readout">{formatTime(time)} <small>/ {formatTime(scene.durationSeconds)}</small></span></div>
                   <div className="timeline-track"><div className="timeline-progress" style={{ width: `${scene.durationSeconds ? time / scene.durationSeconds * 100 : 0}%` }} /><input aria-label="Scene timeline position" type="range" min="0" max={scene.durationSeconds} step="0.1" value={time} onChange={(e) => { setPlaying(false); applySceneAt(Number(e.target.value)); }} />
