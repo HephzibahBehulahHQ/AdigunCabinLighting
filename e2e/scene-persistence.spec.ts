@@ -18,7 +18,7 @@ test('complete versioned scene survives local project save and reload', async ({
     { ...source.keyframes[source.keyframes.length - 1], atSeconds: 90 },
   ];
 
-  await page.locator('input[type="file"]').setInputFiles({
+  await page.locator('input[aria-label="Import versioned scene JSON"]').setInputFiles({
     name: 'persistence-roundtrip.json',
     mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(source)),
