@@ -342,7 +342,7 @@ function Studio() {
       if (speechTimer.current !== null) { window.clearTimeout(speechTimer.current); speechTimer.current = null; }
       const player = localVoiceAudioRef.current;
       if (!player) { setNotice('The local recording player is unavailable.'); return; }
-      player.pause(); player.src = recordedVoice.objectUrl; player.currentTime = 0; player.loop = false; player.volume = audioVolume / 100;
+      player.pause(); player.src = recordedVoice.objectUrl; player.load(); player.currentTime = 0; player.loop = false; player.volume = audioVolume / 100;
       void player.play().then(() => setNotice('Local ' + (kind === 'welcome' ? 'welcome announcement' : 'guided tour') + ' started · rights/source unverified'))
         .catch(() => setNotice('The local recording could not play in this browser.'));
       return;
