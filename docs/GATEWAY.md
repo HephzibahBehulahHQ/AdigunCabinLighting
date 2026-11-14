@@ -51,7 +51,7 @@ Use an exported scene file so that its schema and zone targets match the shared 
 
 Requests are limited to 120 per peer per minute by default. Authenticated and unauthenticated requests use separate peer buckets so unauthenticated local traffic cannot consume the bearer-authenticated client's quota. Requests with an invalid `Host` are rejected before entering either bucket.
 
-Requests are limited to 120 per peer per minute by default. SIGINT/SIGTERM stops the listener and gives active requests up to 20 seconds to complete before remaining connections are closed.
+SIGINT/SIGTERM stops the listener and gives active requests up to 20 seconds to complete before remaining connections are closed.
 
 ## Verification and readiness boundary
 
