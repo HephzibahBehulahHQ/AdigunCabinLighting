@@ -14,6 +14,7 @@ import { composePreviewRGB } from './lighting-preview';
 import { CABIN_EXPORT_4K, estimateRgbaSurfaceMiB } from './export-capabilities';
 import { CABIN_LAYOUTS, CABIN_PROFILES, DEFAULT_CABIN_CONFIG, validateCabinConfig, type CabinConfig, type CabinLayoutId } from './cabin-config';
 import { createExportPreflightReport } from './export-preflight';
+import { MAX_SCENARIO_PACKAGE_BYTES, validateScenarioPackage } from '../operator/scenario-package';
 import { CABIN_GUIDED_TOUR, CABIN_WELCOME_ANNOUNCEMENT, getMoodInstrumentLabel, getMoodScore, playWelcomeChime, scheduleMoodMusic, type MoodMusicHandle } from './cabin-audio';
 
 const STORAGE_KEY = 'adigun-cabin-studio:v1';
@@ -248,6 +249,7 @@ function Studio() {
   const [undo, setUndo] = useState<ZoneState[][]>([]);
   const [redo, setRedo] = useState<ZoneState[][]>([]);
   const importRef = useRef<HTMLInputElement>(null);
+  const scenarioImportRef = useRef<HTMLInputElement>(null);
   const moodAudioFileRef = useRef<HTMLInputElement>(null);
   const localMoodAudioRef = useRef<HTMLAudioElement | null>(null);
   const localVoiceAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -691,6 +693,38 @@ function Studio() {
     } catch (error) { setNotice(error instanceof Error ? error.message : 'Scene import failed validation'); }
     if (importRef.current) importRef.current.value = '';
   };
+  const importScenario = async (file?: File) => {
+    if (!file) return;
+    try {
+      if (file.size > MAX_SCENARIO_PACKAGE_BYTES) throw new Error('Scenario package exceeds the 64 KiB review limit.');
+      const scenario = validateScenarioPackage(JSON.parse(await file.text()));
+      const importedZones = makeZones().map((base) => {
+        const imported = scenario.zones.find((zone) => zone.id === base.id);
+        return imported ? { ...base, ...imported, rgbw: normalizeRGBW(imported.rgbw) } : base;
+      });
+      const nextState: SavedState = {
+        zones: importedZones,
+        scenes: scenario.scenes.map(copy),
+        intensity: scenario.masterIntensity,
+        activeSceneId: scenario.activeSceneId,
+        selectedZoneId: 'ceiling',
+        projectName: scenario.projectName,
+        cabinConfig: scenario.cabin.config,
+      };
+      // Preserve the current workspace, then import as a separate browser-local project.
+      writeProject(projectId, projectName, currentProjectState());
+      const nextId = crypto.randomUUID();
+      writeProject(nextId, scenario.projectName, nextState);
+      setProjectId(nextId); setProjectName(scenario.projectName); setZones(importedZones);
+      setScenes(scenario.scenes.map(copy)); setIntensity(scenario.masterIntensity);
+      setActiveSceneId(scenario.activeSceneId); setSelected('ceiling');
+      setCabinConfig(scenario.cabin.config); setCabinDraft(scenario.cabin.config);
+      setUndo([]); setRedo([]); setPlaying(false); setTime(0);
+      setEffectiveImmediately(Object.fromEntries(importedZones.map((zone) => [zone.id, zone.rgbw])) as Record<ZoneId, RGBW>);
+      setNotice(`Scenario “${scenario.projectName}” imported as a new local project · simulation only · no hardware output`);
+    } catch (error) { setNotice(error instanceof Error ? error.message : 'Scenario package import failed validation'); }
+    if (scenarioImportRef.current) scenarioImportRef.current.value = '';
+  };
   const chooseTab = (next: string, section: string) => {
     setTab(next);
     window.requestAnimationFrame(() => document.getElementById(section)?.focus({ preventScroll: true }));
@@ -702,7 +736,7 @@ function Studio() {
       <div className="top-actions"><span className="mode-pill compact-mode" title="SIMULATION · OFFLINE · NO HARDWARE CONNECTED"><i className="status-pulse" /> SIM · OFFLINE · NO HW</span><button className="button button-quiet button-sm top-save" onClick={saveScene}><Save size={15} /> Save scene</button><button className="button button-primary button-sm top-export" onClick={() => void exportCabin4K()}><Download size={15} /> Export</button><button className="icon-button" title="Help" aria-label="Help" onClick={() => setNotice('Studio help: select a zone, tune RGBW, then save or export a scene.')}><CircleHelp size={18} /></button>
         <button className="icon-button" title="More studio actions" aria-label="More studio actions" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}><MoreHorizontal size={20} /></button>
       </div>
-      {menuOpen && <><button className="dismiss-overlay" aria-label="Close menu" onClick={() => setMenuOpen(false)} /><div className="top-menu" role="menu"><button role="menuitem" disabled={!undo.length} onClick={() => { setMenuOpen(false); undoOnce(); }}><Undo2 size={15} /> Undo</button><button role="menuitem" disabled={!redo.length} onClick={() => { setMenuOpen(false); redoOnce(); }}><Redo2 size={15} /> Redo</button><button role="menuitem" onClick={() => { setMenuOpen(false); saveScene(); }}><Save size={15} /> Save scene locally</button><button role="menuitem" onClick={() => { setMenuOpen(false); exportScene(); }}><Download size={15} /> Export scene JSON</button><button role="menuitem" onClick={() => { setMenuOpen(false); exportPreflight(); }}><ClipboardCheck size={15} /> Export engineering preflight · JSON</button><button role="menuitem" onClick={() => { setMenuOpen(false); void exportCabin4K(); }}><Download size={15} /> Export cabin view · 4K PNG</button><button role="menuitem" onClick={() => { setMenuOpen(false); importRef.current?.click(); }}><Upload size={15} /> Import scene file</button><button role="menuitem" onClick={() => { setMenuOpen(false); resetScene(); }}><RotateCcw size={15} /> Reset local studio</button><button role="menuitem" onClick={() => { setMenuOpen(false); setNotice('SIMULATION ONLY · NOT CONNECTED · No physical output is enabled.'); }}><ShieldCheck size={15} /> Operating mode &amp; safety</button></div></>}
+      {menuOpen && <><button className="dismiss-overlay" aria-label="Close menu" onClick={() => setMenuOpen(false)} /><div className="top-menu" role="menu"><button role="menuitem" disabled={!undo.length} onClick={() => { setMenuOpen(false); undoOnce(); }}><Undo2 size={15} /> Undo</button><button role="menuitem" disabled={!redo.length} onClick={() => { setMenuOpen(false); redoOnce(); }}><Redo2 size={15} /> Redo</button><button role="menuitem" onClick={() => { setMenuOpen(false); saveScene(); }}><Save size={15} /> Save scene locally</button><button role="menuitem" onClick={() => { setMenuOpen(false); exportScene(); }}><Download size={15} /> Export scene JSON</button><button role="menuitem" onClick={() => { setMenuOpen(false); exportPreflight(); }}><ClipboardCheck size={15} /> Export engineering preflight · JSON</button><button role="menuitem" onClick={() => { setMenuOpen(false); void exportCabin4K(); }}><Download size={15} /> Export cabin view · 4K PNG</button><button role="menuitem" onClick={() => { setMenuOpen(false); importRef.current?.click(); }}><Upload size={15} /> Import scene file</button><button role="menuitem" onClick={() => { setMenuOpen(false); scenarioImportRef.current?.click(); }}><Upload size={15} /> Import scenario package</button><button role="menuitem" onClick={() => { setMenuOpen(false); resetScene(); }}><RotateCcw size={15} /> Reset local studio</button><button role="menuitem" onClick={() => { setMenuOpen(false); setNotice('SIMULATION ONLY · NOT CONNECTED · No physical output is enabled.'); }}><ShieldCheck size={15} /> Operating mode &amp; safety</button></div></>}
     </header>
     <div className="studio-layout">
       <aside className="studio-rail" aria-label="Studio sections">
@@ -808,6 +842,7 @@ function Studio() {
       </section>
     </div>
     <input ref={importRef} type="file" accept="application/json,.json" className="visually-hidden" aria-label="Import versioned scene JSON" onChange={(e) => void importScene(e.target.files?.[0])} />
+    <input ref={scenarioImportRef} type="file" accept="application/json,.json" className="visually-hidden" aria-label="Import scenario package JSON" onChange={(e) => void importScenario(e.target.files?.[0])} />
     {notice && <div className="toast" role="status"><Check size={15} />{notice}<button aria-label="Dismiss notice" onClick={() => setNotice('')}><X size={14} /></button></div>}
   </main>;
 }
