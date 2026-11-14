@@ -207,7 +207,7 @@ const LANDING_COPY = {
     enter: 'Wọlé sí Cabin Studio', explore: 'Ṣàyẹ̀wò ètò náà', offline: 'A ṣe é fún lílò láìsí ìsopọ̀', noOutput: 'Kò sí àbájáde sí ẹ̀rọ gidi',
     sceneStudy: '01 / ÌWÁDÌÍ ÌRÍNṢẸ̀', simProfile: 'ÀPẸẸRẸ ÌṢẸ̀LẸ̀', aurora: 'Aurora / ìmọ́lẹ̀ àgọ́', zoneCount: 'RGBW · ÀWÒRÁN ÀPẸẸRẸ',
     zoneMap: 'Àwòrán agbègbè àpẹẹrẹ', notConnected: 'Kò sopọ̀ mọ́ ọkọ̀ òfurufú', statusLabel: 'Ipò ọjà',
-    ribbon: ['ÌṢẸ̀LẸ̀ LÁÌSÍ ÌSỌ̀DỌ̀', 'Ṣíṣe àtúnṣe ìran ní agbègbè tirẹ', 'Àyẹ̀wò àkókò tó ṣeé tún ṣe', 'Àwọn fáìlì ìran tí a fọwọ́sí'],
+    ribbon: ['ÌṢẸ̀LẸ̀ LÁÌSÍ ÌSỌ̀DỌ̀', 'Ṣíṣe àtúnṣe ìran ní agbègbè tirẹ', 'Àyẹ̀wò àkókò tó ṣeé tún ṣe', 'Àwọn fáìlì ìran tí a ti ṣàyẹ̀wò'],
     sectionEyebrow: 'IṢẸ́ FÚN ÌṢẸ̀LẸ̀ ÌMỌ́LẸ̀', sectionTitle: 'Láti agbègbè sí', atmosphere: 'ìrísí àyíká.',
     sectionBody: 'A so gbogbo ìṣàkóso mọ́ agbègbè àgọ́ tí o lè ṣàtúnṣe. Ìwọ ló ń ṣe àgbékalẹ̀, ṣàyẹ̀wò, àti fi gbogbo ìran pamọ́ sí ẹ̀rọ rẹ.',
     cards: [
