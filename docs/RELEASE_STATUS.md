@@ -4,12 +4,13 @@
 
 ## Latest deployed release checkpoint
 
-- **Latest deployed milestone:** [PR #47 — cabin source revisions and asset rights](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/pull/47), merged at [`25b7904f83fa12853123390f037610ec2a2b15c6`](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/commit/25b7904f83fa12853123390f037610ec2a2b15c6).
-- **PR validation:** [PR #47 CI 43609559773](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43609559773) passed. **Post-merge:** [App CI 43610237745](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43610237745) passed and [Pages run 43610237791](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43610237791) succeeded.
-- **Live smoke:** On 2026-11-14, `/studio/` returned HTTP 200; its served bundle contained the A330/A350 planning-document revisions and the no-licensed-mesh notice. The site root is the landing page; the editor is at `/studio/`.
+- **Latest deployed milestone:** [PR #49 — mood-specific cabin soundtrack and spoken previews](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/pull/49), merged as [`299ec0d4d2fb0cf739bd06d92638fcedec445f7d`](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/commit/299ec0d4d2fb0cf739bd06d92638fcedec445f7d).
+- **PR validation:** [PR #49 CI 43616408577](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43616408577) passed. **Post-merge:** [App CI 43617147312](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43617147312) passed and [Pages run 43617147356](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43617147356) succeeded.
+- **Live smoke:** On 2026-11-14, `/studio/` returned HTTP 200 and served `/assets/index-DIF_7A4g.js` (233,059 bytes). The bundle contains the mood-music, announcement/tour, and volume controls, plus the HB380 announcement text. The editor is at `/studio/`.
 - **PR #45:** added offline scenario package pack/review commands, preserving cabin profile provenance and reporting missing fixture evidence. It does not expose those CLI tools as a hosted service.
 - **PR #46:** applies a display-only RGBW response curve and adds Entry, Mid-cabin, Aft, and Window-row camera presets within the existing cabin viewer. **PR #47:** records the referenced Airbus planning revisions and lack of asset/reproduction permission within Change cabin details. **PR #43** aligned the illustrative RGBW white blend across 2D/3D. **PR #44** measures the existing 4K export path; 16K/24K export remains unavailable and unbenchmarked.
-- **Studio boundary:** PRs #43–#47 preserve the locked sidebar, panel positions, and overall Studio layout. Camera presets and cabin data notices remain inside existing controls.
+- **PR #49 audio:** all 16 built-in mood scenes have distinct generated instrumental arrangements synchronized to preview playback. The existing Choreography panel includes live volume, a four-note chime, an HB380 concept announcement, and browser/OS-voiced cabin tour. This is preview audio only; it is not a licensed soundtrack, approved airline wording, a cabin PA, or hardware output.
+- **Studio boundary:** PRs #43–#49 preserve the locked sidebar, panel positions, and overall Studio layout. Camera presets, cabin data notices, and audio actions remain within existing panels.
 
 ## Current deployed scope
 
