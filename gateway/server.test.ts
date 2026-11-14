@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { request as httpRequest } from 'node:http';
 import { PRESETS } from '../src/scene-engine.js';
 import { createGatewayServer } from './server.js';
 
@@ -41,14 +42,21 @@ describe('loopback simulator gateway', () => {
     const address = server.address();
     if (!address || typeof address === 'string') throw new Error('Test gateway failed to bind.');
     const url = `http://127.0.0.1:${address.port}/v1/health`;
-    const request = (host: string) => fetch(url, { headers: { authorization: `Bearer ${TOKEN}`, host } });
+    const request = (host: string) => new Promise<number>((resolve, reject) => {
+      const request = httpRequest(url, { headers: { authorization: `Bearer ${TOKEN}`, host } }, (response) => {
+        response.resume();
+        response.once('end', () => resolve(response.statusCode ?? 0));
+      });
+      request.once('error', reject);
+      request.end();
+    });
 
-    expect((await request('attacker.example')).status).toBe(421);
-    expect((await request('attacker.example@127.0.0.1')).status).toBe(421);
-    expect((await request('localhost/path')).status).toBe(421);
-    expect((await request('localhost,127.0.0.1')).status).toBe(421);
-    expect((await request('127.0.0.1')).status).toBe(200);
-    expect((await request('localhost')).status).toBe(429);
+    expect(await request('attacker.example')).toBe(421);
+    expect(await request('attacker.example@127.0.0.1')).toBe(421);
+    expect(await request('localhost/path')).toBe(421);
+    expect(await request('localhost,127.0.0.1')).toBe(421);
+    expect(await request('127.0.0.1')).toBe(200);
+    expect(await request('localhost')).toBe(429);
   });
 
   it('limits requests by local peer and resets the fixed window', async () => {
