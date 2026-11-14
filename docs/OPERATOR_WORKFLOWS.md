@@ -1,5 +1,11 @@
 # Operator workflows available in this release
 
+## Studio mood soundtrack, welcome announcement, and tour
+
+Inside **Choreography → Transition preview**, the **Music** control enables a scene-specific instrumental accompaniment. The score is synthesized locally with Web Audio and follows the selected scene timeline; the included moods have distinct tempo, harmony, motif, and instrument timbre. **Audio** opens the playback-volume slider, a generated-voice welcome announcement, and a spoken cabin tour. The welcome includes a short four-note chime. Browser speech voices and audio output vary by device; the voice preview requires a user click and can be stopped by starting another utterance or leaving the Studio.
+
+These are design-preview sounds, not licensed recordings, a cabin PA integration, an airline-approved announcement, or evidence of acoustic performance in an aircraft. “HB380” is spoken as the requested product/cabin concept name; the viewer still labels its geometry as illustrative, and no A380 aircraft fit is established. Generated instrumental audio is rendered locally and is not sent to the gateway or hardware. The app does not transmit announcement text to the gateway; the selected speech voice is provided by the browser/operating system and its network behavior depends on that platform. The volume slider controls both instrumental and spoken previews; the **Music** control can mute the score independently.
+
 ## Offline scene review
 
 This workflow checks an exported scene file against the same schema used by the offline simulator. It does not approve a cabin fit or authorize hardware operation.

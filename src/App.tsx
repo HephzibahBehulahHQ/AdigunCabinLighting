@@ -4,7 +4,7 @@ import {
   CircleHelp, Clock3, Download, Gauge, LayoutGrid,
   Lightbulb, MoreHorizontal, Pause, Play, Plus, Radio, Redo2, RotateCcw,
   Save, Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Trash2, Undo2, Upload,
-  Move3D, Volume2, Waves, X,
+  Headphones, Megaphone, Move3D, Volume2, Waves, X,
 } from 'lucide-react';
 import {
   interpolateRGBW, interpolateScene, makeDefaultZones, makeZones, normalizeRGBW, PRESETS, toHex, validateSceneFile,
@@ -14,6 +14,7 @@ import { composePreviewRGB } from './lighting-preview';
 import { CABIN_EXPORT_4K, estimateRgbaSurfaceMiB } from './export-capabilities';
 import { CABIN_LAYOUTS, CABIN_PROFILES, DEFAULT_CABIN_CONFIG, validateCabinConfig, type CabinConfig, type CabinLayoutId } from './cabin-config';
 import { createExportPreflightReport } from './export-preflight';
+import { CABIN_GUIDED_TOUR, CABIN_WELCOME_ANNOUNCEMENT, getMoodInstrumentLabel, getMoodScore, playWelcomeChime, scheduleMoodMusic, type MoodMusicHandle } from './cabin-audio';
 
 const STORAGE_KEY = 'adigun-cabin-studio:v1';
 const PROJECT_INDEX_KEY = 'adigun-cabin-projects:v1';
@@ -227,7 +228,9 @@ function Studio() {
   const [effectiveRGBW, setEffectiveRGBW] = useState<Record<ZoneId, RGBW>>(() => Object.fromEntries(zones.map((zone) => [zone.id, { ...zone.rgbw }])) as Record<ZoneId, RGBW>);
   const [playing, setPlaying] = useState(false);
   const [motionPreview, setMotionPreview] = useState(false);
-  const [audioCues, setAudioCues] = useState(false);
+  const [audioCues, setAudioCues] = useState(true);
+  const [audioPanelOpen, setAudioPanelOpen] = useState(false);
+  const [audioVolume, setAudioVolume] = useState(38);
   const [notice, setNotice] = useState('');
   const [tab, setTab] = useState('scene');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -242,31 +245,60 @@ function Studio() {
   const cabinCaptureRef = useRef<(() => Promise<Blob>) | null>(null);
   const cameraResetRef = useRef<(() => void) | null>(null);
   const playStart = useRef(0);
+  const playbackTime = useRef(time);
   const audioContext = useRef<AudioContext | null>(null);
+  const moodMusicRef = useRef<MoodMusicHandle | null>(null);
+  const speechUtterance = useRef<SpeechSynthesisUtterance | null>(null);
+  const speechTimer = useRef<number | null>(null);
   const effectiveRef = useRef(effectiveRGBW);
   const fadeTransitions = useRef<Partial<Record<ZoneId, { from: RGBW; to: RGBW; started: number; durationMs: number }>>>({});
   const fadeFrame = useRef<number | null>(null);
   const scene = scenes.find((item) => item.id === activeSceneId) ?? scenes[0] ?? PRESETS[0];
   const currentZone = zones.find((zone) => zone.id === selected) ?? zones[0];
-  const playCue = () => {
-    const context = audioContext.current;
-    if (!context || context.state !== 'running') return;
-    const oscillator = context.createOscillator(); const gain = context.createGain();
-    oscillator.type = 'sine'; oscillator.frequency.setValueAtTime(660, context.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(880, context.currentTime + .055);
-    gain.gain.setValueAtTime(.0001, context.currentTime); gain.gain.exponentialRampToValueAtTime(.035, context.currentTime + .012); gain.gain.exponentialRampToValueAtTime(.0001, context.currentTime + .12);
-    oscillator.connect(gain); gain.connect(context.destination); oscillator.start(); oscillator.stop(context.currentTime + .125);
-  };
   const startTransitionPreview = () => {
+    const startAt = time >= scene.durationSeconds ? 0 : time;
+    playbackTime.current = startAt;
     if (time >= scene.durationSeconds) applySceneAt(0);
     if (audioCues) {
-      if (!window.AudioContext) setNotice('Audio cues are not supported in this browser.');
+      if (!window.AudioContext) setNotice('Instrumental preview is not supported in this browser.');
       else {
         audioContext.current ??= new window.AudioContext();
-        void audioContext.current.resume().then(playCue).catch(() => setNotice('Browser audio permission prevented preview cues.'));
+        void audioContext.current.resume().catch(() => setNotice('Browser audio permission prevented the instrumental preview.'));
       }
     }
     setPlaying(true);
+  };
+
+  const getAudioContext = () => {
+    if (!window.AudioContext) { setNotice('Generated audio is not supported in this browser.'); return null; }
+    audioContext.current ??= new window.AudioContext();
+    void audioContext.current.resume().catch(() => setNotice('Browser audio permission prevented audio playback.'));
+    return audioContext.current;
+  };
+  const speakCabinAudio = (kind: 'welcome' | 'tour') => {
+    if (!('speechSynthesis' in window) || typeof window.SpeechSynthesisUtterance !== 'function') {
+      setNotice('Spoken announcements are not supported in this browser.'); return;
+    }
+    speechUtterance.current = null;
+    window.speechSynthesis.cancel();
+    if (speechTimer.current !== null) window.clearTimeout(speechTimer.current);
+    const announce = () => {
+      const utterance = new window.SpeechSynthesisUtterance(kind === 'welcome' ? CABIN_WELCOME_ANNOUNCEMENT : CABIN_GUIDED_TOUR);
+      utterance.lang = 'en-GB'; utterance.rate = kind === 'welcome' ? .88 : .94; utterance.pitch = .94; utterance.volume = audioVolume / 100;
+      const voices = window.speechSynthesis.getVoices();
+      const englishVoice = voices.find((voice) => voice.lang.toLowerCase() === 'en-gb') ?? voices.find((voice) => voice.lang.toLowerCase().startsWith('en-'));
+      if (englishVoice) utterance.voice = englishVoice;
+      speechUtterance.current = utterance;
+      utterance.onend = () => { if (speechUtterance.current === utterance) speechUtterance.current = null; };
+      utterance.onerror = () => { if (speechUtterance.current === utterance) { speechUtterance.current = null; setNotice('The browser voice could not play. Check its speech settings.'); } };
+      window.speechSynthesis.speak(utterance);
+    };
+    if (kind === 'welcome') {
+      const context = getAudioContext();
+      if (context) { playWelcomeChime(context, audioVolume); speechTimer.current = window.setTimeout(announce, 850); }
+      else announce();
+    } else announce();
+    setNotice(kind === 'welcome' ? 'Welcome announcement started · generated voice preview' : 'Cabin guide started · generated voice preview');
   };
 
   const stopFadeFrame = () => {
@@ -276,6 +308,30 @@ function Studio() {
   const setEffectiveImmediately = (values: Record<ZoneId, RGBW>) => {
     stopFadeFrame(); fadeTransitions.current = {}; effectiveRef.current = values; setEffectiveRGBW(values);
   };
+  useEffect(() => {
+    moodMusicRef.current?.setVolume(audioVolume);
+    if (speechUtterance.current) speechUtterance.current.volume = audioVolume / 100;
+  }, [audioVolume]);
+  useEffect(() => {
+    if (!playing || !audioCues || !audioContext.current) return;
+    let cancelled = false;
+    const context = audioContext.current;
+    void context.resume().then(() => {
+      if (!cancelled) moodMusicRef.current = scheduleMoodMusic(context, scene.id, playbackTime.current, scene.durationSeconds, audioVolume);
+    }).catch(() => setNotice('Browser audio permission prevented the instrumental preview.'));
+    return () => {
+      cancelled = true;
+      moodMusicRef.current?.stop();
+      moodMusicRef.current = null;
+    };
+  }, [playing, audioCues, scene.id, scene.durationSeconds, audioVolume]);
+  useEffect(() => () => {
+    if (speechTimer.current !== null) window.clearTimeout(speechTimer.current);
+    speechUtterance.current = null;
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    moodMusicRef.current?.stop();
+    void audioContext.current?.close();
+  }, []);
   const fadeZoneTo = (id: ZoneId, value: RGBW, seconds: number) => {
     if (seconds <= 0) {
       fadeTransitions.current[id] = undefined;
@@ -312,13 +368,11 @@ function Studio() {
   }, [zones, scenes, intensity, activeSceneId, selected, projectName, projectId, cabinConfig]);
   useEffect(() => {
     if (!playing) return;
-    playStart.current = performance.now() - time * 1000;
-    let lastCueTime = time;
+    playStart.current = performance.now() - playbackTime.current * 1000;
     let animation = 0;
     const tick = (now: number) => {
       const next = Math.min(scene.durationSeconds, (now - playStart.current) / 1000);
-      if (audioCues && scene.keyframes.some((frame) => frame.atSeconds > lastCueTime && frame.atSeconds <= next)) playCue();
-      lastCueTime = next;
+      playbackTime.current = next;
       setTime(next);
       setEffectiveImmediately(interpolateScene(scene, next));
       if (next >= scene.durationSeconds) { setPlaying(false); return; }
@@ -326,7 +380,7 @@ function Studio() {
     };
     animation = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(animation);
-  }, [playing, scene, audioCues]);
+  }, [playing, scene]);
   useEffect(() => () => stopFadeFrame(), []);
   useEffect(() => {
     if (!notice) return;
@@ -356,6 +410,7 @@ function Studio() {
   const applySceneAt = (nextTime: number, nextScene = scene) => {
     const targets = interpolateScene(nextScene, nextTime);
     setEffectiveImmediately(targets);
+    playbackTime.current = nextTime;
     setTime(nextTime);
   };
   const chooseScene = (id: string) => {
@@ -562,7 +617,15 @@ function Studio() {
               <div className="cabin-legend"><span><i className="legend-active" /> Active zone: {currentZone.name}</span><span><i className="legend-zone" /> Double-click a 3D fixture to select its zone</span><span className="legend-revision">Configurable reference geometry · not an aircraft fit</span></div>
             </section>
             <section className="panel timeline-panel" id="timeline" tabIndex={-1}>
-              <div className="timeline-head"><div><span className="panel-overline">CHOREOGRAPHY TIMELINE</span><h2>Transition preview</h2></div><div className="timeline-actions"><button className={`preview-toggle ${motionPreview ? 'is-on' : ''}`} aria-label="Camera motion preview" aria-pressed={motionPreview} title="Subtle camera motion during playback" onClick={() => setMotionPreview((value) => !value)}><Move3D size={13} /> Motion</button><button className={`preview-toggle ${audioCues ? 'is-on' : ''}`} aria-label="Audio keyframe cues" aria-pressed={audioCues} title="Play a quiet synthesized cue at keyframes" onClick={() => setAudioCues((value) => !value)}><Volume2 size={13} /> Sound</button><button className="button button-quiet button-sm" onClick={addKeyframe}><Plus size={14} /> Add keyframe</button></div></div>
+              <div className="timeline-head"><div><span className="panel-overline">CHOREOGRAPHY TIMELINE</span><h2>Transition preview</h2></div><div className="timeline-actions"><button className={`preview-toggle ${motionPreview ? 'is-on' : ''}`} aria-label="Camera motion preview" aria-pressed={motionPreview} title="Subtle camera motion during playback" onClick={() => setMotionPreview((value) => !value)}><Move3D size={13} /> Motion</button><button className={`preview-toggle ${audioCues ? 'is-on' : ''}`} aria-label="Mood music" aria-pressed={audioCues} title="Play a mood-specific instrumental during transition preview" onClick={() => setAudioCues((value) => !value)}><Volume2 size={13} /> Music</button><button className="preview-toggle" aria-label="Audio announcements and volume" aria-expanded={audioPanelOpen} title="Announcement, tour voice, and volume" onClick={() => setAudioPanelOpen((open) => !open)}><Headphones size={13} /> Audio</button><button className="button button-quiet button-sm" onClick={addKeyframe}><Plus size={14} /> Add keyframe</button></div></div>
+              {audioPanelOpen && <div className="audio-console" id="audio-console" role="group" aria-label="Cabin audio controls">
+                <div className="audio-console-head"><div><span className="panel-overline">CABIN SOUND DESIGN</span><strong>{scene.name} · {getMoodInstrumentLabel(scene.id)}</strong></div><button type="button" aria-label="Close audio controls" onClick={() => setAudioPanelOpen(false)}><X size={15} /></button></div>
+                <p className="audio-score-note">Original browser-synthesized score · {getMoodScore(scene.id).tempo} BPM · follows the transition preview</p>
+                <label className="audio-volume-control" htmlFor="cabin-audio-volume"><span><Volume2 size={14} /> Playback volume</span><strong>{audioVolume}%</strong></label>
+                <input id="cabin-audio-volume" aria-label="Playback volume" type="range" min="0" max="100" value={audioVolume} onChange={(event) => setAudioVolume(Number(event.target.value))} />
+                <div className="audio-voice-actions"><button type="button" onClick={() => speakCabinAudio('welcome')}><Megaphone size={14} /> Welcome announcement</button><button type="button" onClick={() => speakCabinAudio('tour')}><Headphones size={14} /> Guided cabin tour</button></div>
+                <small>Generated preview voice and music · not approved operational PA audio</small>
+              </div>}
               <div className="transport"><button className="play-button" aria-label={playing ? 'Pause preview' : 'Play preview'} onClick={() => { if (playing) setPlaying(false); else startTransitionPreview(); }}>{playing ? <Pause size={17} /> : <Play size={17} fill="currentColor" />}</button>
                 <div className="timeline-track-wrap"><div className="timeline-label-row"><span>{scene.name.toUpperCase()} <i>·</i> {scene.keyframes.length} KEYFRAMES</span><span className="time-readout">{formatTime(time)} <small>/ {formatTime(scene.durationSeconds)}</small></span></div>
                   <div className="timeline-track"><div className="timeline-progress" style={{ width: `${scene.durationSeconds ? time / scene.durationSeconds * 100 : 0}%` }} /><input aria-label="Scene timeline position" type="range" min="0" max={scene.durationSeconds} step="0.1" value={time} onChange={(e) => { setPlaying(false); applySceneAt(Number(e.target.value)); }} />
