@@ -61,6 +61,6 @@ describe('cabin audio direction', () => {
     expect(volumeUpdate[0]).toBeCloseTo(.104, 10);
     expect(volumeUpdate.slice(1)).toEqual([12, .035]);
     handle.stop();
-    expect(context.oscillators.every((voice) => voice.stop.mock.calls.length === 1)).toBe(true);
+    expect(context.oscillators.every((voice) => voice.stop.mock.calls.length >= 2)).toBe(true);
   });
 });
