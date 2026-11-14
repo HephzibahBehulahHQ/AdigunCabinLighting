@@ -107,7 +107,7 @@ function CabinDrawing({ zones, selected, onSelect, compact = false, config = DEF
           const xOffset = Math.min(285, config.widthMeters * 52);
           return [-1, 1].map((side) => {
             const x = 490 + side * xOffset;
-            return <g key={`win-${side}-${index}`} aria-label={`Cabin window ${index + 1} on ${side < 0 ? 'left' : 'right'} side`}>
+            return <g key={`win-${side}-${index}`} aria-hidden={compact || undefined} aria-label={compact ? undefined : `Cabin window ${index + 1} on ${side < 0 ? 'left' : 'right'} side`}>
               <rect x={x - 8} y={y - 12} width="16" height="25" rx="8" fill="#172a3a" stroke="#7690a4" strokeWidth="2" />
               <rect x={x - 5} y={y - 9} width="10" height="19" rx="5" fill="#19374a" stroke={glows.windows} strokeWidth="1.6" />
               <rect x={x - 3} y={y - 7} width="6" height="15" rx="3" fill="#60acc3" opacity=".18" />
@@ -129,7 +129,7 @@ function CabinDrawing({ zones, selected, onSelect, compact = false, config = DEF
             for (let seat = 0; seat < count; seat++) { seats.push(x); x += seatWidth + 3; }
             if (groupIndex < groups.length - 1) x += aisleGap - 3;
           });
-          return <g key={row} aria-label={`Cabin row ${row + 1}`}>
+          return <g key={row} aria-hidden={compact || undefined} aria-label={compact ? undefined : `Cabin row ${row + 1}`}>
             {seats.map((seatX, index) => <g key={index}>
               <rect x={seatX - seatWidth / 2} y={rowY - (config.layoutId === 'ownerVvip' ? 8 : 5)} width={seatWidth} height={config.layoutId === 'ownerVvip' ? 16 : 10} rx={Math.min(8, seatWidth / 3)} fill={config.layoutId === 'ownerVvip' ? '#627b91' : '#344658'} stroke="#8298aa" strokeWidth="1.5" />
               <rect x={seatX - seatWidth * .34} y={rowY - (config.layoutId === 'ownerVvip' ? 6 : 3)} width={seatWidth * .68} height={config.layoutId === 'ownerVvip' ? 5 : 3} rx="2" fill="#9eb2c3" opacity=".72" />
