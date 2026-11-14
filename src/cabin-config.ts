@@ -56,7 +56,7 @@ export const CABIN_PROFILES: Record<CabinLayoutId, CabinConfig> = {
   singleAisle: { layoutId: 'singleAisle', lengthMeters: 18.4, widthMeters: 4.4, ceilingHeightMeters: 2.65, seatRows: 12, seatPitchMeters: .76, windowCountPerSide: 11, overheadBinDepthMeters: .58 },
   widebody: { layoutId: 'widebody', lengthMeters: 27.6, widthMeters: 5.75, ceilingHeightMeters: 2.85, seatRows: 15, seatPitchMeters: .79, windowCountPerSide: 16, overheadBinDepthMeters: .75 },
   premium: { layoutId: 'premium', lengthMeters: 20.2, widthMeters: 5.25, ceilingHeightMeters: 2.72, seatRows: 9, seatPitchMeters: 1.05, windowCountPerSide: 12, overheadBinDepthMeters: .62 },
-  ownerVvip: { layoutId: 'ownerVvip', lengthMeters: 18.4, widthMeters: 4.55, ceilingHeightMeters: 2.58, seatRows: 7, seatPitchMeters: 1.52, windowCountPerSide: 11, overheadBinDepthMeters: .5 },
+  ownerVvip: { layoutId: 'ownerVvip', lengthMeters: 18.4, widthMeters: 4.55, ceilingHeightMeters: 2.6, seatRows: 7, seatPitchMeters: 1.52, windowCountPerSide: 11, overheadBinDepthMeters: .5 },
   a330300: { layoutId: 'a330300', lengthMeters: 50.36, widthMeters: 5.26, ceilingHeightMeters: 2.85, seatRows: 39, seatPitchMeters: .8128, windowCountPerSide: 16, overheadBinDepthMeters: .72 },
   a350900: { layoutId: 'a350900', lengthMeters: 51.04, widthMeters: 5.71, ceilingHeightMeters: 2.85, seatRows: 38, seatPitchMeters: .8128, windowCountPerSide: 16, overheadBinDepthMeters: .75 },
 };
