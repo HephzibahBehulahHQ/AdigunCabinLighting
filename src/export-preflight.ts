@@ -171,7 +171,7 @@ export function createExportPreflightReport(
   }
 
   return {
-    reportVersion: 1,
+    reportVersion: 2,
     generatedAt,
     mode: 'SIMULATION',
     physicalOutputEnabled: false,
