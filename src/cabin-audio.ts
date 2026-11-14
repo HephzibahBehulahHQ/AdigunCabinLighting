@@ -95,25 +95,40 @@ export function scheduleMoodMusic(
   output.connect(context.destination);
   const oscillators: OscillatorNode[] = [];
   const beatSeconds = 60 / score.tempo;
-  const firstBeat = Math.max(0, Math.ceil(offsetSeconds / beatSeconds - 1e-9));
   const firstStart = context.currentTime + .06;
-  for (let beat = firstBeat; beat * beatSeconds < durationSeconds; beat += 1) {
-    const eventTime = beat * beatSeconds;
-    const start = firstStart + Math.max(0, eventTime - offsetSeconds);
-    const progression = score.progression[Math.floor(beat / 4) % score.progression.length];
-    if (beat % 4 === 0) {
-      for (const interval of progression) {
-        oscillators.push(...playNote(context, output, score.rootMidi + interval, start, Math.min(beatSeconds * 3.7, 5), .18, score.instrument));
+  let nextBeat = Math.max(0, Math.ceil(offsetSeconds / beatSeconds - 1e-9));
+  let stopped = false;
+  const scheduleAheadSeconds = 1.5;
+  const scheduleWindow = () => {
+    const elapsed = Math.max(0, context.currentTime - firstStart);
+    const horizon = offsetSeconds + elapsed + scheduleAheadSeconds;
+    while (nextBeat * beatSeconds < durationSeconds && nextBeat * beatSeconds <= horizon) {
+      const beat = nextBeat++;
+      const eventTime = beat * beatSeconds;
+      const start = Math.max(context.currentTime + .01, firstStart + Math.max(0, eventTime - offsetSeconds));
+      const progression = score.progression[Math.floor(beat / 4) % score.progression.length];
+      if (beat % 4 === 0) {
+        for (const interval of progression) {
+          oscillators.push(...playNote(context, output, score.rootMidi + interval, start, Math.min(beatSeconds * 3.7, 5), .18, score.instrument));
+        }
+      }
+      if (beat % 2 === 0 || score.instrument === 'plucked-strings' || score.instrument === 'marimba') {
+        const interval = score.motif[beat % score.motif.length];
+        oscillators.push(...playNote(context, output, score.rootMidi + 12 + interval, start, Math.min(beatSeconds * 1.65, 2.2), .42, score.instrument));
       }
     }
-    if (beat % 2 === 0 || score.instrument === 'plucked-strings' || score.instrument === 'marimba') {
-      const interval = score.motif[beat % score.motif.length];
-      oscillators.push(...playNote(context, output, score.rootMidi + 12 + interval, start, Math.min(beatSeconds * 1.65, 2.2), .42, score.instrument));
-    }
-  }
+  };
+  scheduleWindow();
+  const scheduler = globalThis.setInterval(() => {
+    if (stopped) return;
+    scheduleWindow();
+    if (nextBeat * beatSeconds >= durationSeconds) globalThis.clearInterval(scheduler);
+  }, 100);
   return {
     setVolume: (nextVolume) => output.gain.setTargetAtTime(boundedVolume(nextVolume) * .16, context.currentTime, .035),
     stop: () => {
+      stopped = true;
+      globalThis.clearInterval(scheduler);
       const now = context.currentTime;
       output.gain.cancelScheduledValues(now);
       output.gain.setTargetAtTime(.0001, now, .025);
@@ -143,3 +158,4 @@ export const CABIN_GUIDED_TOUR =
   'Welcome to the Hephzibah Behulah cabin lighting studio. Start with a mood in the Scene Library, then press Play to preview the lighting change with its matching instrumental score. In the Cabin Digital Twin, switch between two D and three D views, and choose Entry, Mid-cabin, Aft, or Window row to explore different camera perspectives. Select a lighting zone to edit its red, green, blue, and white values, then save or export your scene. This is an illustrative design simulation, not an aircraft fit or a photometric measurement. No aircraft is connected and no physical lights are being controlled.';
 
 export const MOOD_SCORE_IDS = Object.keys(SCOREBOOK);
+
