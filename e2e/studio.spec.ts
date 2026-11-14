@@ -77,21 +77,45 @@ test('manual setpoints follow the selected zone fade and can be committed', asyn
   await expect.poll(async () => Number((await output.innerText()).split(' / ')[0]), { timeout: 10_000 }).toBeLessThan(beforeFade);
 });
 
-test('scene file import is schema-validated and export downloads JSON', async ({ page }) => {
+test('scene file import and export preserves the complete versioned keyframe sequence', async ({ page }) => {
   await page.goto('/studio');
   await page.getByRole('button', { name: '2D', exact: true }).click();
-  await page.locator('input[type="file"]').setInputFiles({
-    name: 'boarding.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(PRESETS[0])),
+  const source = JSON.parse(JSON.stringify(PRESETS[0]));
+  const sceneFile = page.locator('input[type="file"]');
+  await sceneFile.setInputFiles({
+    name: 'boarding.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(source)),
   });
   await expect(page.getByRole('button', { name: /Boarding/ })).toBeVisible();
+  await expect(sceneFile).toHaveValue('');
+
   const pngDownload = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export', exact: true }).click();
   expect((await pngDownload).suggestedFilename()).toBe('adigun-zone-map-3840x2160.png');
-  await page.getByRole('button', { name: 'More studio actions' }).click();
-  const jsonDownload = page.waitForEvent('download');
-  await page.getByRole('menuitem', { name: 'Export scene JSON' }).click();
-  expect((await jsonDownload).suggestedFilename()).toBe('boarding.adigun-scene.json');
-  await page.locator('input[type="file"]').setInputFiles({
+
+  const readDownload = async () => {
+    const downloadEvent = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'More studio actions' }).click();
+    await page.getByRole('menuitem', { name: 'Export scene JSON' }).click();
+    const download = await downloadEvent;
+    const stream = await download.createReadStream();
+    if (!stream) throw new Error('The exported scene download stream is unavailable.');
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+    return { name: download.suggestedFilename(), bytes: Buffer.concat(chunks) };
+  };
+
+  const firstExport = await readDownload();
+  expect(firstExport.name).toBe('boarding.adigun-scene.json');
+  expect(JSON.parse(firstExport.bytes.toString('utf8'))).toEqual(source);
+
+  await sceneFile.setInputFiles({
+    name: 'roundtrip.json', mimeType: 'application/json', buffer: firstExport.bytes,
+  });
+  await expect(sceneFile).toHaveValue('');
+  const secondExport = await readDownload();
+  expect(secondExport.bytes.toString('utf8')).toBe(firstExport.bytes.toString('utf8'));
+
+  await sceneFile.setInputFiles({
     name: 'invalid.json', mimeType: 'application/json', buffer: Buffer.from('{"schemaVersion":9}'),
   });
   await expect(page.getByRole('status')).toContainText('Unsupported scene schema version');
