@@ -16,6 +16,7 @@ import { CABIN_LAYOUTS, CABIN_PROFILES, DEFAULT_CABIN_CONFIG, validateCabinConfi
 import { createExportPreflightReport } from './export-preflight';
 import { MAX_SCENARIO_PACKAGE_BYTES, validateScenarioPackage } from '../operator/scenario-package';
 import { CABIN_GUIDED_TOUR, CABIN_WELCOME_ANNOUNCEMENT, getMoodInstrumentLabel, getMoodScore, playWelcomeChime, scheduleMoodMusic, type MoodMusicHandle } from './cabin-audio';
+import { cabinAudioAssetKey, deleteCabinAudioAsset, readCabinAudioAsset, saveCabinAudioAsset, type StoredCabinAudioAsset } from './audio-asset-store';
 
 const STORAGE_KEY = 'adigun-cabin-studio:v1';
 const PROJECT_INDEX_KEY = 'adigun-cabin-projects:v1';
@@ -343,6 +344,7 @@ function Studio() {
   const localMoodAudioRef = useRef<HTMLAudioElement | null>(null);
   const localVoiceAudioRef = useRef<HTMLAudioElement | null>(null);
   const localAudioObjectUrls = useRef(new Set<string>());
+  const audioLoadTicket = useRef(0);
   const stageRef = useRef<HTMLDivElement>(null);
   const cabinCaptureRef = useRef<(() => Promise<Blob>) | null>(null);
   const cameraResetRef = useRef<(() => void) | null>(null);
@@ -360,7 +362,23 @@ function Studio() {
   const currentMoodAudio = localMoodAudio[audioTrackKey];
   const currentVoiceAudio = localAudioRole === 'mood' ? undefined : localVoiceAudio[`${projectId}:${localAudioRole}`];
   const currentConfiguredAudio = localAudioRole === 'mood' ? currentMoodAudio : currentVoiceAudio;
+  const currentAudioAssetKey = cabinAudioAssetKey(projectId, localAudioRole, localAudioRole === 'mood' ? scene.id : undefined);
   const currentZone = zones.find((zone) => zone.id === selected) ?? zones[0];
+  useEffect(() => {
+    let cancelled = false;
+    const ticket = ++audioLoadTicket.current;
+    void readCabinAudioAsset(currentAudioAssetKey).then((asset) => {
+      if (!asset || cancelled || ticket !== audioLoadTicket.current) return;
+      const objectUrl = URL.createObjectURL(asset.blob);
+      localAudioObjectUrls.current.add(objectUrl);
+      const cue = { objectUrl, fileName: asset.fileName, title: asset.title, rightsReference: asset.rightsReference };
+      if (asset.role === 'mood' && asset.sceneId) setLocalMoodAudio((current) => ({ ...current, [projectId + ':' + asset.sceneId]: cue }));
+      else if (asset.role !== 'mood') setLocalVoiceAudio((current) => ({ ...current, [projectId + ':' + asset.role]: cue }));
+    }).catch(() => {
+      if (!cancelled && ticket === audioLoadTicket.current) setNotice('Browser-local audio storage could not be read.');
+    });
+    return () => { cancelled = true; };
+  }, [currentAudioAssetKey, projectId]);
   const startTransitionPreview = () => {
     const startAt = time >= scene.durationSeconds ? 0 : time;
     playbackTime.current = startAt;
@@ -381,23 +399,33 @@ function Studio() {
     void audioContext.current.resume().catch(() => setNotice('Browser audio permission prevented audio playback.'));
     return audioContext.current;
   };
-  const importLocalMoodAudio = () => {
+  const importLocalMoodAudio = async () => {
     const { file, title, rightsReference } = localMoodAudioDraft;
     if (!file) { setNotice('Choose a local audio file first.'); return; }
     if (file.size > MAX_LOCAL_MOOD_AUDIO_BYTES) { setNotice('Local audio must be 25 MiB or smaller.'); return; }
     const audioExtension = /\.(aac|flac|m4a|mp3|oga|ogg|wav|webm)$/i.test(file.name);
     if (!file.type.startsWith('audio/') && !audioExtension) { setNotice('Choose a supported audio file.'); return; }
     if (!title.trim() || !rightsReference.trim()) { setNotice('Add the track title and a rights/source reference before importing.'); return; }
+    const role = localAudioRole;
+    const projectIdAtSave = projectId;
+    const sceneAtSave = scene;
+    const sceneId = role === 'mood' ? sceneAtSave.id : null;
+    const moodKey = projectIdAtSave + ':' + sceneId;
+    const voiceKey = projectIdAtSave + ':' + role;
+    const asset: StoredCabinAudioAsset = { key: cabinAudioAssetKey(projectIdAtSave, role, sceneId ?? undefined), projectId: projectIdAtSave, role, sceneId, fileName: file.name, mediaType: file.type || 'application/octet-stream', title: title.trim(), rightsReference: rightsReference.trim(), savedAt: new Date().toISOString(), blob: file };
+    try { await saveCabinAudioAsset(asset); }
+    catch { setNotice('Audio could not be saved in this browser. Check available local storage.'); return; }
+    audioLoadTicket.current += 1;
     const objectUrl = URL.createObjectURL(file);
     localAudioObjectUrls.current.add(objectUrl);
     const cue = { objectUrl, fileName: file.name, title: title.trim(), rightsReference: rightsReference.trim() };
-    if (localAudioRole === 'mood') {
-      const previous = localMoodAudio[audioTrackKey];
+    if (role === 'mood') {
+      const previous = localMoodAudio[moodKey];
       if (previous) { URL.revokeObjectURL(previous.objectUrl); localAudioObjectUrls.current.delete(previous.objectUrl); }
-      setLocalMoodAudio((current) => ({ ...current, [audioTrackKey]: cue }));
-      setNotice('Local instrumental added to ' + scene.name + '; its rights declaration has not been verified.');
+      setLocalMoodAudio((current) => ({ ...current, [moodKey]: cue }));
+      setNotice('Local instrumental added to ' + sceneAtSave.name + '; its rights declaration has not been verified.');
     } else {
-      const roleKey = projectId + ':' + localAudioRole;
+      const roleKey = voiceKey;
       const previous = localVoiceAudio[roleKey];
       if (previous) {
         if (localVoiceAudioRef.current?.src === previous.objectUrl) { localVoiceAudioRef.current.pause(); localVoiceAudioRef.current.removeAttribute('src'); localVoiceAudioRef.current.load(); }
@@ -405,22 +433,29 @@ function Studio() {
         localAudioObjectUrls.current.delete(previous.objectUrl);
       }
       setLocalVoiceAudio((current) => ({ ...current, [roleKey]: cue }));
-      setNotice('Local ' + (localAudioRole === 'welcome' ? 'welcome' : 'tour') + ' recording added; its rights declaration has not been verified.');
+      setNotice('Local ' + (role === 'welcome' ? 'welcome' : 'tour') + ' recording added; its rights declaration has not been verified.');
     }
     setLocalMoodAudioDraft({ file: null, title: '', rightsReference: '' });
     if (moodAudioFileRef.current) moodAudioFileRef.current.value = '';
   };
-  const removeLocalMoodAudio = () => {
+  const removeLocalMoodAudio = async () => {
     const cue = currentConfiguredAudio;
     if (!cue) return;
-    if (localAudioRole === 'mood') {
-      setLocalMoodAudio((current) => { const next = { ...current }; delete next[audioTrackKey]; return next; });
-      setNotice('Local audio cue removed from ' + scene.name + '.');
+    const role = localAudioRole;
+    const moodKey = audioTrackKey;
+    const voiceKey = projectId + ':' + role;
+    const sceneName = scene.name;
+    try { await deleteCabinAudioAsset(currentAudioAssetKey); }
+    catch { setNotice('Audio could not be removed from this browser.'); return; }
+    audioLoadTicket.current += 1;
+    if (role === 'mood') {
+      setLocalMoodAudio((current) => { const next = { ...current }; delete next[moodKey]; return next; });
+      setNotice('Local audio cue removed from ' + sceneName + '.');
     } else {
-      const roleKey = projectId + ':' + localAudioRole;
+      const roleKey = voiceKey;
       if (localVoiceAudioRef.current?.src === cue.objectUrl) { localVoiceAudioRef.current.pause(); localVoiceAudioRef.current.removeAttribute('src'); }
       setLocalVoiceAudio((current) => { const next = { ...current }; delete next[roleKey]; return next; });
-      setNotice('Local ' + (localAudioRole === 'welcome' ? 'welcome' : 'tour') + ' recording removed.');
+      setNotice('Local ' + (role === 'welcome' ? 'welcome' : 'tour') + ' recording removed.');
     }
     URL.revokeObjectURL(cue.objectUrl);
     localAudioObjectUrls.current.delete(cue.objectUrl);
@@ -881,11 +916,11 @@ function Studio() {
                   <input id="mood-audio-title" aria-label="Audio track title" value={localMoodAudioDraft.title} onChange={(event) => setLocalMoodAudioDraft((draft) => ({ ...draft, title: event.target.value }))} placeholder={localAudioRole === 'mood' ? 'e.g. Boarding piano cue' : localAudioRole === 'welcome' ? 'e.g. HB380 welcome · en-GB' : 'e.g. Cabin tour · en-GB'} />
                   <label htmlFor="mood-audio-rights">Rights or source reference</label>
                   <input id="mood-audio-rights" aria-label="Audio rights or source reference" value={localMoodAudioDraft.rightsReference} onChange={(event) => setLocalMoodAudioDraft((draft) => ({ ...draft, rightsReference: event.target.value }))} placeholder="Owner, license, or asset ID" />
-                  <button type="button" className="audio-import-button" onClick={importLocalMoodAudio} disabled={!localMoodAudioDraft.file || !localMoodAudioDraft.title.trim() || !localMoodAudioDraft.rightsReference.trim()}>
+                  <button type="button" className="audio-import-button" onClick={() => void importLocalMoodAudio()} disabled={!localMoodAudioDraft.file || !localMoodAudioDraft.title.trim() || !localMoodAudioDraft.rightsReference.trim()}>
                     {localAudioRole === 'mood' ? 'Add cue to this mood' : localAudioRole === 'welcome' ? 'Add welcome announcement recording' : 'Add cabin tour recording'}
                   </button>
-                  {currentConfiguredAudio && <div className="audio-cue-active"><span><b>{currentConfiguredAudio.title}</b><small>{currentConfiguredAudio.fileName} · {currentConfiguredAudio.rightsReference}</small></span><button type="button" aria-label={`Remove ${currentConfiguredAudio.title}`} onClick={removeLocalMoodAudio}>Remove</button></div>}
-                  <small>Session only: files remain in this browser tab, are not saved to a project or export, and are never uploaded. Rights/source is uploader-provided and unverified.</small>
+                  {currentConfiguredAudio && <div className="audio-cue-active"><span><b>{currentConfiguredAudio.title}</b><small>{currentConfiguredAudio.fileName} · {currentConfiguredAudio.rightsReference}</small></span><button type="button" aria-label={`Remove ${currentConfiguredAudio.title}`} onClick={() => void removeLocalMoodAudio()}>Remove</button></div>}
+                  <small>Saved in this browser on this device; never uploaded or included in project exports. Clearing browser site data removes recordings. Rights/source is uploader-provided and unverified.</small>
                 </div>
                 <small>Generated preview voice and music · not approved operational PA audio</small>
               </div>}

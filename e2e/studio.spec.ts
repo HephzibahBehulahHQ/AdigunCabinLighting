@@ -246,6 +246,17 @@ test('transition preview runs scene-specific instrumental audio and exposes cabi
   await expect(voicePlayer).toHaveAttribute('src', /^blob:/);
   await expect(voicePlayer).toHaveAttribute('data-play-requested', 'true');
   await page.getByRole('button', { name: 'Close audio controls' }).click();
+  await page.reload();
+  await page.getByRole('button', { name: 'Audio announcements and volume' }).click();
+  await page.getByLabel('Local audio cue role').selectOption('welcome');
+  await expect(page.getByText('HB380 welcome test', { exact: true })).toBeVisible();
+  const restoredVoicePlayer = page.locator('audio[data-testid="local-voice-audio"]');
+  await restoredVoicePlayer.evaluate((audio: HTMLAudioElement) => {
+    audio.play = () => { audio.dataset.playRequested = 'true'; return Promise.resolve(); };
+  });
+  await page.locator('.audio-voice-actions').getByRole('button', { name: 'Welcome announcement' }).click();
+  await expect(restoredVoicePlayer).toHaveAttribute('data-play-requested', 'true');
+  await page.getByRole('button', { name: 'Close audio controls' }).click();
   const timeline = page.getByRole('slider', { name: 'Scene timeline position' });
   const initialTime = Number(await timeline.inputValue());
   await page.getByRole('button', { name: 'Play preview' }).click();
