@@ -10,6 +10,7 @@ import {
   interpolateRGBW, interpolateScene, makeDefaultZones, makeZones, normalizeRGBW, PRESETS, toHex, validateSceneFile,
   ZONE_IDS, ZONE_INFO, type RGBW, type SceneFile, type ZoneId, type ZoneState,
 } from './scene-engine';
+import { composePreviewRGB } from './lighting-preview';
 import { CABIN_LAYOUTS, CABIN_PROFILES, DEFAULT_CABIN_CONFIG, validateCabinConfig, type CabinConfig, type CabinLayoutId } from './cabin-config';
 
 const STORAGE_KEY = 'adigun-cabin-studio:v1';
@@ -42,7 +43,7 @@ function writeProject(id: string, name: string, state: SavedState) {
 }
 
 function cabinGlows(zones: ZoneState[]) {
-  return Object.fromEntries(zones.map((zone) => [zone.id, toHex(zone.rgbw)])) as Record<ZoneId, string>;
+  return Object.fromEntries(zones.map((zone) => [zone.id, toHex({ ...composePreviewRGB(zone.rgbw), w: 0 })])) as Record<ZoneId, string>;
 }
 
 function CabinDrawing({ zones, selected, onSelect, compact = false }: {

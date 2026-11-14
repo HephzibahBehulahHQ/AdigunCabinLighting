@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import type { RGBW, ZoneId, ZoneState } from './scene-engine';
 import { CABIN_LAYOUTS, type CabinConfig } from './cabin-config';
+import { composePreviewRGB, previewLightLevel } from './lighting-preview';
 
 type Props = {
   config: CabinConfig;
@@ -20,11 +21,10 @@ type Props = {
   cameraResetRef: MutableRefObject<(() => void) | null>;
 };
 
-const sRGB = (rgbw: RGBW) => new THREE.Color(
-  Math.min(1, (rgbw.r + rgbw.w * 0.82) / 100),
-  Math.min(1, (rgbw.g + rgbw.w * 0.72) / 100),
-  Math.min(1, (rgbw.b + rgbw.w * 0.48) / 100),
-);
+const sRGB = (rgbw: RGBW) => {
+  const color = composePreviewRGB(rgbw);
+  return new THREE.Color(color.r / 100, color.g / 100, color.b / 100);
+};
 
 export default function Cabin3D({ config, zones, effective, intensity, selected, onSelect, highQuality, previewActive, previewMotion, previewTime, previewDuration, captureRef, cameraResetRef }: Props) {
   const canvasHost = useRef<HTMLDivElement>(null);
@@ -344,7 +344,7 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
     if (!current) return;
     for (const zone of zones) {
       const color = sRGB(effective[zone.id]);
-      const level = Math.max(effective[zone.id].r, effective[zone.id].g, effective[zone.id].b, effective[zone.id].w) / 100 * intensity / 100;
+      const level = previewLightLevel(effective[zone.id], intensity);
       for (const light of current.lights.get(zone.id) ?? []) { light.color.copy(color); light.intensity = level * (zone.id === 'cabin' ? 18 : 12); }
       for (const material of current.zoneMaterials.get(zone.id) ?? []) { material.emissive.copy(color); material.emissiveIntensity = .15 + level * 1.8; }
     }
