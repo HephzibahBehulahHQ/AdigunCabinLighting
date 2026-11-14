@@ -10,6 +10,8 @@ PR #19 merged a reproducible ESP-IDF v6.1 ESP32-S3 compile target and fail-close
 
 PR #52 added raw HTTP Host-authority regression checks for the loopback gateway. PR #53 changed scene music to bounded incremental scheduling, retaining the existing controls and Studio layout. PR #54 upgraded the exported engineering preflight to report field-level distinctions between manufacturer planning references, derived display rows, illustrative geometry, and user edits, plus explicit per-zone missing fixture evidence. PR #54 CI, post-merge CI, and Pages deployment passed. These records improve traceability; they do not provide an airline cabin fit, licensed aircraft model, fixture documentation, or physical verification.
 
+PR #56 moved the same provenance into portable scenario packages: newly created packages use schema version 2, and review upgrades version 1 packages. The package stores source revision, asset-rights notice, and field-level source/derived/illustrative/user-edited evidence. PR #56 CI, post-merge CI, and Pages deployment passed. This remains planning/reference evidence; the package does not establish an airline cabin fit or fixture installation.
+
 ## Roadmap status
 
 - **Gateway:** local deterministic simulator API with bearer authentication, finite HTTP resource bounds, JSON-only uncompressed preview bodies, separate authenticated/anonymous per-peer fixed-window rate-limit buckets (120 requests/minute by default), and bounded SIGINT/SIGTERM shutdown. Stop-and-restart token rotation is documented. External process supervision, independent security review, and network-service deployment remain outstanding.
