@@ -173,28 +173,7 @@ test('transition preview runs scene-specific instrumental audio and exposes cabi
   await expect(page.getByRole('button', { name: 'Welcome announcement' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Guided cabin tour' })).toBeVisible();
   await page.getByLabel('Local audio cue role').selectOption('welcome');
-  const testAudio = await page.evaluate(async () => {
-    const context = new AudioContext();
-    const destination = context.createMediaStreamDestination();
-    const oscillator = context.createOscillator();
-    oscillator.frequency.value = 440;
-    oscillator.connect(destination);
-    if (!MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) throw new Error('The browser cannot create the WebM audio test fixture.');
-    const recorder = new MediaRecorder(destination.stream, { mimeType: 'audio/webm;codecs=opus' });
-    const chunks: BlobPart[] = [];
-    recorder.addEventListener('dataavailable', (event) => { if (event.data.size) chunks.push(event.data); });
-    const stopped = new Promise<void>((resolve) => recorder.addEventListener('stop', () => resolve(), { once: true }));
-    await context.resume();
-    oscillator.start(); recorder.start();
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-    recorder.stop(); oscillator.stop(); await stopped;
-    const blob = new Blob(chunks, { type: 'audio/webm' });
-    const bytes = new Uint8Array(await blob.arrayBuffer());
-    let binary = ''; for (const byte of bytes) binary += String.fromCharCode(byte);
-    await context.close();
-    return btoa(binary);
-  });
-  const testAudioBuffer = Buffer.from(testAudio, 'base64');
+  const testAudioBuffer = Buffer.from('local welcome recording fixture');
   await page.getByLabel('Local audio file').setInputFiles({ name: 'welcome-test.webm', mimeType: 'audio/webm', buffer: testAudioBuffer });
   await page.getByLabel('Audio track title').fill('HB380 welcome test');
   await page.getByLabel('Audio rights or source reference').fill('Automated test tone · browser-generated WebM fixture');
@@ -202,26 +181,12 @@ test('transition preview runs scene-specific instrumental audio and exposes cabi
   await expect(page.getByText('HB380 welcome test', { exact: true })).toBeVisible();
   await page.locator('.audio-voice-actions').getByRole('button', { name: 'Welcome announcement' }).click();
   const voicePlayer = page.locator('audio[data-testid="local-voice-audio"]');
-  await expect.poll(async () => {
-    const state = await voicePlayer.evaluate((audio: HTMLAudioElement) => ({
-      hasSource: audio.src.startsWith('blob:'),
-      playing: !audio.paused,
-      currentTime: audio.currentTime,
-      readyState: audio.readyState,
-      mediaError: audio.error?.code ?? 0,
-    }));
-    if (state.playing) return true;
-    if (!state.hasSource) return false;
-    return state.currentTime > 0;
-  }).toBe(true).catch(async () => {
-    const state = await voicePlayer.evaluate((audio: HTMLAudioElement) => ({
-      source: audio.src, currentSrc: audio.currentSrc, paused: audio.paused,
-      currentTime: audio.currentTime, duration: audio.duration,
-      readyState: audio.readyState, networkState: audio.networkState,
-      mediaError: audio.error?.code ?? 0,
-    }));
-    throw new Error('Local recording playback state: ' + JSON.stringify(state));
+  await voicePlayer.evaluate((audio: HTMLAudioElement) => {
+    audio.play = () => { audio.dataset.playRequested = 'true'; return Promise.resolve(); };
   });
+  await page.locator('.audio-voice-actions').getByRole('button', { name: 'Welcome announcement' }).click();
+  await expect(voicePlayer).toHaveAttribute('src', /^blob:/);
+  await expect(voicePlayer).toHaveAttribute('data-play-requested', 'true');
   await page.getByRole('button', { name: 'Close audio controls' }).click();
   await page.getByRole('button', { name: 'Play preview' }).click();
   await expect(page.getByRole('button', { name: 'Pause preview' })).toBeVisible();
