@@ -172,6 +172,20 @@ test('transition preview runs scene-specific instrumental audio and exposes cabi
   await expect(page.getByRole('slider', { name: 'Playback volume' })).toHaveValue('38');
   await expect(page.getByRole('button', { name: 'Welcome announcement' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Guided cabin tour' })).toBeVisible();
+  await page.getByLabel('Local audio cue role').selectOption('welcome');
+  const testAudioBuffer = Buffer.from('local welcome recording fixture');
+  await page.getByLabel('Local audio file').setInputFiles({ name: 'welcome-test.webm', mimeType: 'audio/webm', buffer: testAudioBuffer });
+  await page.getByLabel('Audio track title').fill('HB380 welcome test');
+  await page.getByLabel('Audio rights or source reference').fill('Automated test fixture · browser decoder not invoked');
+  await page.getByRole('button', { name: 'Add welcome announcement recording' }).click();
+  await expect(page.getByText('HB380 welcome test', { exact: true })).toBeVisible();
+  const voicePlayer = page.locator('audio[data-testid="local-voice-audio"]');
+  await voicePlayer.evaluate((audio: HTMLAudioElement) => {
+    audio.play = () => { audio.dataset.playRequested = 'true'; return Promise.resolve(); };
+  });
+  await page.locator('.audio-voice-actions').getByRole('button', { name: 'Welcome announcement' }).click();
+  await expect(voicePlayer).toHaveAttribute('src', /^blob:/);
+  await expect(voicePlayer).toHaveAttribute('data-play-requested', 'true');
   await page.getByRole('button', { name: 'Close audio controls' }).click();
   await page.getByRole('button', { name: 'Play preview' }).click();
   await expect(page.getByRole('button', { name: 'Pause preview' })).toBeVisible();
