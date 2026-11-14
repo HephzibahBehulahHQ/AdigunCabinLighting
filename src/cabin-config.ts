@@ -8,6 +8,9 @@ export const CABIN_LAYOUTS = {
     description: 'Airbus A330-300 planning dimensions and two-class seat data; row distribution is derived for illustration.',
     groups: [2, 4, 2],
     source: 'https://www.aircraft.airbus.com/en/aircraft/a330/a330-300',
+    planningSource: 'https://www.aircraft.airbus.com/sites/g/files/jlcbta126/files/2025-12/AC_A330_20251201.pdf',
+    sourceRevision: 'Airbus A330 Aircraft Characteristics · Rev Dec 01/25',
+    assetRights: 'Airbus planning reference; reproduction permission not recorded. No licensed 3D cabin asset is included.',
     seatPlan: [
       { groups: [2, 2, 2], rows: 6, pitchMeters: 1.524, seatCount: 36, cabinClass: 'Business' },
       { groups: [2, 4, 2], rows: 33, pitchMeters: .8128, seatCount: 264, cabinClass: 'Economy' },
@@ -21,6 +24,9 @@ export const CABIN_LAYOUTS = {
     description: 'Airbus planning dimensions and two-class seat data; row distribution is derived for illustration.',
     groups: [3, 3, 3],
     source: 'https://www.aircraft.airbus.com/en/aircraft/a350/a350-900',
+    planningSource: 'https://www.aircraft.airbus.com/sites/g/files/jlcbta126/files/2025-07/AC_A350_20250715.pdf',
+    sourceRevision: 'Airbus A350 Aircraft Characteristics · Rev 15 · Jul 15/25',
+    assetRights: 'Airbus planning reference; reproduction permission not recorded. No licensed 3D cabin asset is included.',
     seatPlan: [
       { groups: [2, 2, 2], rows: 8, pitchMeters: 1.524, seatCount: 48, cabinClass: 'Business' },
       { groups: [3, 3, 3], rows: 29, pitchMeters: .8128, seatCount: 261, cabinClass: 'Economy' },

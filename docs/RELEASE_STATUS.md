@@ -4,14 +4,12 @@
 
 ## Latest deployed release checkpoint
 
-- **Latest deployed milestone:** [PR #44 — preflight and measure the existing 3D 4K export](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/pull/44), merged at [`28807d3ac4298f33aa031f392b8b8af632db3b38`](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/commit/28807d3ac4298f33aa031f392b8b8af632db3b38).
-- **Recent PR CI:** [PR #44 CI 43598358578](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43598358578) passed lint, typecheck, all unit tests, production build, and Playwright. [PR #43 CI 43596933390](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43596933390) passed the same workflow.
-- **Post-merge CI:** [PR #44 App CI 43598980807](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43598980807) and [PR #43 App CI 43597500749](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43597500749) passed.
-- **GitHub Pages:** [Run 43598980815](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43598980815) succeeded for the #44 merge commit.
-- **Live smoke:** Product root returned HTTP 200. The served JavaScript bundles contained the RGBW preview curve, export timing message, WebGL renderbuffer guard, and drawing-buffer dimension check.
-- **PR #43:** unified the illustrative RGBW white-channel blend in 2D/3D and documented preview limits. **PR #44:** checks actual 4K renderbuffer allocation and reports local render/encode duration plus a lower-bound memory estimate; 16K/24K capture remains unavailable.
-- **Previous gateway increment:** [PR #35](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/pull/35) isolated authenticated and anonymous rate-limit buckets; its [PR CI](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43416406179), [post-merge CI](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43419570479), and [Pages deployment](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43419570607) passed.
-- **Studio boundary:** PRs #43 and #44 changed preview/export logic and tests without changing Studio layout, styling, navigation, panels, labels, or controls.
+- **Latest deployed milestone:** [PR #46 — brighter cabin preview and camera angles](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/pull/46), merged at [`1bdd1932996ec54d0bfdb735ff7ed4057c27bd67`](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/commit/1bdd1932996ec54d0bfdb735ff7ed4057c27bd67).
+- **PR validation:** [PR #46 CI 43605376669](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43605376669) passed. **Post-merge:** [App CI 43605748609](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43605748609) passed and [Pages run 43605748568](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43605748568) succeeded.
+- **Live smoke:** On 2026-11-14, `/studio/` returned HTTP 200 and its served assets included the 3D camera presets and brightness-preview logic. The site root is the landing page; the editor is at `/studio/`.
+- **PR #45:** added offline scenario package pack/review commands, preserving cabin profile provenance and reporting missing fixture evidence. It does not expose those CLI tools as a hosted service.
+- **PR #46:** applies a display-only RGBW response curve and adds Entry, Mid-cabin, Aft, and Window-row camera presets within the existing cabin viewer. **PR #43** aligned the illustrative RGBW white blend across 2D/3D. **PR #44** measures the existing 4K export path; 16K/24K export remains unavailable and unbenchmarked.
+- **Studio boundary:** PRs #43–#46 preserve the locked sidebar, panel positions, and overall Studio layout. Camera presets remain inside the existing viewer.
 
 ## Current deployed scope
 

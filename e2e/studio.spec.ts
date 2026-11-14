@@ -269,6 +269,9 @@ test('A350-900 reference loads source-backed cabin dimensions and the derived 31
   await expect(page.getByLabel('Cabin length (m)')).toBeDisabled();
   await expect(page.getByLabel('Seat rows')).toBeDisabled();
   await expect(page.locator('.cabin-profile-note')).toContainText('row distribution are derived');
+  await expect(page.locator('.cabin-profile-note a')).toHaveAttribute('href', /AC_A350_20250715\.pdf$/);
+  await expect(page.locator('.cabin-profile-note')).toContainText('Rev 15 · Jul 15/25');
+  await expect(page.locator('.cabin-profile-note')).toContainText('No licensed 3D cabin asset is included');
   await page.getByRole('button', { name: 'Load cabin layout' }).click();
   await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-cabin-layout', 'a350900');
   await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-rendered-seat-count', '315');
@@ -288,6 +291,9 @@ test('A330-300 reference loads source-backed dimensions and its derived 300-seat
   await expect(page.getByLabel('Cabin length (m)')).toBeDisabled();
   await expect(page.getByLabel('Seat rows')).toBeDisabled();
   await expect(page.locator('.cabin-profile-note')).toContainText('derived for display');
+  await expect(page.locator('.cabin-profile-note a')).toHaveAttribute('href', /AC_A330_20251201\.pdf$/);
+  await expect(page.locator('.cabin-profile-note')).toContainText('Rev Dec 01/25');
+  await expect(page.locator('.cabin-profile-note')).toContainText('No licensed 3D cabin asset is included');
   await page.getByRole('button', { name: 'Load cabin layout' }).click();
   await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-cabin-layout', 'a330300');
   await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-rendered-seat-count', '300');
