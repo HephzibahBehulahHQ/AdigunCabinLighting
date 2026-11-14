@@ -20,6 +20,9 @@ const STORAGE_KEY = 'adigun-cabin-studio:v1';
 const PROJECT_INDEX_KEY = 'adigun-cabin-projects:v1';
 const ACTIVE_PROJECT_KEY = 'adigun-cabin-active-project:v1';
 type SavedState = { zones: ZoneState[]; scenes: SceneFile[]; intensity: number; activeSceneId: string; selectedZoneId: ZoneId; projectName?: string; cabinConfig?: CabinConfig };
+type LocalMoodAudioCue = { readonly objectUrl: string; readonly fileName: string; readonly title: string; readonly rightsReference: string };
+type LocalMoodAudioDraft = { file: File | null; title: string; rightsReference: string };
+const MAX_LOCAL_MOOD_AUDIO_BYTES = 25 * 1024 * 1024;
 const copy = <T,>(value: T): T => structuredClone(value);
 const Cabin3D = lazy(() => import('./Cabin3D'));
 
@@ -231,6 +234,8 @@ function Studio() {
   const [audioCues, setAudioCues] = useState(true);
   const [audioPanelOpen, setAudioPanelOpen] = useState(false);
   const [audioVolume, setAudioVolume] = useState(38);
+  const [localMoodAudio, setLocalMoodAudio] = useState<Record<string, LocalMoodAudioCue>>({});
+  const [localMoodAudioDraft, setLocalMoodAudioDraft] = useState<LocalMoodAudioDraft>({ file: null, title: '', rightsReference: '' });
   const [notice, setNotice] = useState('');
   const [tab, setTab] = useState('scene');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -241,6 +246,9 @@ function Studio() {
   const [undo, setUndo] = useState<ZoneState[][]>([]);
   const [redo, setRedo] = useState<ZoneState[][]>([]);
   const importRef = useRef<HTMLInputElement>(null);
+  const moodAudioFileRef = useRef<HTMLInputElement>(null);
+  const localMoodAudioRef = useRef<HTMLAudioElement | null>(null);
+  const localAudioObjectUrls = useRef(new Set<string>());
   const stageRef = useRef<HTMLDivElement>(null);
   const cabinCaptureRef = useRef<(() => Promise<Blob>) | null>(null);
   const cameraResetRef = useRef<(() => void) | null>(null);
@@ -254,12 +262,14 @@ function Studio() {
   const fadeTransitions = useRef<Partial<Record<ZoneId, { from: RGBW; to: RGBW; started: number; durationMs: number }>>>({});
   const fadeFrame = useRef<number | null>(null);
   const scene = scenes.find((item) => item.id === activeSceneId) ?? scenes[0] ?? PRESETS[0];
+  const audioTrackKey = `${projectId}:${scene.id}`;
+  const currentMoodAudio = localMoodAudio[audioTrackKey];
   const currentZone = zones.find((zone) => zone.id === selected) ?? zones[0];
   const startTransitionPreview = () => {
     const startAt = time >= scene.durationSeconds ? 0 : time;
     playbackTime.current = startAt;
     if (time >= scene.durationSeconds) applySceneAt(0);
-    if (audioCues) {
+    if (audioCues && !currentMoodAudio) {
       if (!window.AudioContext) setNotice('Instrumental preview is not supported in this browser.');
       else {
         audioContext.current ??= new window.AudioContext();
@@ -274,6 +284,30 @@ function Studio() {
     audioContext.current ??= new window.AudioContext();
     void audioContext.current.resume().catch(() => setNotice('Browser audio permission prevented audio playback.'));
     return audioContext.current;
+  };
+  const importLocalMoodAudio = () => {
+    const { file, title, rightsReference } = localMoodAudioDraft;
+    if (!file) { setNotice('Choose a local audio file first.'); return; }
+    if (file.size > MAX_LOCAL_MOOD_AUDIO_BYTES) { setNotice('Local mood audio must be 25 MiB or smaller.'); return; }
+    const audioExtension = /\.(aac|flac|m4a|mp3|oga|ogg|wav|webm)$/i.test(file.name);
+    if (!file.type.startsWith('audio/') && !audioExtension) { setNotice('Choose a supported audio file.'); return; }
+    if (!title.trim() || !rightsReference.trim()) { setNotice('Add the track title and a rights/source reference before importing.'); return; }
+    const objectUrl = URL.createObjectURL(file);
+    localAudioObjectUrls.current.add(objectUrl);
+    const previous = localMoodAudio[audioTrackKey];
+    if (previous) { URL.revokeObjectURL(previous.objectUrl); localAudioObjectUrls.current.delete(previous.objectUrl); }
+    setLocalMoodAudio((current) => ({ ...current, [audioTrackKey]: { objectUrl, fileName: file.name, title: title.trim(), rightsReference: rightsReference.trim() } }));
+    setLocalMoodAudioDraft({ file: null, title: '', rightsReference: '' });
+    if (moodAudioFileRef.current) moodAudioFileRef.current.value = '';
+    setNotice(`Local cue added to ${scene.name}; its rights declaration has not been verified.`);
+  };
+  const removeLocalMoodAudio = () => {
+    const cue = localMoodAudio[audioTrackKey];
+    if (!cue) return;
+    URL.revokeObjectURL(cue.objectUrl);
+    localAudioObjectUrls.current.delete(cue.objectUrl);
+    setLocalMoodAudio((current) => { const next = { ...current }; delete next[audioTrackKey]; return next; });
+    setNotice(`Local audio cue removed from ${scene.name}.`);
   };
   const speakCabinAudio = (kind: 'welcome' | 'tour') => {
     if (!('speechSynthesis' in window) || typeof window.SpeechSynthesisUtterance !== 'function') {
@@ -308,6 +342,59 @@ function Studio() {
   const setEffectiveImmediately = (values: Record<ZoneId, RGBW>) => {
     stopFadeFrame(); fadeTransitions.current = {}; effectiveRef.current = values; setEffectiveRGBW(values);
   };
+  useEffect(() => {
+    moodMusicRef.current?.setVolume(audioVolume);
+    if (speechUtterance.current) speechUtterance.current.volume = audioVolume / 100;
+  }, [audioVolume]);
+  useEffect(() => {
+    if (!playing || !audioCues || !audioContext.current || currentMoodAudio) return;
+    let cancelled = false;
+    const context = audioContext.current;
+    void context.resume().then(() => {
+      if (!cancelled) moodMusicRef.current = scheduleMoodMusic(context, scene.id, playbackTime.current, scene.durationSeconds, audioVolume);
+    }).catch(() => setNotice('Browser audio permission prevented the instrumental preview.'));
+    return () => {
+      cancelled = true;
+      moodMusicRef.current?.stop();
+      moodMusicRef.current = null;
+    };
+  }, [playing, audioCues, scene.id, scene.durationSeconds, audioVolume, currentMoodAudio]);
+  useEffect(() => {
+    const element = localMoodAudioRef.current;
+    if (!element) return;
+    element.volume = audioVolume / 100;
+    if (!currentMoodAudio) {
+      element.pause();
+      element.removeAttribute('src');
+      element.load();
+      return;
+    }
+    if (element.src !== currentMoodAudio.objectUrl) {
+      element.src = currentMoodAudio.objectUrl;
+      element.loop = true;
+      element.load();
+    }
+    const syncPosition = () => {
+      const duration = Number.isFinite(element.duration) && element.duration > 0 ? element.duration : 0;
+      const target = duration ? playbackTime.current % duration : playbackTime.current;
+      if (element.paused || Math.abs(element.currentTime - target) > .5) element.currentTime = target;
+      if (playing && audioCues) void element.play().catch(() => setNotice('The imported audio could not play in this browser.'));
+      else element.pause();
+    };
+    if (element.readyState >= 1) syncPosition();
+    else element.addEventListener('loadedmetadata', syncPosition, { once: true });
+    return () => element.removeEventListener('loadedmetadata', syncPosition);
+  }, [currentMoodAudio, playing, audioCues, audioVolume, scene.id]);
+  useEffect(() => () => {
+    if (speechTimer.current !== null) window.clearTimeout(speechTimer.current);
+    speechUtterance.current = null;
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    moodMusicRef.current?.stop();
+    localMoodAudioRef.current?.pause();
+    for (const objectUrl of localAudioObjectUrls.current) URL.revokeObjectURL(objectUrl);
+    localAudioObjectUrls.current.clear();
+    void audioContext.current?.close();
+  }, []);
   useEffect(() => {
     moodMusicRef.current?.setVolume(audioVolume);
     if (speechUtterance.current) speechUtterance.current.volume = audioVolume / 100;
@@ -411,6 +498,8 @@ function Studio() {
     const targets = interpolateScene(nextScene, nextTime);
     setEffectiveImmediately(targets);
     playbackTime.current = nextTime;
+    const audio = localMoodAudioRef.current;
+    if (audio && currentMoodAudio && Number.isFinite(audio.duration) && audio.duration > 0) audio.currentTime = nextTime % audio.duration;
     setTime(nextTime);
   };
   const chooseScene = (id: string) => {
@@ -619,13 +708,26 @@ function Studio() {
             <section className="panel timeline-panel" id="timeline" tabIndex={-1}>
               <div className="timeline-head"><div><span className="panel-overline">CHOREOGRAPHY TIMELINE</span><h2>Transition preview</h2></div><div className="timeline-actions"><button className={`preview-toggle ${motionPreview ? 'is-on' : ''}`} aria-label="Camera motion preview" aria-pressed={motionPreview} title="Subtle camera motion during playback" onClick={() => setMotionPreview((value) => !value)}><Move3D size={13} /> Motion</button><button className={`preview-toggle ${audioCues ? 'is-on' : ''}`} aria-label="Mood music" aria-pressed={audioCues} title="Play a mood-specific instrumental during transition preview" onClick={() => setAudioCues((value) => !value)}><Volume2 size={13} /> Music</button><button className="preview-toggle" aria-label="Audio announcements and volume" aria-expanded={audioPanelOpen} title="Announcement, tour voice, and volume" onClick={() => setAudioPanelOpen((open) => !open)}><Headphones size={13} /> Audio</button><button className="button button-quiet button-sm" onClick={addKeyframe}><Plus size={14} /> Add keyframe</button></div></div>
               {audioPanelOpen && <div className="audio-console" id="audio-console" role="group" aria-label="Cabin audio controls">
-                <div className="audio-console-head"><div><span className="panel-overline">CABIN SOUND DESIGN</span><strong>{scene.name} · {getMoodInstrumentLabel(scene.id)}</strong></div><button type="button" aria-label="Close audio controls" onClick={() => setAudioPanelOpen(false)}><X size={15} /></button></div>
-                <p className="audio-score-note">Original browser-synthesized score · {getMoodScore(scene.id).tempo} BPM · follows the transition preview</p>
+                <div className="audio-console-head"><div><span className="panel-overline">CABIN SOUND DESIGN</span><strong>{scene.name} · {currentMoodAudio ? currentMoodAudio.title : getMoodInstrumentLabel(scene.id)}</strong></div><button type="button" aria-label="Close audio controls" onClick={() => setAudioPanelOpen(false)}><X size={15} /></button></div>
+                <p className="audio-score-note">{currentMoodAudio ? 'Imported local cue · loops with preview; shared volume control' : `Original browser-synthesized score · ${getMoodScore(scene.id).tempo} BPM · follows the transition preview`}</p>
                 <label className="audio-volume-control" htmlFor="cabin-audio-volume"><span><Volume2 size={14} /> Playback volume</span><strong>{audioVolume}%</strong></label>
                 <input id="cabin-audio-volume" aria-label="Playback volume" type="range" min="0" max="100" value={audioVolume} onChange={(event) => setAudioVolume(Number(event.target.value))} />
                 <div className="audio-voice-actions"><button type="button" onClick={() => speakCabinAudio('welcome')}><Megaphone size={14} /> Welcome announcement</button><button type="button" onClick={() => speakCabinAudio('tour')}><Headphones size={14} /> Guided cabin tour</button></div>
+                <div className="audio-cue-import">
+                  <strong>Airline cue · {scene.name}</strong>
+                  <label htmlFor="mood-audio-file">Audio file · up to 25 MiB</label>
+                  <input ref={moodAudioFileRef} id="mood-audio-file" aria-label="Local mood audio file" type="file" accept="audio/*,.aac,.flac,.m4a,.mp3,.oga,.ogg,.wav,.webm" onChange={(event) => { const file = event.currentTarget.files?.[0] ?? null; setLocalMoodAudioDraft((draft) => ({ ...draft, file })); }} />
+                  <label htmlFor="mood-audio-title">Track title</label>
+                  <input id="mood-audio-title" aria-label="Audio track title" value={localMoodAudioDraft.title} onChange={(event) => setLocalMoodAudioDraft((draft) => ({ ...draft, title: event.target.value }))} placeholder="e.g. Boarding piano cue" />
+                  <label htmlFor="mood-audio-rights">Rights or source reference</label>
+                  <input id="mood-audio-rights" aria-label="Audio rights or source reference" value={localMoodAudioDraft.rightsReference} onChange={(event) => setLocalMoodAudioDraft((draft) => ({ ...draft, rightsReference: event.target.value }))} placeholder="Owner, license, or asset ID" />
+                  <button type="button" className="audio-import-button" onClick={importLocalMoodAudio} disabled={!localMoodAudioDraft.file || !localMoodAudioDraft.title.trim() || !localMoodAudioDraft.rightsReference.trim()}>Add cue to this mood</button>
+                  {currentMoodAudio && <div className="audio-cue-active"><span><b>{currentMoodAudio.title}</b><small>{currentMoodAudio.fileName} · {currentMoodAudio.rightsReference}</small></span><button type="button" aria-label={`Remove ${currentMoodAudio.title}`} onClick={removeLocalMoodAudio}>Remove</button></div>}
+                  <small>Session only: file stays in this browser, is not saved to a project or export, and is never uploaded. Rights/source is uploader-provided and unverified.</small>
+                </div>
                 <small>Generated preview voice and music · not approved operational PA audio</small>
               </div>}
+              <audio ref={localMoodAudioRef} preload="metadata" aria-hidden="true" />
               <div className="transport"><button className="play-button" aria-label={playing ? 'Pause preview' : 'Play preview'} onClick={() => { if (playing) setPlaying(false); else startTransitionPreview(); }}>{playing ? <Pause size={17} /> : <Play size={17} fill="currentColor" />}</button>
                 <div className="timeline-track-wrap"><div className="timeline-label-row"><span>{scene.name.toUpperCase()} <i>·</i> {scene.keyframes.length} KEYFRAMES</span><span className="time-readout">{formatTime(time)} <small>/ {formatTime(scene.durationSeconds)}</small></span></div>
                   <div className="timeline-track"><div className="timeline-progress" style={{ width: `${scene.durationSeconds ? time / scene.durationSeconds * 100 : 0}%` }} /><input aria-label="Scene timeline position" type="range" min="0" max={scene.durationSeconds} step="0.1" value={time} onChange={(e) => { setPlaying(false); applySceneAt(Number(e.target.value)); }} />
