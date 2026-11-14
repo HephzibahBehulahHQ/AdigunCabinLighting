@@ -159,7 +159,7 @@ function Brand({ small = false }: { small?: boolean }) {
 
 const LANDING_COPY = {
   en: {
-    language: 'Language', nav: ['Capabilities', 'Engineering', 'Safety'], open: 'Open Studio',
+    language: 'Language', navLabel: 'Main navigation', nav: ['Capabilities', 'Engineering', 'Safety'], open: 'Open Studio',
     eyebrow: 'CABIN LIGHTING · ENGINEERING STUDIO', title: 'Shape the cabin', titleEnd: 'around the', moment: 'moment.',
     intro: 'Design considered RGBW lighting scenes for cabin environments. Explore zones, tune transitions, and review every idea in an offline simulator.',
     enter: 'Enter Cabin Studio', explore: 'Explore the system', offline: 'Offline by design', noOutput: 'No physical outputs',
@@ -180,7 +180,7 @@ const LANDING_COPY = {
     review: 'Review the simulator', footer: 'Engineering simulator · 2026',
   },
   de: {
-    language: 'Sprache', nav: ['Funktionen', 'Technik', 'Sicherheit'], open: 'Studio öffnen',
+    language: 'Sprache', navLabel: 'Hauptnavigation', nav: ['Funktionen', 'Technik', 'Sicherheit'], open: 'Studio öffnen',
     eyebrow: 'KABINENBELEUCHTUNG · ENGINEERING-STUDIO', title: 'Gestalten Sie die Kabine', titleEnd: 'für den', moment: 'Moment.',
     intro: 'Entwerfen Sie abgestimmte RGBW-Lichtszenen für Kabinen. Erkunden Sie Zonen, stimmen Sie Übergänge ab und prüfen Sie Ihre Ideen in einem Offline-Simulator.',
     enter: 'Kabinen-Studio öffnen', explore: 'System entdecken', offline: 'Offline konzipiert', noOutput: 'Keine physische Ausgabe',
@@ -201,7 +201,7 @@ const LANDING_COPY = {
     review: 'Simulator ansehen', footer: 'Engineering-Simulator · 2026',
   },
   yo: {
-    language: 'Èdè', nav: ['Àwọn iṣẹ́', 'Ìmọ̀ ẹ̀rọ', 'Ààbò'], open: 'Ṣí Studio',
+    language: 'Èdè', navLabel: 'Àkójọ ìtọ́kasí àkọ́kọ́', nav: ['Àwọn iṣẹ́', 'Ìmọ̀ ẹ̀rọ', 'Ààbò'], open: 'Ṣí Studio',
     eyebrow: 'ÌMỌ́LẸ̀ ÀGỌ́ · STUDIO ÌṢẸ̀LẸ̀', title: 'Ṣètò àgọ́ náà', titleEnd: 'fún', moment: 'àkókò kọ̀ọ̀kan.',
     intro: 'Ṣe àgbékalẹ̀ àwọn ìran ìmọ́lẹ̀ RGBW fún inú àgọ́. Yan àwọn agbègbè, ṣètò bí ìyípadà ṣe ń lọ, kí o sì ṣàyẹ̀wò èrò kọ̀ọ̀kan nínú simulator tí kò nílò ìsopọ̀.',
     enter: 'Wọlé sí Cabin Studio', explore: 'Ṣàyẹ̀wò ètò náà', offline: 'A ṣe é fún lílò láìsí ìsopọ̀', noOutput: 'Kò sí àbájáde sí ẹ̀rọ gidi',
@@ -222,7 +222,7 @@ const LANDING_COPY = {
     review: 'Ṣàyẹ̀wò simulator', footer: 'Simulator ìmọ̀ ẹ̀rọ · 2026',
   },
   pcm: {
-    language: 'Language', nav: ['Wetin e fit do', 'Engineering', 'Safety'], open: 'Open Studio',
+    language: 'Language', navLabel: 'Main navigation', nav: ['Wetin e fit do', 'Engineering', 'Safety'], open: 'Open Studio',
     eyebrow: 'CABIN LIGHTING · ENGINEERING STUDIO', title: 'Set the cabin light', titleEnd: 'make e fit', moment: 'the moment.',
     intro: 'Design correct RGBW light scenes for cabin space. Check zones, tune how light dey change, and review each idea for offline simulator.',
     enter: 'Enter Cabin Studio', explore: 'See how the system work', offline: 'E dey work offline by design', noOutput: 'E no send output to hardware',
@@ -250,7 +250,7 @@ function Landing() {
   const text = LANDING_COPY[locale];
   return <main className="landing" lang={locale}>
     <header className="landing-nav"><Brand />
-      <nav aria-label={text.language}><a href="#capabilities">{text.nav[0]}</a><a href="#engineering">{text.nav[1]}</a><a href="#safety">{text.nav[2]}</a></nav>
+      <nav aria-label={text.navLabel}><a href="#capabilities">{text.nav[0]}</a><a href="#engineering">{text.nav[1]}</a><a href="#safety">{text.nav[2]}</a></nav>
       <label className="landing-language"><span className="sr-only">{text.language}</span><select className="landing-locale" aria-label={text.language} value={locale} onChange={(event) => setLocale(event.target.value as LandingLocale)}><option value="en">English</option><option value="de">Deutsch</option><option value="yo">Yorùbá</option><option value="pcm">Nigerian Pidgin</option></select></label>
       <a className="button button-primary nav-cta" href="/studio">{text.open} <ArrowRight size={16} /></a>
     </header>
