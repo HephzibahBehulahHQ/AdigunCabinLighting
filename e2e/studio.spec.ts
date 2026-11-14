@@ -20,6 +20,32 @@ test('landing opens the working Studio route', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test('landing page locale selector switches every public landing section without changing Studio copy', async ({ page }) => {
+  await page.goto('/');
+  const locale = page.locator('.landing-locale');
+  const landing = page.locator('main.landing');
+
+  await locale.selectOption('de');
+  await expect(landing).toHaveAttribute('lang', 'de');
+  await expect(page.getByRole('navigation', { name: 'Hauptnavigation' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Gestalten Sie die Kabine für den Moment.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Gestaltungsabsicht, klar abgegrenzt.' })).toBeVisible();
+
+  await locale.selectOption('yo');
+  await expect(landing).toHaveAttribute('lang', 'yo');
+  await expect(page.getByRole('heading', { name: 'Ṣètò àgọ́ náà fún àkókò kọ̀ọ̀kan.' })).toBeVisible();
+  await expect(landing).toContainText('Kò sopọ̀ mọ́ ọkọ̀ òfurufú');
+
+  await locale.selectOption('pcm');
+  await expect(landing).toHaveAttribute('lang', 'pcm');
+  await expect(page.getByRole('heading', { name: 'Set the cabin light make e fit the moment.' })).toBeVisible();
+  await expect(landing).toContainText('E no connect to aircraft');
+
+  await locale.selectOption('en');
+  await expect(landing).toHaveAttribute('lang', 'en');
+  await expect(page.getByRole('heading', { name: /Shape the cabin around the moment/i })).toBeVisible();
+});
+
 test('zone RGBW edits persist and undo works', async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto('/studio');
