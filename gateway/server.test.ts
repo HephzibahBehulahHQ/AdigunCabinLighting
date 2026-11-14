@@ -34,6 +34,23 @@ describe('loopback simulator gateway', () => {
     await expect(response.json()).resolves.toMatchObject({ error: { code: 'UNAUTHORIZED' } });
   });
 
+  it('rejects spoofed Host authorities before consuming the loopback request quota', async () => {
+    const server = createGatewayServer(TOKEN, { rateLimit: 1, rateWindowMs: 10_000 });
+    servers.push(server);
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const address = server.address();
+    if (!address || typeof address === 'string') throw new Error('Test gateway failed to bind.');
+    const url = `http://127.0.0.1:${address.port}/v1/health`;
+    const request = (host: string) => fetch(url, { headers: { authorization: `Bearer ${TOKEN}`, host } });
+
+    expect((await request('attacker.example')).status).toBe(421);
+    expect((await request('attacker.example@127.0.0.1')).status).toBe(421);
+    expect((await request('localhost/path')).status).toBe(421);
+    expect((await request('localhost,127.0.0.1')).status).toBe(421);
+    expect((await request('127.0.0.1')).status).toBe(200);
+    expect((await request('localhost')).status).toBe(429);
+  });
+
   it('limits requests by local peer and resets the fixed window', async () => {
     const server = createGatewayServer(TOKEN, { rateLimit: 2, rateWindowMs: 1000 });
     servers.push(server);
@@ -112,4 +129,5 @@ describe('loopback simulator gateway', () => {
     expect((await request(PRESETS[0], 46)).status).toBe(422);
   });
 });
+
 

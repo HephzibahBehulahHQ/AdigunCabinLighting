@@ -26,9 +26,11 @@ function send(response: ServerResponse, statusCode: number, payload: unknown): v
 }
 
 function isLoopbackHost(header: string | undefined): boolean {
-  if (!header) return false;
+  if (!header || /[\s,@/?#\\%]/.test(header)) return false;
   try {
-    const hostname = new URL(`http://${header}`).hostname.toLowerCase();
+    const authority = new URL(`http://${header}`);
+    if (authority.username || authority.password || authority.pathname !== '/' || authority.search || authority.hash) return false;
+    const hostname = authority.hostname.toLowerCase();
     return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
   } catch {
     return false;
@@ -161,4 +163,5 @@ export async function startGateway(token: string, port = 4510): Promise<Server> 
   });
   return server;
 }
+
 
