@@ -82,7 +82,7 @@ test('scene file import and export preserves the complete versioned keyframe seq
   await page.goto('/studio');
   await page.getByRole('button', { name: '2D', exact: true }).click();
   const source = JSON.parse(JSON.stringify(PRESETS[0]));
-  const sceneFile = page.locator('input[type="file"]');
+  const sceneFile = page.locator('input[aria-label="Import versioned scene JSON"]');
   await sceneFile.setInputFiles({
     name: 'boarding.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(source)),
   });
@@ -127,14 +127,17 @@ test('scenario package import creates a separate browser-local project and prese
   await page.goto('/studio');
   await page.getByRole('button', { name: 'More studio actions' }).click();
   await page.getByRole('menuitem', { name: 'Import scenario package' }).click();
-  const input = page.getByLabel('Import scenario package JSON');
+  const input = page.locator('input[aria-label="Import scenario package JSON"]');
   await input.setInputFiles({
     name: 'a330-night-flight.adigun-scenario.json',
     mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(scenario)),
   });
   await expect(input).toHaveValue('');
-  await expect(page.getByRole('status')).toContainText('imported as a new local project');
+  await expect.poll(async () => page.evaluate(() => {
+    const id = localStorage.getItem('adigun-cabin-active-project:v1') ?? '';
+    return JSON.parse(localStorage.getItem(`adigun-cabin-studio:v1:${id}`) ?? '{}').projectName;
+  }), { timeout: 10_000 }).toBe(scenario.projectName);
   await expect(page.getByRole('button', { name: /Boarding/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /Sleep/ })).toBeVisible();
 
