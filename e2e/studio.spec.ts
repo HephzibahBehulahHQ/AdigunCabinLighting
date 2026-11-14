@@ -187,7 +187,7 @@ test('transition preview runs scene-specific instrumental audio and exposes cabi
   await page.getByLabel('Audio rights or source reference').fill('Automated test tone · synthetic fixture');
   await page.getByRole('button', { name: 'Add welcome announcement recording' }).click();
   await expect(page.getByText('HB380 welcome test', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Welcome announcement' }).click();
+  await page.locator('.audio-voice-actions').getByRole('button', { name: 'Welcome announcement' }).click();
   await expect.poll(() => page.locator('audio[data-testid="local-voice-audio"]').evaluate((audio: HTMLAudioElement) => audio.currentSrc.startsWith('blob:') && !audio.paused)).toBe(true);
   await page.getByRole('button', { name: 'Close audio controls' }).click();
   await page.getByRole('button', { name: 'Play preview' }).click();
