@@ -1,4 +1,5 @@
 import { CABIN_LAYOUTS, CABIN_PROFILES, validateCabinConfig, type CabinConfig, type CabinLayoutId } from '../src/cabin-config.js';
+import { buildCabinFieldEvidence, type CabinEvidenceField } from '../src/cabin-evidence.js';
 import { fixtureCoverageForZones } from '../src/fixture-registry.js';
 import { makeDefaultZones, validateSceneFile, ZONE_IDS, type RGBW, type SceneFile, type ZoneId, type ZoneState } from '../src/scene-engine.js';
 
@@ -27,7 +28,7 @@ export interface ScenarioPackageRequest {
 }
 
 export interface ScenarioPackage {
-  readonly schemaVersion: 1;
+  readonly schemaVersion: 2;
   readonly packageType: 'adigun-cabin-scenario';
   readonly projectName: string;
   readonly mode: 'SIMULATION';
@@ -39,6 +40,10 @@ export interface ScenarioPackage {
       readonly id: CabinLayoutId;
       readonly name: string;
       readonly sourceUrl: string | null;
+      readonly planningDocumentUrl: string | null;
+      readonly sourceRevision: string | null;
+      readonly assetRights: string;
+      readonly fieldEvidence: readonly CabinEvidenceField[];
       readonly evidenceStatus: 'PLANNING_REFERENCE_ONLY' | 'USER_ADJUSTED_REFERENCE' | 'ILLUSTRATIVE_ONLY';
       readonly limits: string;
     };
@@ -115,7 +120,9 @@ function requireConfig(value: unknown): CabinConfig {
 }
 
 function profileEvidence(config: CabinConfig): ScenarioPackage['cabin']['profile'] {
-  const info = CABIN_LAYOUTS[config.layoutId] as { name: string; description: string; source?: string; geometryNote?: string };
+  const info = CABIN_LAYOUTS[config.layoutId] as {
+    name: string; description: string; source?: string; planningSource?: string; sourceRevision?: string; assetRights?: string; geometryNote?: string;
+  };
   const sourceUrl = info.source ?? null;
   const baseline = CABIN_PROFILES[config.layoutId];
   const adjusted = CONFIG_CHANNELS.some((key) => config[key] !== baseline[key]);
@@ -123,6 +130,10 @@ function profileEvidence(config: CabinConfig): ScenarioPackage['cabin']['profile
     id: config.layoutId,
     name: info.name,
     sourceUrl,
+    planningDocumentUrl: info.planningSource ?? null,
+    sourceRevision: info.sourceRevision ?? null,
+    assetRights: info.assetRights ?? 'Illustrative layout; no manufacturer source or licensed 3D cabin asset is recorded.',
+    fieldEvidence: buildCabinFieldEvidence(config),
     evidenceStatus: sourceUrl ? adjusted ? 'USER_ADJUSTED_REFERENCE' : 'PLANNING_REFERENCE_ONLY' : 'ILLUSTRATIVE_ONLY',
     limits: sourceUrl
       ? info.geometryNote ?? 'Planning data source only; geometry is illustrative and is not an airline cabin fit.'
@@ -155,7 +166,7 @@ function validateZone(value: unknown, index: number): ZoneState {
 /** Creates a self-contained offline scenario package with provenance derived from the checked-in profile. */
 export function createScenarioPackage(input: ScenarioPackageInput): ScenarioPackage {
   return validateScenarioPackage({
-    schemaVersion: 1,
+    schemaVersion: 2,
     packageType: 'adigun-cabin-scenario',
     projectName: input.projectName,
     mode: 'SIMULATION',
@@ -170,7 +181,7 @@ export function createScenarioPackage(input: ScenarioPackageInput): ScenarioPack
 
 /** Validates a serialized scenario package and rejects unsupported output or invented profile provenance. */
 export function validateScenarioPackage(value: unknown): ScenarioPackage {
-  if (!isRecord(value) || value.schemaVersion !== 1 || value.packageType !== 'adigun-cabin-scenario') {
+  if (!isRecord(value) || (value.schemaVersion !== 1 && value.schemaVersion !== 2) || value.packageType !== 'adigun-cabin-scenario') {
     throw new Error('Unsupported scenario package type or schema version.');
   }
   if (value.mode !== 'SIMULATION' || value.physicalOutputEnabled !== false) {
@@ -181,12 +192,17 @@ export function validateScenarioPackage(value: unknown): ScenarioPackage {
   const config = requireConfig(value.cabin.config);
   const expectedProfile = profileEvidence(config);
   const actualProfile = value.cabin.profile;
-  if (!isRecord(actualProfile) || actualProfile.id !== expectedProfile.id || actualProfile.name !== expectedProfile.name
-    || actualProfile.sourceUrl !== expectedProfile.sourceUrl || actualProfile.evidenceStatus !== expectedProfile.evidenceStatus
-    || actualProfile.limits !== expectedProfile.limits) {
+  const legacyProfileMatches = isRecord(actualProfile) && actualProfile.id === expectedProfile.id && actualProfile.name === expectedProfile.name
+    && actualProfile.sourceUrl === expectedProfile.sourceUrl && actualProfile.evidenceStatus === expectedProfile.evidenceStatus
+    && actualProfile.limits === expectedProfile.limits;
+  const currentProfileMatches = legacyProfileMatches && isRecord(actualProfile)
+    && actualProfile.planningDocumentUrl === expectedProfile.planningDocumentUrl
+    && actualProfile.sourceRevision === expectedProfile.sourceRevision
+    && actualProfile.assetRights === expectedProfile.assetRights
+    && JSON.stringify(actualProfile.fieldEvidence) === JSON.stringify(expectedProfile.fieldEvidence);
+  if (!legacyProfileMatches || (value.schemaVersion === 2 && !currentProfileMatches)) {
     throw new Error('Cabin profile provenance does not match the checked-in profile source and limits.');
   }
-
   if (!Array.isArray(value.zones) || value.zones.length !== ZONE_IDS.length) {
     throw new Error(`Scenario package must contain exactly ${ZONE_IDS.length} cabin zones.`);
   }
@@ -208,7 +224,7 @@ export function validateScenarioPackage(value: unknown): ScenarioPackage {
   }
 
   const scenario: ScenarioPackage = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     packageType: 'adigun-cabin-scenario',
     projectName,
     mode: 'SIMULATION',
@@ -257,4 +273,5 @@ export function createDefaultScenario(projectName: string, layoutId: CabinLayout
     masterIntensity,
   });
 }
+
 
