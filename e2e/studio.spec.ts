@@ -3,6 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { Buffer } from 'node:buffer';
 import { mkdir } from 'node:fs/promises';
 import { PRESETS } from '../src/scene-engine';
+import { createDefaultScenario } from '../operator/scenario-package';
 
 test('landing opens the working Studio route', async ({ page }) => {
   const errors: string[] = [];
@@ -81,7 +82,7 @@ test('scene file import and export preserves the complete versioned keyframe seq
   await page.goto('/studio');
   await page.getByRole('button', { name: '2D', exact: true }).click();
   const source = JSON.parse(JSON.stringify(PRESETS[0]));
-  const sceneFile = page.locator('input[type="file"]');
+  const sceneFile = page.locator('input[aria-label="Import versioned scene JSON"]');
   await sceneFile.setInputFiles({
     name: 'boarding.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(source)),
   });
@@ -119,6 +120,38 @@ test('scene file import and export preserves the complete versioned keyframe seq
     name: 'invalid.json', mimeType: 'application/json', buffer: Buffer.from('{"schemaVersion":9}'),
   });
   await expect(page.getByRole('status')).toContainText('Unsupported scene schema version');
+});
+
+test('scenario package import creates a separate browser-local project and preserves its exact scene set', async ({ page }) => {
+  const scenario = createDefaultScenario('A330 night-flight experience review', 'a330300', 'boarding', [PRESETS[0], PRESETS[5]], 68);
+  await page.goto('/studio');
+  await page.getByRole('button', { name: 'More studio actions' }).click();
+  await page.getByRole('menuitem', { name: 'Import scenario package' }).click();
+  const input = page.locator('input[aria-label="Import scenario package JSON"]');
+  await input.setInputFiles({
+    name: 'a330-night-flight.adigun-scenario.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(scenario)),
+  });
+  await expect(input).toHaveValue('');
+  await expect.poll(async () => page.evaluate(() => {
+    const id = localStorage.getItem('adigun-cabin-active-project:v1') ?? '';
+    return JSON.parse(localStorage.getItem(`adigun-cabin-studio:v1:${id}`) ?? '{}').projectName;
+  }), { timeout: 10_000 }).toBe(scenario.projectName);
+  await expect(page.getByRole('button', { name: /Boarding/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Sleep/ })).toBeVisible();
+
+  const imported = await page.evaluate(() => {
+    const id = localStorage.getItem('adigun-cabin-active-project:v1') ?? '';
+    const index = JSON.parse(localStorage.getItem('adigun-cabin-projects:v1') ?? '[]');
+    const state = JSON.parse(localStorage.getItem(`adigun-cabin-studio:v1:${id}`) ?? '{}');
+    return { id, index, state };
+  });
+  expect(imported.id).not.toBe('default');
+  expect(imported.index.some((entry: { name: string }) => entry.name === scenario.projectName)).toBe(true);
+  expect(imported.state.cabinConfig.layoutId).toBe('a330300');
+  expect(imported.state.intensity).toBe(68);
+  expect(imported.state.scenes.map((scene: { id: string }) => scene.id)).toEqual(['boarding', 'sleep']);
 });
 
 test('Studio stays usable at a narrow mobile viewport', async ({ page }) => {
