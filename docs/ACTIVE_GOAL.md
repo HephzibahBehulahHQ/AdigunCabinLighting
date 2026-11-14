@@ -2,6 +2,10 @@
 
 **Pursuing now:** Deliver the gateway, bench firmware and hardware tests, advisory AI copilot, OEM SDK, operator workflows, localization, and safety/security evidence in small verified releases. Keep the approved Studio layout, styling, navigation, and panel positions locked. Add explicitly requested capability only inside its existing panel; do not move, resize, or redesign the workspace.
 
+## Current visual increment — owner-referenced VVIP cabin
+
+The `ownerVvip` profile adds the supplied cabin image as a visual target inside the existing cabin selector. Its 2D map now follows the selected profile's row groups and side-window count; its 3D mesh adds wide private seats, individual ottomans/footwells, side consoles, oval window surrounds, and lighter wall and carpet materials. The render is an image-derived visual approximation: the single image provides no scale, CAD, airline fit, or photometry. Dimensions and fittings are labeled as inferred, not an exact or OEM geometry. Every selectable cabin profile continues to drive both 2D and 3D views. The existing measured 4K export remains the ceiling; 16K/24K export is not claimed by this visual change.
+
 ## Current milestone — portable, traceable offline scenarios
 
 The simulation-only gateway was merged in PR #16 and deployed as source/documentation; GitHub Pages does not host or run the Node service. The service remains local, loopback-only, and has no hardware adapter, telemetry source, actuator route, aircraft connection, or physical output. PR #17 added the initial safety/security evidence ledger and its Pages deployment succeeded.
