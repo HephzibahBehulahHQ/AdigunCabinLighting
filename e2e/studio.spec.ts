@@ -176,10 +176,9 @@ test('transition preview runs scene-specific instrumental audio and exposes cabi
   const testAudioBuffer = Buffer.from('local welcome recording fixture');
   await page.getByLabel('Local audio file').setInputFiles({ name: 'welcome-test.webm', mimeType: 'audio/webm', buffer: testAudioBuffer });
   await page.getByLabel('Audio track title').fill('HB380 welcome test');
-  await page.getByLabel('Audio rights or source reference').fill('Automated test tone · browser-generated WebM fixture');
+  await page.getByLabel('Audio rights or source reference').fill('Automated test fixture · browser decoder not invoked');
   await page.getByRole('button', { name: 'Add welcome announcement recording' }).click();
   await expect(page.getByText('HB380 welcome test', { exact: true })).toBeVisible();
-  await page.locator('.audio-voice-actions').getByRole('button', { name: 'Welcome announcement' }).click();
   const voicePlayer = page.locator('audio[data-testid="local-voice-audio"]');
   await voicePlayer.evaluate((audio: HTMLAudioElement) => {
     audio.play = () => { audio.dataset.playRequested = 'true'; return Promise.resolve(); };
