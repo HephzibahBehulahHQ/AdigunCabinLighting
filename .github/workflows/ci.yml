@@ -23,6 +23,8 @@ jobs:
           ls -la
           node -e "const fs = require('node:fs'); const lock = 'package-lock.json'; const exists = fs.existsSync(lock); const version = exists ? require('./package-lock.json').lockfileVersion : null; console.log(JSON.stringify({ cwd: process.cwd(), lockfileExists: exists, lockfileVersion: version })); if (!exists || version < 1) process.exit(1);"
       - run: npm ci
+      - name: Fail on high or critical dependency advisories
+        run: npm audit --audit-level=high
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run test
