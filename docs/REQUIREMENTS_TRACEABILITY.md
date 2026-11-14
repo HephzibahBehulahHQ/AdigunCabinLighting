@@ -26,6 +26,7 @@ This table maps the acceptance IDs in [CODEX_MASTER_PROMPT.md](CODEX_MASTER_PROM
 | ACL-020 | Airworthiness and flight suitability remain independent gates | PASS | `SAFETY_SECURITY_EVIDENCE.md`, `RELEASE_STATUS.md`, and `firmware/bench-controller/README.md` state the independent approval and NOT TESTED boundaries | Qualified independent safety/OEM/operator reviews remain required before any operational claim. |
 | Master plan §9 | Offline scene revision diff reports schema-validated changes | IMPLEMENTED | `operator/scene-diff.ts`, `operator/scene-file.ts`, and their unit tests; CLI documented in `OPERATOR_WORKFLOWS.md` | Human review remains necessary; the report does not approve an aircraft fit or interpolate every point in time. |
 | Master plan §9 | Offline scene integrity receipt binds schema review to exported artifact bytes | IMPLEMENTED | `operator/scene-receipt.ts`, bounded `readSceneDocument`, and receipt/file-reader unit tests; CLI documented in `OPERATOR_WORKFLOWS.md` | The unsigned SHA-256 receipt is not operator identity, approval, immutable audit evidence, OEM/aircraft validation, or hardware verification. |
+| Master plan §5 / §9 | Scenario package binds a cabin profile and multiple scenes while keeping the profile separate | IMPLEMENTED | `operator/scenario-package.ts`, package validator tests, `operator:pack-scenario`, and `operator:review-scenario` | Offline unsigned package only; cabin geometry and fixture mapping retain their documented limits, and there is no operator account, approval signature, cross-device Studio import, or hardware command. |
 
 ## External evidence gates
 
@@ -34,3 +35,4 @@ This table maps the acceptance IDs in [CODEX_MASTER_PROMPT.md](CODEX_MASTER_PROM
 - **AI:** no provider account/configuration or approved data-handling policy is recorded. Any future integration must be advisory and pass adversarial no-actuation tests.
 - **Localization:** reviewed translations and locale-specific quality/accessibility evidence are not present.
 - **Safety/security:** independent qualified review, penetration testing, threat-model approval, risk acceptance, and operational safety evidence remain outstanding.
+
