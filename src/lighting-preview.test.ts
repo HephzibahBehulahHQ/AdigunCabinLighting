@@ -3,11 +3,16 @@ import { composePreviewRGB, previewLightLevel } from './lighting-preview';
 
 describe('RGBW visual preview helpers', () => {
   it('blends the white channel equally into the on-screen RGB color', () => {
-    expect(composePreviewRGB({ r: 10, g: 30, b: 50, w: 20 })).toEqual({ r: 30, g: 50, b: 70 });
+    expect(composePreviewRGB({ r: 10, g: 30, b: 50, w: 20 })).toEqual({ r: 37, g: 57, b: 75 });
   });
 
   it('clips mixed channels and treats invalid values as zero', () => {
-    expect(composePreviewRGB({ r: 95, g: -4, b: Number.NaN, w: 20 })).toEqual({ r: 100, g: 20, b: 20 });
+    expect(composePreviewRGB({ r: 95, g: -4, b: Number.NaN, w: 20 })).toEqual({ r: 100, g: 27, b: 27 });
+  });
+
+  it('keeps RGBW zeros dark while applying a display-only curve to dim channels', () => {
+    expect(composePreviewRGB({ r: 0, g: 0, b: 0, w: 0 })).toEqual({ r: 0, g: 0, b: 0 });
+    expect(composePreviewRGB({ r: 8, g: 0, b: 0, w: 0 }).r).toBeGreaterThan(8);
   });
 
   it('keeps zero output dark and lifts low output monotonically for display', () => {

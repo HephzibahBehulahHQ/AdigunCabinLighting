@@ -6,6 +6,24 @@ import { CABIN_LAYOUTS, type CabinConfig } from './cabin-config';
 import { composePreviewRGB, previewLightLevel } from './lighting-preview';
 import { CABIN_EXPORT_4K, canRenderExport } from './export-capabilities';
 
+export type CabinCameraView = 'entry' | 'mid-cabin' | 'aft' | 'window-row';
+
+function cameraPose(view: CabinCameraView, config: CabinConfig): { position: THREE.Vector3; target: THREE.Vector3 } {
+  const length = config.lengthMeters;
+  const width = config.widthMeters;
+  const height = config.ceilingHeightMeters;
+  const eye = Math.min(1.56, height - .5);
+  const midEye = Math.min(1.42, height - .42);
+  const poses: Record<CabinCameraView, [[number, number, number], [number, number, number]]> = {
+    entry: [[0, eye, length / 2 - 1.8], [0, eye, -length / 2]],
+    'mid-cabin': [[0, midEye, length * .14], [0, midEye * .94, -length * .44]],
+    aft: [[0, midEye, -length / 2 + 1.5], [0, midEye, length / 2 - 1.5]],
+    'window-row': [[width / 2 - .64, midEye * .9, length * .18], [0, midEye * .88, -length * .15]],
+  };
+  const [position, target] = poses[view];
+  return { position: new THREE.Vector3(...position), target: new THREE.Vector3(...target) };
+}
+
 type Props = {
   config: CabinConfig;
   zones: ZoneState[];
@@ -18,6 +36,7 @@ type Props = {
   previewMotion: boolean;
   previewTime: number;
   previewDuration: number;
+  cameraView: CabinCameraView;
   captureRef: MutableRefObject<(() => Promise<Blob>) | null>;
   cameraResetRef: MutableRefObject<(() => void) | null>;
 };
@@ -27,9 +46,9 @@ const sRGB = (rgbw: RGBW) => {
   return new THREE.Color(color.r / 100, color.g / 100, color.b / 100);
 };
 
-export default function Cabin3D({ config, zones, effective, intensity, selected, onSelect, highQuality, previewActive, previewMotion, previewTime, previewDuration, captureRef, cameraResetRef }: Props) {
+export default function Cabin3D({ config, zones, effective, intensity, selected, onSelect, highQuality, previewActive, previewMotion, previewTime, previewDuration, cameraView, captureRef, cameraResetRef }: Props) {
   const canvasHost = useRef<HTMLDivElement>(null);
-  const api = useRef<{ renderer: THREE.WebGLRenderer; scene: THREE.Scene; camera: THREE.PerspectiveCamera; lights: Map<ZoneId, THREE.PointLight[]>; zoneMaterials: Map<ZoneId, THREE.MeshStandardMaterial[]>; selectable: THREE.Object3D[]; frame: number; resize: ResizeObserver; cameraHome: THREE.Vector3; draw: () => void } | null>(null);
+  const api = useRef<{ renderer: THREE.WebGLRenderer; scene: THREE.Scene; camera: THREE.PerspectiveCamera; lights: Map<ZoneId, THREE.PointLight[]>; zoneMaterials: Map<ZoneId, THREE.MeshStandardMaterial[]>; selectable: THREE.Object3D[]; frame: number; resize: ResizeObserver; applyCameraView: (view: CabinCameraView) => void; draw: () => void } | null>(null);
   const [error, setError] = useState('');
   const [help, setHelp] = useState('Drag to look · WASD to move · scroll to move');
   const motionHome = useRef<{ position: THREE.Vector3; rotation: THREE.Euler } | null>(null);
@@ -48,9 +67,11 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
     scene.background = new THREE.Color('#07111d');
     scene.fog = new THREE.Fog('#07111d', config.lengthMeters * 0.58, config.lengthMeters * 1.35);
     const camera = new THREE.PerspectiveCamera(66, 1, 0.08, 150);
-    camera.position.set(0, Math.min(1.56, config.ceilingHeightMeters - 0.5), config.lengthMeters / 2 - 1.8);
-    camera.lookAt(0, camera.position.y, -config.lengthMeters / 2);
+    const initialCameraPose = cameraPose('entry', config);
+    camera.position.copy(initialCameraPose.position);
+    camera.lookAt(initialCameraPose.target);
     const cameraHome = camera.position.clone();
+    const cameraHomeRotation = camera.rotation.clone();
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.08;
@@ -275,8 +296,24 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
       requestDraw();
     };
     const canvas = renderer.domElement; canvas.addEventListener('dblclick', onPick);
-    cameraResetRef.current = () => { camera.position.copy(cameraHome); camera.rotation.set(0, 0, 0); requestDraw(); setHelp('Camera returned to the cabin entry view.'); };
     let dragging = false; let lastX = 0; let lastY = 0; let yaw = 0; let pitchAngle = 0;
+    const applyCameraView = (view: CabinCameraView) => {
+      const pose = cameraPose(view, config);
+      camera.position.copy(pose.position);
+      camera.lookAt(pose.target);
+      cameraHome.copy(camera.position);
+      cameraHomeRotation.copy(camera.rotation);
+      yaw = 0; pitchAngle = 0; motionHome.current = null;
+      requestDraw();
+      setHelp(`Camera view: ${view.replace('-', ' ')} · drag to orbit`);
+    };
+    cameraResetRef.current = () => {
+      camera.position.copy(cameraHome);
+      camera.rotation.copy(cameraHomeRotation);
+      yaw = 0; pitchAngle = 0; motionHome.current = null;
+      requestDraw();
+      setHelp('Camera returned to the selected view.');
+    };
     const down = (e: PointerEvent) => { dragging = true; lastX = e.clientX; lastY = e.clientY; canvas.focus(); canvas.setPointerCapture(e.pointerId); };
     const move = (e: PointerEvent) => {
       if (!dragging) return;
@@ -305,7 +342,7 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
       draw();
       if (keys.size) pendingFrame = requestAnimationFrame(animateMovement);
     };
-    api.current = { renderer, scene, camera, lights, zoneMaterials, selectable, frame: 0, resize, cameraHome, draw };
+    api.current = { renderer, scene, camera, lights, zoneMaterials, selectable, frame: 0, resize, applyCameraView, draw };
     captureRef.current = async () => {
       const gl = renderer.getContext();
       const maxRenderbufferSize = Number(gl.getParameter(gl.MAX_RENDERBUFFER_SIZE));
@@ -348,13 +385,17 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
   }, [config]);
 
   useEffect(() => {
+    api.current?.applyCameraView(cameraView);
+  }, [cameraView]);
+
+  useEffect(() => {
     const current = api.current;
     if (!current) return;
     for (const zone of zones) {
       const color = sRGB(effective[zone.id]);
       const level = previewLightLevel(effective[zone.id], intensity);
-      for (const light of current.lights.get(zone.id) ?? []) { light.color.copy(color); light.intensity = level * (zone.id === 'cabin' ? 18 : 12); }
-      for (const material of current.zoneMaterials.get(zone.id) ?? []) { material.emissive.copy(color); material.emissiveIntensity = .15 + level * 1.8; }
+      for (const light of current.lights.get(zone.id) ?? []) { light.color.copy(color); light.intensity = level * (zone.id === 'cabin' ? 25 : 19); }
+      for (const material of current.zoneMaterials.get(zone.id) ?? []) { material.emissive.copy(color); material.emissiveIntensity = level === 0 ? 0 : .2 + level * 2.4; }
     }
     if (previewMotion) {
       motionHome.current ??= { position: current.camera.position.clone(), rotation: current.camera.rotation.clone() };
@@ -396,7 +437,7 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
     ? activeLayout.seatCount
     : config.seatRows * CABIN_LAYOUTS[config.layoutId].groups.reduce((sum, count) => sum + count, 0);
   return <div className="cabin3d-root" data-cabin-layout={config.layoutId} data-rendered-seat-count={renderedSeatCount}>
-    <div ref={canvasHost} className="cabin3d-canvas" onClick={() => setHelp('Drag to look · WASD to move · double-click a fixture to select its zone')} />
+    <div ref={canvasHost} className="cabin3d-canvas" data-camera-view={cameraView} onClick={() => setHelp('Drag to look · WASD to move · double-click a fixture to select its zone')} />
     <div className="cabin3d-badge"><i /> CONFIGURABLE REFERENCE CABIN <span>· {CABIN_LAYOUTS[config.layoutId].name} · Not an aircraft-specific fit</span></div>
     {error && <div className="cabin3d-error" role="alert">{error}</div>}
     <span className="visually-hidden" aria-live="polite">{help}</span>

@@ -92,6 +92,8 @@
 .visual-column{min-height:0;min-width:0;display:grid;grid-template-rows:minmax(0,1fr) auto auto;gap:9px}
 .cabin-panel{display:flex;flex-direction:column;min-height:0;overflow:hidden;padding:11px 13px 8px}
 .cabin-stage{height:auto;min-height:0;flex:1;margin:7px 0;position:relative}
+.camera-angle-select{position:absolute;z-index:5;top:9px;right:9px;height:27px;max-width:120px;padding:0 22px 0 8px;border:1px solid #3a5369;border-radius:5px;background:#0b1724eF;color:#c6d7e6;font:600 9px 'IBM Plex Mono',monospace;box-shadow:0 3px 14px #0006;cursor:pointer}
+.camera-angle-select:focus-visible{outline:2px solid #22d3ee;outline-offset:2px}
 .studio-shell .cabin-drawing{position:absolute;width:96%;height:92%;inset:4% 2%}
 .cabin-legend{flex:none;gap:10px;font-size:8px}
 .timeline-panel,.scene-library{min-width:0;padding:9px 12px}

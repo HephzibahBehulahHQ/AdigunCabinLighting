@@ -338,6 +338,23 @@ test('Studio fits one viewport with docked panels at all required desktop sizes'
   }
 });
 
+test('3D camera presets change angle inside the existing cabin viewer without moving its docked panel', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/studio');
+  const stage = page.locator('.cabin-stage');
+  const before = await stage.boundingBox();
+  await page.getByLabel('3D camera angle').selectOption('aft');
+  await expect(page.locator('.cabin3d-canvas')).toHaveAttribute('data-camera-view', 'aft');
+  const aft = await stage.boundingBox();
+  expect(aft?.x).toBeCloseTo(before?.x ?? 0, 1);
+  expect(aft?.y).toBeCloseTo(before?.y ?? 0, 1);
+  expect(aft?.width).toBeCloseTo(before?.width ?? 0, 1);
+  expect(aft?.height).toBeCloseTo(before?.height ?? 0, 1);
+  await page.getByLabel('Reset cabin camera view').click();
+  await page.getByLabel('3D camera angle').selectOption('window-row');
+  await expect(page.locator('.cabin3d-canvas')).toHaveAttribute('data-camera-view', 'window-row');
+});
+
 test('Studio menus open without moving the canvas and close with Escape', async ({ page }) => {
   await page.goto('/studio');
   const canvas = page.locator('#cabin-view');

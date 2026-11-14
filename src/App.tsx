@@ -232,6 +232,7 @@ function Studio() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [hq4k, setHq4k] = useState(true);
   const [viewMode, setViewMode] = useState<'2d' | '3d'>('3d');
+  const [cameraView, setCameraView] = useState<'entry' | 'mid-cabin' | 'aft' | 'window-row'>('entry');
   const [configOpen, setConfigOpen] = useState(false);
   const [undo, setUndo] = useState<ZoneState[][]>([]);
   const [redo, setRedo] = useState<ZoneState[][]>([]);
@@ -544,7 +545,7 @@ function Studio() {
                 <button type="submit" className="button button-quiet button-sm">Load cabin layout</button>
               </form>}
               <div className={`cabin-stage ${hq4k ? 'quality-high' : ''}`} data-view-mode={viewMode} ref={stageRef}><div className="stage-grid" /><div className="stage-crosshair" />
-                {viewMode === '3d' ? <Suspense fallback={<div className="cabin3d-loading" role="status">Preparing the configurable reference cabin…</div>}><Cabin3D key={JSON.stringify(cabinConfig)} config={cabinConfig} zones={zones} effective={effectiveRGBW} intensity={intensity} selected={selected} onSelect={setSelected} highQuality={hq4k} previewActive={playing} previewMotion={playing && motionPreview} previewTime={time} previewDuration={scene.durationSeconds} captureRef={cabinCaptureRef} cameraResetRef={cameraResetRef} /></Suspense> : <><CabinDrawing zones={zones.map((zone) => ({ ...zone, rgbw: Object.fromEntries(Object.entries(effectiveRGBW[zone.id]).map(([key, value]) => [key, value * intensity / 100])) as RGBW }))} selected={selected} onSelect={setSelected} /><div className="stage-scale"><span /> 2D ZONE MAP · ILLUSTRATIVE ONLY</div></>}
+                {viewMode === '3d' ? <><Suspense fallback={<div className="cabin3d-loading" role="status">Preparing the configurable reference cabin…</div>}><Cabin3D key={JSON.stringify(cabinConfig)} config={cabinConfig} zones={zones} effective={effectiveRGBW} intensity={intensity} selected={selected} onSelect={setSelected} highQuality={hq4k} previewActive={playing} previewMotion={playing && motionPreview} previewTime={time} previewDuration={scene.durationSeconds} cameraView={cameraView} captureRef={cabinCaptureRef} cameraResetRef={cameraResetRef} /></Suspense><select className="camera-angle-select" aria-label="3D camera angle" value={cameraView} onChange={(event) => setCameraView(event.target.value as typeof cameraView)}><option value="entry">Entry view</option><option value="mid-cabin">Mid-cabin</option><option value="aft">Aft view</option><option value="window-row">Window row</option></select></> : <><CabinDrawing zones={zones.map((zone) => ({ ...zone, rgbw: Object.fromEntries(Object.entries(effectiveRGBW[zone.id]).map(([key, value]) => [key, value * intensity / 100])) as RGBW }))} selected={selected} onSelect={setSelected} /><div className="stage-scale"><span /> 2D ZONE MAP · ILLUSTRATIVE ONLY</div></>}
               </div>
               <div className="cabin-legend"><span><i className="legend-active" /> Active zone: {currentZone.name}</span><span><i className="legend-zone" /> Double-click a 3D fixture to select its zone</span><span className="legend-revision">Configurable reference geometry · not an aircraft fit</span></div>
             </section>
