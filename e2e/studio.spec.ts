@@ -167,7 +167,8 @@ test('transition preview runs scene-specific instrumental audio and exposes cabi
   await expect(sound).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('button', { name: 'Audio announcements and volume' }).click();
   await expect(page.getByRole('group', { name: 'Cabin audio controls' })).toBeVisible();
-  await expect(page.getByText(/Aurora · soft piano · 56 BPM/i)).toBeVisible();
+  await expect(page.getByText('Aurora · soft piano')).toBeVisible();
+  await expect(page.getByText(/Original browser-synthesized score · 56 BPM/i)).toBeVisible();
   await expect(page.getByRole('slider', { name: 'Playback volume' })).toHaveValue('38');
   await expect(page.getByRole('button', { name: 'Welcome announcement' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Guided cabin tour' })).toBeVisible();
