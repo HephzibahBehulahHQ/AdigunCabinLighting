@@ -80,7 +80,7 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, highQuality ? 2 : 1.35));
     renderer.setSize(host.clientWidth || 800, host.clientHeight || 500, false);
     renderer.domElement.className = 'cabin-webgl-canvas';
-    renderer.domElement.setAttribute('aria-label', 'Interactive 3D configurable reference aircraft cabin');
+    renderer.domElement.setAttribute('aria-label', `Interactive 3D ${CABIN_LAYOUTS[config.layoutId].name} cabin reference; visually inferred geometry, not an aircraft-specific fit`);
     renderer.domElement.setAttribute('role', 'img');
     renderer.domElement.tabIndex = 0;
     host.replaceChildren(renderer.domElement);
