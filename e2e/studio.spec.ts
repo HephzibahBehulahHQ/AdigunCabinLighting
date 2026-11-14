@@ -246,10 +246,11 @@ test('transition preview runs scene-specific instrumental audio and exposes cabi
   await expect(voicePlayer).toHaveAttribute('src', /^blob:/);
   await expect(voicePlayer).toHaveAttribute('data-play-requested', 'true');
   await page.getByRole('button', { name: 'Close audio controls' }).click();
+  const timeline = page.getByRole('slider', { name: 'Scene timeline position' });
+  const initialTime = Number(await timeline.inputValue());
   await page.getByRole('button', { name: 'Play preview' }).click();
   await expect(page.getByRole('button', { name: 'Pause preview' })).toBeVisible();
-  const initialTime = await page.locator('.time-readout').innerText();
-  await expect.poll(async () => page.locator('.time-readout').innerText()).not.toBe(initialTime);
+  await expect.poll(async () => Number(await timeline.inputValue()), { timeout: 10_000 }).toBeGreaterThan(initialTime);
 });
 
 test('public routes have no WCAG 2.2 AA violations', async ({ page }) => {
