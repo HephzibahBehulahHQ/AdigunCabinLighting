@@ -1,4 +1,5 @@
 import { ZONE_IDS, validateSceneFile, type SceneFile } from '../src/scene-engine.js';
+import { fixtureCoverageForZones } from '../src/fixture-registry.js';
 
 export interface SceneReviewReport {
   readonly status: 'valid';
@@ -14,6 +15,7 @@ export interface SceneReviewReport {
     readonly keyframeCount: number;
     readonly zoneIds: readonly string[];
   };
+  readonly fixtureCoverage: ReturnType<typeof fixtureCoverageForZones>;
   readonly limits: readonly string[];
 }
 
@@ -34,8 +36,10 @@ export function reviewScene(value: unknown): SceneReviewReport {
       keyframeCount: scene.keyframes.length,
       zoneIds: [...ZONE_IDS],
     },
+    fixtureCoverage: fixtureCoverageForZones(ZONE_IDS),
     limits: [
       'This report validates the scene-file schema only.',
+      'Fixture identity, installed coordinates, and photometric data are missing for every zone; simulator RGBW channels do not establish physical fixture behavior.',
       'It does not validate an aircraft cabin fit, OEM limits, electrical safety, or hardware behavior.',
       'No scene command was sent and no physical output was enabled.',
     ],
