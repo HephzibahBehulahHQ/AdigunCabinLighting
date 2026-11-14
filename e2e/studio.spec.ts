@@ -223,7 +223,17 @@ test('new cabin zones, scenes, and browser-local projects are usable', async ({ 
   await page.getByRole('button', { name: 'More studio actions' }).click();
   const cabinDownload = page.waitForEvent('download');
   await page.getByRole('menuitem', { name: 'Export cabin view · 4K PNG' }).click();
-  expect((await cabinDownload).suggestedFilename()).toBe('adigun-configurable-reference-cabin-3840x2160.png');
+  const downloadedCabin = await cabinDownload;
+  expect(downloadedCabin.suggestedFilename()).toBe('adigun-configurable-reference-cabin-3840x2160.png');
+  const cabinStream = await downloadedCabin.createReadStream();
+  if (!cabinStream) throw new Error('The exported cabin PNG stream is unavailable.');
+  const cabinChunks: Buffer[] = [];
+  for await (const chunk of cabinStream) cabinChunks.push(Buffer.from(chunk));
+  const cabinPng = Buffer.concat(cabinChunks);
+  expect(cabinPng.subarray(1, 4).toString('ascii')).toBe('PNG');
+  expect(cabinPng.readUInt32BE(16)).toBe(3840);
+  expect(cabinPng.readUInt32BE(20)).toBe(2160);
+  await expect(page.getByRole('status')).toContainText(/3D 4K: \d+ ms; ≥31\.6 MiB per RGBA surface \(peak unknown\)/);
 });
 
 test('Change cabin switches the 3D reference geometry from the left rail', async ({ page }) => {

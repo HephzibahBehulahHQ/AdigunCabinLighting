@@ -11,6 +11,7 @@ import {
   ZONE_IDS, ZONE_INFO, type RGBW, type SceneFile, type ZoneId, type ZoneState,
 } from './scene-engine';
 import { composePreviewRGB } from './lighting-preview';
+import { CABIN_EXPORT_4K, estimateRgbaSurfaceMiB } from './export-capabilities';
 import { CABIN_LAYOUTS, CABIN_PROFILES, DEFAULT_CABIN_CONFIG, validateCabinConfig, type CabinConfig, type CabinLayoutId } from './cabin-config';
 
 const STORAGE_KEY = 'adigun-cabin-studio:v1';
@@ -460,10 +461,13 @@ function Studio() {
   const exportCabin4K = async () => {
     if (viewMode === '3d') {
       try {
+        const startedAt = performance.now();
         const png = await cabinCaptureRef.current?.();
         if (!png) throw new Error('The 3D renderer is not ready for capture.');
         const downloadUrl = URL.createObjectURL(png); const anchor = document.createElement('a'); anchor.href = downloadUrl; anchor.download = 'adigun-configurable-reference-cabin-3840x2160.png'; anchor.click(); URL.revokeObjectURL(downloadUrl);
-        setNotice('Exported the current 3D cabin view at 3840 × 2160.');
+        const elapsedMs = Math.round(performance.now() - startedAt);
+        const surfaceMiB = estimateRgbaSurfaceMiB(CABIN_EXPORT_4K.width, CABIN_EXPORT_4K.height);
+        setNotice(`3D 4K: ${elapsedMs} ms; ≥${surfaceMiB.toFixed(1)} MiB per RGBA surface (peak unknown).`);
       } catch (error) { setNotice(error instanceof Error ? error.message : 'The 3D cabin could not be exported.'); }
       return;
     }

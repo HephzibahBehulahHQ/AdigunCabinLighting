@@ -4,6 +4,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import type { RGBW, ZoneId, ZoneState } from './scene-engine';
 import { CABIN_LAYOUTS, type CabinConfig } from './cabin-config';
 import { composePreviewRGB, previewLightLevel } from './lighting-preview';
+import { CABIN_EXPORT_4K, canRenderExport } from './export-capabilities';
 
 type Props = {
   config: CabinConfig;
@@ -306,11 +307,18 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
     };
     api.current = { renderer, scene, camera, lights, zoneMaterials, selectable, frame: 0, resize, cameraHome, draw };
     captureRef.current = async () => {
-      const maxSize = renderer.capabilities.maxTextureSize;
-      if (maxSize < 2160) throw new Error(`This device supports a maximum render edge of ${maxSize}px, below 4K output.`);
+      const gl = renderer.getContext();
+      const maxRenderbufferSize = Number(gl.getParameter(gl.MAX_RENDERBUFFER_SIZE));
+      if (!canRenderExport(maxRenderbufferSize, CABIN_EXPORT_4K.width, CABIN_EXPORT_4K.height)) {
+        throw new Error(`This device supports a maximum renderbuffer edge of ${maxRenderbufferSize}px; the 4K export requires ${CABIN_EXPORT_4K.width} × ${CABIN_EXPORT_4K.height}.`);
+      }
       const size = renderer.getSize(new THREE.Vector2()); const ratio = renderer.getPixelRatio();
       try {
-        renderer.setPixelRatio(1); renderer.setSize(3840, 2160, false); renderer.render(scene, camera);
+        renderer.setPixelRatio(1); renderer.setSize(CABIN_EXPORT_4K.width, CABIN_EXPORT_4K.height, false);
+        if (gl.drawingBufferWidth !== CABIN_EXPORT_4K.width || gl.drawingBufferHeight !== CABIN_EXPORT_4K.height) {
+          throw new Error(`The browser allocated ${gl.drawingBufferWidth} × ${gl.drawingBufferHeight}; 4K capture was not started.`);
+        }
+        renderer.render(scene, camera);
         const blob = await new Promise<Blob>((resolve, reject) => renderer.domElement.toBlob((value) => value ? resolve(value) : reject(new Error('4K image encoding failed.'))));
         return blob;
       } finally {
