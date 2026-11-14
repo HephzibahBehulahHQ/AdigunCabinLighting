@@ -184,6 +184,7 @@ test('transition preview runs scene-specific instrumental audio and exposes cabi
     const chunks: BlobPart[] = [];
     recorder.addEventListener('dataavailable', (event) => { if (event.data.size) chunks.push(event.data); });
     const stopped = new Promise<void>((resolve) => recorder.addEventListener('stop', () => resolve(), { once: true }));
+    await context.resume();
     oscillator.start(); recorder.start();
     await new Promise((resolve) => setTimeout(resolve, 1200));
     recorder.stop(); oscillator.stop(); await stopped;
