@@ -92,8 +92,8 @@ export function createExportPreflightReport(
     value,
     classification,
     ...(referenceValue === undefined ? {} : { referenceValue }),
-    sourceUrl: manufacturerReference ? sourceUrl : null,
-    sourceRevision: manufacturerReference ? sourceRevision : null,
+    sourceUrl: manufacturerReference && classification !== 'ILLUSTRATIVE_MODEL' ? sourceUrl : null,
+    sourceRevision: manufacturerReference && classification !== 'ILLUSTRATIVE_MODEL' ? sourceRevision : null,
     note,
   });
   const configuredFields = [

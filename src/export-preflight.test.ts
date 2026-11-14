@@ -28,7 +28,11 @@ describe('offline export preflight report', () => {
       field: 'seatPlan.Economy[1].displayRows', value: 33, classification: 'DERIVED_FOR_RENDERING',
     }));
     expect(report.cabinProfile.fieldEvidence).toContainEqual(expect.objectContaining({
-      field: 'ceilingHeightMeters', classification: 'ILLUSTRATIVE_MODEL',
+      field: 'ceilingHeightMeters', classification: 'ILLUSTRATIVE_MODEL', sourceUrl: null,
+    }));
+    expect(report.cabinProfile.fieldEvidence).toContainEqual(expect.objectContaining({
+      field: 'seatPitchMeters', classification: 'DERIVED_FOR_RENDERING',
+      sourceUrl: report.cabinProfile.planningDocumentUrl,
     }));
     expect(report.fixtureCoverage.checkedZoneCount).toBe(11);
     expect(report.fixtureCoverage.documentedZoneCount).toBe(0);
