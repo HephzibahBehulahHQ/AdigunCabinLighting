@@ -66,7 +66,7 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
     const scene = new THREE.Scene();
     scene.background = new THREE.Color('#07111d');
     scene.fog = new THREE.Fog('#07111d', config.lengthMeters * 0.58, config.lengthMeters * 1.35);
-    const camera = new THREE.PerspectiveCamera(66, 1, 0.08, 150);
+    const camera = new THREE.PerspectiveCamera(config.layoutId === 'ownerVvip' ? 58 : 66, 1, 0.08, 150);
     const initialCameraPose = cameraPose('entry', config);
     camera.position.copy(initialCameraPose.position);
     camera.lookAt(initialCameraPose.target);
@@ -114,12 +114,15 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
       mesh.instanceMatrix.needsUpdate = true; mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.zoneId = zone; selectable.push(mesh); scene.add(mesh);
       return mesh;
     };
-    const floorMat = mat('#273344', .9);
-    const wallMat = mat('#344254', .7);
-    const shellMat = new THREE.MeshStandardMaterial({ color: '#788795', roughness: .82, side: THREE.DoubleSide, emissive: '#283543', emissiveIntensity: .58 });
-    const trimMat = mat('#8494a5', .36, .58);
-    const seatMat = mat('#394b60', .82);
-    const seatInset = mat('#52677e', .78);
+    const ownerVvip = config.layoutId === 'ownerVvip';
+    const floorMat = mat(ownerVvip ? '#47444d' : '#273344', .92);
+    const wallMat = mat(ownerVvip ? '#8b8792' : '#344254', ownerVvip ? .84 : .7);
+    const shellMat = new THREE.MeshStandardMaterial({ color: ownerVvip ? '#d7d1dc' : '#788795', roughness: .82, side: THREE.DoubleSide, emissive: ownerVvip ? '#392d46' : '#283543', emissiveIntensity: ownerVvip ? .22 : .58 });
+    const trimMat = mat(ownerVvip ? '#aab6c0' : '#8494a5', .36, .58);
+    const seatMat = mat(ownerVvip ? '#71869b' : '#394b60', ownerVvip ? .72 : .82);
+    const seatInset = mat(ownerVvip ? '#a8b4c1' : '#52677e', .78);
+    const vvipConsoleMat = mat('#6e5962', .42, .12);
+    const vvipCarpetMat = mat('#68636b', .98);
     addBox(scene, [config.widthMeters, .14, config.lengthMeters], [0, -.08, 0], floorMat);
 
     // Curved overhead liner, generated as a real longitudinal mesh from the reference profile.
@@ -139,7 +142,7 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
     const roofGeo = new THREE.BufferGeometry(); roofGeo.setAttribute('position', new THREE.Float32BufferAttribute(roofPositions, 3)); roofGeo.setIndex(roofIndices); roofGeo.computeVertexNormals();
     const roof = new THREE.Mesh(roofGeo, shellMat); roof.receiveShadow = true; scene.add(roof);
 
-    const windowMat = new THREE.MeshPhysicalMaterial({ color: '#4e7c9b', roughness: .19, metalness: .18, transmission: .25, transparent: true, opacity: .82, emissive: '#071b2b', emissiveIntensity: .25 });
+    const windowMat = new THREE.MeshPhysicalMaterial({ color: ownerVvip ? '#6da3bc' : '#4e7c9b', roughness: .19, metalness: .18, transmission: .25, transparent: true, opacity: .82, emissive: '#071b2b', emissiveIntensity: .25, side: THREE.DoubleSide });
     const ledLensMat = mat('#ffffff', .28, .08);
     const readingMat = mat('#c4ccd3', .3, .12);
     for (const side of [-1, 1]) {
@@ -148,12 +151,28 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
       // Individual glazing, deep frames and mullions; never presented as a real aircraft fit.
       for (let i = 0; i < config.windowCountPerSide; i++) {
         const z = -config.lengthMeters * .43 + (config.lengthMeters * .86) * (i + .5) / config.windowCountPerSide;
-        const pane = addBox(scene, [.035, .38, .48], [side * (config.widthMeters / 2 - .18), config.ceilingHeightMeters * .54, z], windowMat, 'windows', false);
-        pane.rotation.z = side * -.07;
-        addBox(scene, [.09, .48, .055], [side * (config.widthMeters / 2 - .15), config.ceilingHeightMeters * .54, z - .265], trimMat, 'windows', false);
-        addBox(scene, [.09, .48, .055], [side * (config.widthMeters / 2 - .15), config.ceilingHeightMeters * .54, z + .265], trimMat, 'windows', false);
-        addBox(scene, [.09, .055, .48], [side * (config.widthMeters / 2 - .15), config.ceilingHeightMeters * .54 - .24, z], trimMat, 'windows', false);
-        addBox(scene, [.09, .055, .48], [side * (config.widthMeters / 2 - .15), config.ceilingHeightMeters * .54 + .24, z], trimMat, 'windows', false);
+        const windowY = config.ceilingHeightMeters * .54;
+        if (ownerVvip) {
+          const pane = new THREE.Mesh(new THREE.CircleGeometry(1, 32), windowMat);
+          pane.scale.set(.2, .31, 1); pane.rotation.y = side * Math.PI / 2;
+          pane.position.set(side * (config.widthMeters / 2 - .215), windowY, z);
+          pane.userData.zoneId = 'windows'; pane.receiveShadow = true; selectable.push(pane); scene.add(pane);
+          const bezel = new THREE.Mesh(new THREE.TorusGeometry(1, .105, 10, 32), trimMat);
+          bezel.scale.set(.215, .325, 1); bezel.rotation.y = side * Math.PI / 2;
+          bezel.position.set(side * (config.widthMeters / 2 - .205), windowY, z);
+          bezel.userData.zoneId = 'windows'; selectable.push(bezel); scene.add(bezel);
+          const reveal = new THREE.Mesh(new THREE.TorusGeometry(1, .035, 8, 32), mat('#ced4df', .3, .12));
+          reveal.scale.set(.255, .37, 1); reveal.rotation.y = side * Math.PI / 2;
+          reveal.position.set(side * (config.widthMeters / 2 - .18), windowY, z);
+          reveal.userData.zoneId = 'windows'; selectable.push(reveal); scene.add(reveal);
+        } else {
+          const pane = addBox(scene, [.035, .38, .48], [side * (config.widthMeters / 2 - .18), windowY, z], windowMat, 'windows', false);
+          pane.rotation.z = side * -.07;
+          addBox(scene, [.09, .48, .055], [side * (config.widthMeters / 2 - .15), windowY, z - .265], trimMat, 'windows', false);
+          addBox(scene, [.09, .48, .055], [side * (config.widthMeters / 2 - .15), windowY, z + .265], trimMat, 'windows', false);
+          addBox(scene, [.09, .055, .48], [side * (config.widthMeters / 2 - .15), windowY - .24, z], trimMat, 'windows', false);
+          addBox(scene, [.09, .055, .48], [side * (config.widthMeters / 2 - .15), windowY + .24, z], trimMat, 'windows', false);
+        }
       }
       // Illustrative overhead stowage and emissive light-channel geometry.
       const binX = side * (config.widthMeters / 2 - config.overheadBinDepthMeters * .47);
@@ -173,7 +192,7 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
     const totalSpan = rows.reduce((sum, row) => sum + row.pitchMeters, 0);
     const maxSeatsInRow = Math.max(...rows.map((row) => row.groups.reduce((sum, count) => sum + count, 0)));
     const maxAisles = Math.max(...rows.map((row) => row.groups.length - 1));
-    const seatWidth = Math.min(config.layoutId === 'premium' ? .68 : .49, (config.widthMeters - .5 - maxAisles * aisleWidth - Math.max(0, maxSeatsInRow - rows[0].groups.length) * seatGap) / maxSeatsInRow);
+    const seatWidth = Math.min(ownerVvip ? .86 : config.layoutId === 'premium' ? .68 : .49, (config.widthMeters - .5 - maxAisles * aisleWidth - Math.max(0, maxSeatsInRow - rows[0].groups.length) * seatGap) / maxSeatsInRow);
     const seats: [number, number][] = [];
     let rowStart = -totalSpan / 2;
     for (const row of rows) {
@@ -202,14 +221,36 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
       if (!geometry) { geometry = new RoundedBoxGeometry(...size, 3, .025); roundedGeometryCache.set(cacheKey, geometry); }
       return geometry;
     };
-    addInstances(roundedGeometry([seatWidth * .82, .13, .43]), seatMat, seatPositions([0, .48, .04]), 'cabin');
-    addInstances(roundedGeometry([seatWidth * .8, .53, .13]), seatMat, seatPositions([0, .84, -.13]), 'cabin');
-    addInstances(roundedGeometry([seatWidth * .61, .14, .085]), seatInset, seatPositions([0, 1.15, -.18]), 'cabin');
-    addInstances(roundedGeometry([seatWidth * .9, .055, .5]), trimMat, seatPositions([0, .31, .02]), 'cabin');
-    for (const arm of [-1, 1]) addInstances(boxGeometry([.055, .12, .45]), trimMat, seatPositions([arm * seatWidth * .44, .62, .04]), 'cabin');
-    addInstances(boxGeometry([.11, .24, .09]), trimMat, seatPositions([0, .28, -.12]), 'cabin');
-    const readingPositions = seats.flatMap(([x, z]) => [-1, 1].map((arm) => [x + arm * seatWidth * .43, 1.18, z - .1] as [number, number, number]));
-    addInstances(boxGeometry([.035, .045, .12]), readingMat, readingPositions, 'reading');
+    if (ownerVvip) {
+      const ottomanPositions = seatPositions([0, .25, -.77]);
+      addInstances(roundedGeometry([seatWidth * .86, .16, .66]), seatMat, seatPositions([0, .49, .03]), 'cabin');
+      addInstances(roundedGeometry([seatWidth * .92, .82, .19]), seatMat, seatPositions([0, .99, .28]), 'cabin');
+      addInstances(roundedGeometry([seatWidth * .66, .19, .12]), seatInset, seatPositions([0, 1.46, .34]), 'cabin');
+      addInstances(roundedGeometry([seatWidth * .88, .11, .64]), vvipConsoleMat, ottomanPositions, 'cabin');
+      for (const arm of [-1, 1]) addInstances(roundedGeometry([.13, .19, .62]), vvipConsoleMat, seatPositions([arm * seatWidth * .54, .68, .08]), 'cabin');
+      const consoles = seats.map(([x, z]) => [x + Math.sign(x) * (seatWidth * .58), .52, z - .03] as [number, number, number]);
+      addInstances(roundedGeometry([.3, .45, .58]), vvipConsoleMat, consoles, 'monuments');
+      const consoleTops = consoles.map(([x, , z]) => [x, .76, z - .02] as [number, number, number]);
+      addInstances(roundedGeometry([.33, .045, .6]), trimMat, consoleTops, 'monuments');
+      const readingPositions = seats.flatMap(([x, z]) => [-1, 1].map((arm) => [x + arm * seatWidth * .42, 1.42, z - .1] as [number, number, number]));
+      addInstances(boxGeometry([.045, .055, .12]), readingMat, readingPositions, 'reading');
+      addBox(scene, [Math.max(.65, aisleWidth * 1.35), .012, config.lengthMeters * .82], [0, .004, 0], vvipCarpetMat, 'footwell', false);
+      const panelMat = mat('#898392', .82);
+      const trimStripMat = mat('#d6d0d9', .38, .08);
+      for (const side of [-1, 1]) {
+        addBox(scene, [.12, .4, config.lengthMeters * .82], [side * (config.widthMeters / 2 - .19), .61, 0], panelMat, 'sidewalls', false);
+        addBox(scene, [.045, .045, config.lengthMeters * .82], [side * (config.widthMeters / 2 - .28), 1.06, 0], trimStripMat, 'sidewalls', false);
+      }
+    } else {
+      addInstances(roundedGeometry([seatWidth * .82, .13, .43]), seatMat, seatPositions([0, .48, .04]), 'cabin');
+      addInstances(roundedGeometry([seatWidth * .8, .53, .13]), seatMat, seatPositions([0, .84, -.13]), 'cabin');
+      addInstances(roundedGeometry([seatWidth * .61, .14, .085]), seatInset, seatPositions([0, 1.15, -.18]), 'cabin');
+      addInstances(roundedGeometry([seatWidth * .9, .055, .5]), trimMat, seatPositions([0, .31, .02]), 'cabin');
+      for (const arm of [-1, 1]) addInstances(boxGeometry([.055, .12, .45]), trimMat, seatPositions([arm * seatWidth * .44, .62, .04]), 'cabin');
+      addInstances(boxGeometry([.11, .24, .09]), trimMat, seatPositions([0, .28, -.12]), 'cabin');
+      const readingPositions = seats.flatMap(([x, z]) => [-1, 1].map((arm) => [x + arm * seatWidth * .43, 1.18, z - .1] as [number, number, number]));
+      addInstances(boxGeometry([.035, .045, .12]), readingMat, readingPositions, 'reading');
+    }
 
     // Independent illustrative zone fixtures and software light sources.
     const fixtureSpecs: Record<ZoneId, { position: [number, number, number]; strip: [number, number, number]; count?: number }> = {
