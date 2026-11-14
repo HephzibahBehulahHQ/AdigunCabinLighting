@@ -31,6 +31,22 @@ describe('offline operator scene diff', () => {
     expect(report.summary).toMatchObject({ modifiedKeyframes: 1, changedTargets: 2 });
   });
 
+  it('reports easing-only keyframe changes', () => {
+    const baseline = copy(PRESETS.find((item) => item.id === 'rest'));
+    const proposed = copy(baseline);
+    proposed.keyframes[0].easing = 'cubicInOut';
+    const report = diffScenes(baseline, proposed);
+
+    expect(report.status).toBe('changes-found');
+    expect(report.keyframeChanges).toContainEqual(expect.objectContaining({
+      atSeconds: 0,
+      kind: 'modified',
+      targets: [],
+      easingChange: { before: null, after: 'cubicInOut' },
+    }));
+    expect(report.easingChanges).toBe(1);
+  });
+
   it('detects added and removed keyframe times, including structurally changed frames', () => {
     const baseline = copy(PRESETS.find((item) => item.id === 'rest'));
     const proposed = copy(baseline);

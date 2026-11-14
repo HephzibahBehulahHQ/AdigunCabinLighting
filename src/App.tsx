@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Activity, ArrowDownToLine, ArrowRight, Bookmark, Check, ChevronDown, CopyPlus,
+  Activity, ArrowDownToLine, ArrowRight, Bookmark, Check, ChevronDown, ClipboardCheck, CopyPlus,
   CircleHelp, Clock3, Download, Gauge, LayoutGrid,
   Lightbulb, MoreHorizontal, Pause, Play, Plus, Radio, Redo2, RotateCcw,
   Save, Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Trash2, Undo2, Upload,
@@ -13,6 +13,7 @@ import {
 import { composePreviewRGB } from './lighting-preview';
 import { CABIN_EXPORT_4K, estimateRgbaSurfaceMiB } from './export-capabilities';
 import { CABIN_LAYOUTS, CABIN_PROFILES, DEFAULT_CABIN_CONFIG, validateCabinConfig, type CabinConfig, type CabinLayoutId } from './cabin-config';
+import { createExportPreflightReport } from './export-preflight';
 
 const STORAGE_KEY = 'adigun-cabin-studio:v1';
 const PROJECT_INDEX_KEY = 'adigun-cabin-projects:v1';
@@ -459,6 +460,17 @@ function Studio() {
     const anchor = document.createElement('a'); anchor.href = url; anchor.download = `${scene.id}.adigun-scene.json`; anchor.click(); URL.revokeObjectURL(url);
     setNotice('Versioned scene file exported');
   };
+  const exportPreflight = () => {
+    const baseline = PRESETS.find((preset) => preset.id === scene.id);
+    const report = createExportPreflightReport(scene, cabinConfig, baseline);
+    const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }));
+    const anchor = document.createElement('a'); anchor.href = url; anchor.download = `${scene.id}.engineering-preflight.json`; anchor.click(); URL.revokeObjectURL(url);
+    const coverage = `${report.fixtureCoverage.documentedZoneCount}/${report.fixtureCoverage.checkedZoneCount} fixture zones documented`;
+    const comparison = report.sceneComparison.changes
+      ? `${report.sceneComparison.changes.summary.changedTargets} target changes · ${report.sceneComparison.changes.easingChanges} easing changes vs ${report.sceneComparison.baselineId}`
+      : 'no saved comparison baseline';
+    setNotice(`Preflight exported · ${report.sceneValidation.status} scene · ${coverage} · ${comparison}`);
+  };
   const exportCabin4K = async () => {
     if (viewMode === '3d') {
       try {
@@ -509,7 +521,7 @@ function Studio() {
       <div className="top-actions"><span className="mode-pill compact-mode" title="SIMULATION · OFFLINE · NO HARDWARE CONNECTED"><i className="status-pulse" /> SIM · OFFLINE · NO HW</span><button className="button button-quiet button-sm top-save" onClick={saveScene}><Save size={15} /> Save scene</button><button className="button button-primary button-sm top-export" onClick={() => void exportCabin4K()}><Download size={15} /> Export</button><button className="icon-button" title="Help" aria-label="Help" onClick={() => setNotice('Studio help: select a zone, tune RGBW, then save or export a scene.')}><CircleHelp size={18} /></button>
         <button className="icon-button" title="More studio actions" aria-label="More studio actions" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}><MoreHorizontal size={20} /></button>
       </div>
-      {menuOpen && <><button className="dismiss-overlay" aria-label="Close menu" onClick={() => setMenuOpen(false)} /><div className="top-menu" role="menu"><button role="menuitem" disabled={!undo.length} onClick={() => { setMenuOpen(false); undoOnce(); }}><Undo2 size={15} /> Undo</button><button role="menuitem" disabled={!redo.length} onClick={() => { setMenuOpen(false); redoOnce(); }}><Redo2 size={15} /> Redo</button><button role="menuitem" onClick={() => { setMenuOpen(false); saveScene(); }}><Save size={15} /> Save scene locally</button><button role="menuitem" onClick={() => { setMenuOpen(false); exportScene(); }}><Download size={15} /> Export scene JSON</button><button role="menuitem" onClick={() => { setMenuOpen(false); void exportCabin4K(); }}><Download size={15} /> Export cabin view · 4K PNG</button><button role="menuitem" onClick={() => { setMenuOpen(false); importRef.current?.click(); }}><Upload size={15} /> Import scene file</button><button role="menuitem" onClick={() => { setMenuOpen(false); resetScene(); }}><RotateCcw size={15} /> Reset local studio</button><button role="menuitem" onClick={() => { setMenuOpen(false); setNotice('SIMULATION ONLY · NOT CONNECTED · No physical output is enabled.'); }}><ShieldCheck size={15} /> Operating mode &amp; safety</button></div></>}
+      {menuOpen && <><button className="dismiss-overlay" aria-label="Close menu" onClick={() => setMenuOpen(false)} /><div className="top-menu" role="menu"><button role="menuitem" disabled={!undo.length} onClick={() => { setMenuOpen(false); undoOnce(); }}><Undo2 size={15} /> Undo</button><button role="menuitem" disabled={!redo.length} onClick={() => { setMenuOpen(false); redoOnce(); }}><Redo2 size={15} /> Redo</button><button role="menuitem" onClick={() => { setMenuOpen(false); saveScene(); }}><Save size={15} /> Save scene locally</button><button role="menuitem" onClick={() => { setMenuOpen(false); exportScene(); }}><Download size={15} /> Export scene JSON</button><button role="menuitem" onClick={() => { setMenuOpen(false); exportPreflight(); }}><ClipboardCheck size={15} /> Export engineering preflight · JSON</button><button role="menuitem" onClick={() => { setMenuOpen(false); void exportCabin4K(); }}><Download size={15} /> Export cabin view · 4K PNG</button><button role="menuitem" onClick={() => { setMenuOpen(false); importRef.current?.click(); }}><Upload size={15} /> Import scene file</button><button role="menuitem" onClick={() => { setMenuOpen(false); resetScene(); }}><RotateCcw size={15} /> Reset local studio</button><button role="menuitem" onClick={() => { setMenuOpen(false); setNotice('SIMULATION ONLY · NOT CONNECTED · No physical output is enabled.'); }}><ShieldCheck size={15} /> Operating mode &amp; safety</button></div></>}
     </header>
     <div className="studio-layout">
       <aside className="studio-rail" aria-label="Studio sections">

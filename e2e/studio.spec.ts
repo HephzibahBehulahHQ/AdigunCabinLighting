@@ -301,6 +301,32 @@ test('A330-300 reference loads source-backed dimensions and its derived 300-seat
   await expect(page.locator('.cabin3d-badge')).toContainText('Not an aircraft-specific fit');
 });
 
+test('engineering preflight export includes source evidence, fixture gaps, and scene changes', async ({ page }) => {
+  await page.goto('/studio');
+  await page.getByRole('button', { name: 'Change cabin' }).click();
+  await page.getByLabel('Cabin layout').selectOption('a350900');
+  await page.getByRole('button', { name: 'Load cabin layout' }).click();
+  await page.getByRole('button', { name: 'More studio actions' }).click();
+  const downloadEvent = page.waitForEvent('download');
+  await page.getByRole('menuitem', { name: 'Export engineering preflight · JSON' }).click();
+  const download = await downloadEvent;
+  expect(download.suggestedFilename()).toMatch(/\.engineering-preflight\.json$/);
+  const stream = await download.createReadStream();
+  if (!stream) throw new Error('The engineering preflight report stream is unavailable.');
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+  const report = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  expect(report.mode).toBe('SIMULATION');
+  expect(report.physicalOutputEnabled).toBe(false);
+  expect(report.sceneValidation.status).toBe('VALID');
+  expect(report.sceneData.schemaVersion).toBe(1);
+  expect(report.sceneComparison.status).toBe('COMPARED');
+  expect(report.cabinProfile.sourceRevision).toContain('Jul 15/25');
+  expect(report.cabinProfile.assetRights).toContain('No licensed 3D cabin asset');
+  expect(report.fixtureCoverage).toMatchObject({ status: 'MISSING_FIXTURE_DOCUMENTATION', checkedZoneCount: 11, documentedZoneCount: 0 });
+  expect(report.fixtureCoverage.missingDocumentationZones).toHaveLength(11);
+});
+
 test('Studio fits one viewport with docked panels at all required desktop sizes', async ({ page }) => {
   const directory = 'artifacts/screenshots';
   await mkdir(directory, { recursive: true });

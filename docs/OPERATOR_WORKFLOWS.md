@@ -16,6 +16,10 @@ This workflow checks an exported scene file against the same schema used by the 
 
 The command reads at most 64 KiB, rejects invalid UTF-8/JSON, and exits non-zero for usage, file, or scene validation errors. It sends no scene to the gateway or any device.
 
+## Studio export engineering preflight
+
+Use **More studio actions → Export engineering preflight · JSON** to download the selected scene with a schema/channel-range result, selected cabin dimensions and source/rights status, missing fixture-documentation coverage, and a scene comparison when a matching built-in preset baseline exists. Custom scene IDs without a supplied baseline are explicitly reported as `NO_BASELINE`. The report records the scene data and `physicalOutputEnabled: false`; it validates simulator data and source coverage only, not an aircraft fit, hardware, fixture photometry, or operating approval.
+
 ## Offline scene revision comparison
 
 Compare a baseline export with a proposed export before replacing or sharing the baseline:
@@ -24,7 +28,7 @@ Compare a baseline export with a proposed export before replacing or sharing the
 npm run operator:diff-scenes -- path/to/baseline-scene.json path/to/proposed-scene.json
 ```
 
-The command validates both files with the shared scene validator and prints a deterministic JSON report of metadata, keyframe-time, zone, and RGBW channel changes. Each target change includes its baseline and proposed value. An `unchanged` report means the supported schema fields match; `changes-found` requires a human review of the listed changes.
+The command validates both files with the shared scene validator and prints a deterministic JSON report of metadata, keyframe-time, zone, RGBW channel, and easing changes. Each target/easing change includes its baseline and proposed value. An `unchanged` report means the supported schema fields match; `changes-found` requires a human review of the listed changes.
 
 The reader caps each file at 64 KiB and rejects invalid UTF-8/JSON. The tool never modifies either input. It compares explicit keyframe data; it does not calculate an interpolated time-series, check an aircraft fit, or authorize a release. The report is simulation-only, with physical output disabled.
 

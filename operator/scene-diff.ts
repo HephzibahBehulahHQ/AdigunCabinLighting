@@ -1,4 +1,4 @@
-import { validateSceneFile, ZONE_IDS, type RGBW, type SceneFile, type ZoneId } from '../src/scene-engine.js';
+import { validateSceneFile, ZONE_IDS, type RGBW, type SceneEasing, type SceneFile, type ZoneId } from '../src/scene-engine.js';
 
 type Channel = keyof RGBW;
 type MetadataField = 'id' | 'name' | 'durationSeconds';
@@ -14,6 +14,7 @@ export interface SceneKeyframeDiff {
   readonly atSeconds: number;
   readonly kind: 'added' | 'removed' | 'modified';
   readonly targets: readonly SceneTargetChange[];
+  readonly easingChange?: { readonly before: SceneEasing | null; readonly after: SceneEasing | null };
 }
 
 export interface SceneDiffReport {
@@ -26,6 +27,7 @@ export interface SceneDiffReport {
   readonly metadataChanges: readonly { readonly field: MetadataField; readonly before: string | number; readonly after: string | number }[];
   readonly keyframeChanges: readonly SceneKeyframeDiff[];
   readonly summary: { readonly addedKeyframes: number; readonly removedKeyframes: number; readonly modifiedKeyframes: number; readonly changedTargets: number };
+  readonly easingChanges: number;
   readonly limits: readonly string[];
 }
 
@@ -64,6 +66,9 @@ export function diffScenes(baselineValue: unknown, proposedValue: unknown): Scen
     const beforeFrame = baselineByTime.get(atSeconds);
     const afterFrame = proposedByTime.get(atSeconds);
     const targets: SceneTargetChange[] = [];
+    const easingChange = beforeFrame && afterFrame && beforeFrame.easing !== afterFrame.easing
+      ? { before: beforeFrame.easing ?? null, after: afterFrame.easing ?? null }
+      : undefined;
     for (const zoneId of ZONE_IDS) {
       for (const channel of channels) {
         const before = beforeFrame?.targets[zoneId]?.[channel] ?? null;
@@ -71,8 +76,8 @@ export function diffScenes(baselineValue: unknown, proposedValue: unknown): Scen
         if (before !== after) targets.push({ zoneId, channel, before, after });
       }
     }
-    if (!targets.length) continue;
-    keyframeChanges.push({ atSeconds, kind: !beforeFrame ? 'added' : !afterFrame ? 'removed' : 'modified', targets });
+    if (!targets.length && !easingChange) continue;
+    keyframeChanges.push({ atSeconds, kind: !beforeFrame ? 'added' : !afterFrame ? 'removed' : 'modified', targets, ...(easingChange ? { easingChange } : {}) });
   }
 
   const addedKeyframes = keyframeChanges.filter((frame) => frame.kind === 'added').length;
@@ -91,6 +96,7 @@ export function diffScenes(baselineValue: unknown, proposedValue: unknown): Scen
     metadataChanges,
     keyframeChanges,
     summary: { addedKeyframes, removedKeyframes, modifiedKeyframes, changedTargets },
+    easingChanges: keyframeChanges.filter((frame) => frame.easingChange !== undefined).length,
     limits: [
       'Both inputs passed scene schema validation; no cabin-fit, OEM, electrical, role, or hardware checks were performed.',
       'The report compares explicit keyframe data and does not sample interpolated output between keyframes.',
