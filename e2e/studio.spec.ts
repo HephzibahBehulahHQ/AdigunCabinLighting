@@ -275,14 +275,14 @@ test('public routes have no WCAG 2.2 AA violations', async ({ page }) => {
 test('cabin map shapes respond to pointer selection', async ({ page }) => {
   await page.goto('/studio');
   await page.getByRole('button', { name: '2D', exact: true }).click();
-  await page.locator('.windows-zone path').nth(1).click();
+  await page.locator('[aria-label="Cabin window 1 on left side"]').click();
   await expect(page.getByRole('heading', { name: 'Window surrounds' })).toBeVisible();
 });
 
 test('new cabin zones, scenes, and browser-local projects are usable', async ({ page }) => {
   test.setTimeout(90_000);
   await page.goto('/studio');
-  await expect(page.getByRole('img', { name: 'Interactive 3D configurable reference aircraft cabin' })).toBeVisible();
+  await expect(page.getByRole('img', { name: /^Interactive 3D .* cabin reference;/i })).toBeVisible();
   const renderSize = await page.locator('canvas.cabin-webgl-canvas').evaluate((canvas: HTMLCanvasElement) => ({ width: canvas.width, height: canvas.height }));
   expect(renderSize.width).toBeGreaterThan(0);
   expect(renderSize.height).toBeGreaterThan(0);
