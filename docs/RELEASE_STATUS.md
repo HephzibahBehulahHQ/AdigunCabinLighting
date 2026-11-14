@@ -4,17 +4,18 @@
 
 ## Latest deployed release checkpoint
 
-- **Latest functional milestone:** [PR #33 — Validate gateway preview request media types](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/pull/33), merged.
-- **Merge commit:** [`29dc346a7406091a7c04c70ffc292f46d6256386`](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/commit/29dc346a7406091a7c04c70ffc292f46d6256386).
-- **PR CI:** [Run 43412982159](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43412982159) passed lint, typecheck, unit tests, production build, and Playwright E2E.
-- **Post-merge CI:** [Run 43413616124](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43413616124) passed.
-- **GitHub Pages:** [Run 43413616119](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43413616119) succeeded for the merge commit.
-- **Production smoke:** HTTPS HEAD requests to the [landing page](https://adiguncabinlighting.hephzibahbehulah.com/) and [Studio](https://adiguncabinlighting.hephzibahbehulah.com/studio/) returned HTTP 200 after the merge.
-- **Studio boundary:** PR #33 changes only gateway request validation, its integration test, and gateway documentation; it does not change Studio application source, layout, styling, navigation, panels, labels, or controls.
+- **Latest functional milestone:** [PR #36 — Fuzz firmware frame parsing](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/pull/36), merged.
+- **Merge commit:** [`1daf665f34945a5362d2f5960cedf56177010a85`](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/commit/1daf665f34945a5362d2f5960cedf56177010a85).
+- **PR CI:** [App CI 43583310950](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43583310950) and [firmware CI 43583310966](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43583310966) passed. Firmware CI includes the 50,000-input Clang libFuzzer run with ASan/UBSan, ESP-IDF v6.1 ESP32-S3 compile, and portable host checks.
+- **Post-merge CI:** [App CI 43585594090](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43585594090) and [firmware CI 43585594097](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43585594097) passed.
+- **GitHub Pages:** [Run 43585594063](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43585594063) succeeded for the merge commit.
+- **Previous gateway increment:** [PR #35](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/pull/35) isolated authenticated and anonymous rate-limit buckets; its [PR CI](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43416406179), [post-merge CI](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43419570479), and [Pages deployment](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43419570607) passed.
+- **Production smoke:** Not rerun after PR #35 or #36. The latest recorded HTTPS HEAD requests after PR #33 returned HTTP 200 for the [landing page](https://adiguncabinlighting.hephzibahbehulah.com/) and [Studio](https://adiguncabinlighting.hephzibahbehulah.com/studio/).
+- **Studio boundary:** PR #35 changes gateway code, tests, and docs; PR #36 changes firmware tests, firmware CI, README, and traceability. Neither changes Studio application source, layout, styling, navigation, panels, labels, or controls.
 
 ## Current deployed scope
 
-The static website contains the offline Studio and roadmap documentation. The separate Node service provides deterministic local scene preview, binds only to `127.0.0.1`, uses a minimum 32-byte bearer token, limits request rates and performs bounded signal shutdown. It explicitly reports `SIMULATION` with physical output disabled. It has no hardware adapter, telemetry source, actuator route, or aircraft connection. GitHub Pages does not host or run this Node service.
+The static website contains the offline Studio and roadmap documentation. The separate Node service provides deterministic local scene preview, binds only to `127.0.0.1`, uses a minimum 32-byte bearer token, enforces JSON-only uncompressed preview bodies, separates authenticated and anonymous per-peer rate-limit buckets, and performs bounded signal shutdown. It explicitly reports `SIMULATION` with physical output disabled. It has no hardware adapter, telemetry source, actuator route, or aircraft connection. GitHub Pages does not host or run this Node service. Firmware CI now includes a bounded sanitizer-backed parser fuzz run; the firmware still drives no outputs, and board flashing, transport, and HIL remain NOT TESTED.
 
 The Studio remains an offline visual simulator. The A350-900 planning profile is not an airline fit, OEM model, or certified digital twin; other cabin geometry remains illustrative. No physical output, OEM compatibility, certification, or airline approval is claimed.
 
