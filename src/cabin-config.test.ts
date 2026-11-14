@@ -51,6 +51,17 @@ describe('configurable reference cabin profile', () => {
     expect(validateCabinConfig({ layoutId: 'a330300' }).lengthMeters).toBe(50.36);
   });
 
+  it('records planning-document revisions and does not claim a licensed cabin mesh', () => {
+    for (const profile of [CABIN_LAYOUTS.a330300, CABIN_LAYOUTS.a350900]) {
+      expect(profile.planningSource).toMatch(/^https:\/\/.+\.pdf$/);
+      expect(profile.sourceRevision).toMatch(/Rev/);
+      expect(profile.assetRights).toContain('permission not recorded');
+      expect(profile.assetRights).toContain('No licensed 3D cabin asset');
+    }
+    expect(CABIN_LAYOUTS.a330300.sourceRevision).toContain('Dec 01/25');
+    expect(CABIN_LAYOUTS.a350900.sourceRevision).toContain('Jul 15/25');
+  });
+
   it('migrates older saved side-seat settings to an equivalent reference profile', () => {
     expect(validateCabinConfig({ seatsPerSide: 2 })).toMatchObject({ layoutId: 'regional', widthMeters: 3.25 });
   });
