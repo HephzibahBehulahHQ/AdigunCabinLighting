@@ -133,7 +133,7 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
         addBox(scene, [.09, .055, .48], [side * (config.widthMeters / 2 - .15), config.ceilingHeightMeters * .54 - .24, z], trimMat, 'windows', false);
         addBox(scene, [.09, .055, .48], [side * (config.widthMeters / 2 - .15), config.ceilingHeightMeters * .54 + .24, z], trimMat, 'windows', false);
       }
-      // Continuous overhead stowage modules and real undershelf LED channels.
+      // Illustrative overhead stowage and emissive light-channel geometry.
       const binX = side * (config.widthMeters / 2 - config.overheadBinDepthMeters * .47);
       addBox(scene, [config.overheadBinDepthMeters, .48, config.lengthMeters * .88], [binX, config.ceilingHeightMeters * .67, 0], mat('#d3d9df', .48), 'monuments');
       addBox(scene, [.035, .045, config.lengthMeters * .86], [side * (config.widthMeters / 2 - config.overheadBinDepthMeters * .86), config.ceilingHeightMeters * .39, 0], ledLensMat, 'ceiling', false);
@@ -144,8 +144,9 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
     const seatGroups = CABIN_LAYOUTS[config.layoutId].groups;
     const aisleWidth = Math.min(.48, config.widthMeters * .105);
     const seatGap = .07;
-    const rows = config.layoutId === 'a350900'
-      ? CABIN_LAYOUTS.a350900.seatPlan.flatMap((section) => Array.from({ length: section.rows }, () => ({ groups: section.groups, pitchMeters: section.pitchMeters })))
+    const selectedLayout = CABIN_LAYOUTS[config.layoutId];
+    const rows = 'seatPlan' in selectedLayout
+      ? selectedLayout.seatPlan.flatMap((section) => Array.from({ length: section.rows }, () => ({ groups: section.groups, pitchMeters: section.pitchMeters })))
       : Array.from({ length: config.seatRows }, () => ({ groups: seatGroups, pitchMeters: config.seatPitchMeters }));
     const totalSpan = rows.reduce((sum, row) => sum + row.pitchMeters, 0);
     const maxSeatsInRow = Math.max(...rows.map((row) => row.groups.reduce((sum, count) => sum + count, 0)));
@@ -188,7 +189,7 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
     const readingPositions = seats.flatMap(([x, z]) => [-1, 1].map((arm) => [x + arm * seatWidth * .43, 1.18, z - .1] as [number, number, number]));
     addInstances(boxGeometry([.035, .045, .12]), readingMat, readingPositions, 'reading');
 
-    // Independent zone fixtures and sources. The lights illuminate the generated geometry.
+    // Independent illustrative zone fixtures and software light sources.
     const fixtureSpecs: Record<ZoneId, { position: [number, number, number]; strip: [number, number, number]; count?: number }> = {
       ceiling: { position: [0, config.ceilingHeightMeters - .18, 0], strip: [.07, .035, config.lengthMeters * .86] },
       windows: { position: [0, config.ceilingHeightMeters * .54, 0], strip: [.035, .025, config.lengthMeters * .84] },
@@ -228,10 +229,32 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
       lights.set(id, zoneLights);
       zoneMaterials.set(id, members);
     }
-    // Structural end bulkheads and door/galley monuments.
+    // Generic reference bulkheads and monuments. These are not aircraft-fit geometry.
     addBox(scene, [config.widthMeters * .88, config.ceilingHeightMeters * .74, .16], [0, config.ceilingHeightMeters * .37, -config.lengthMeters * .5 + .08], mat('#718092', .7), 'entry');
     addBox(scene, [.9, config.ceilingHeightMeters * .55, .85], [-config.widthMeters * .28, config.ceilingHeightMeters * .275, -config.lengthMeters * .42], mat('#566678', .5), 'monuments');
     addBox(scene, [.9, config.ceilingHeightMeters * .55, .85], [config.widthMeters * .28, config.ceilingHeightMeters * .275, -config.lengthMeters * .42], mat('#566678', .5), 'toilet');
+    // Procedural lavatory vignette guided by the supplied vanity reference. All
+    // dimensions and fittings below are illustrative, not sourced cabin equipment.
+    const lavZ = -config.lengthMeters * .42;
+    const vanityX = config.widthMeters * .28;
+    const vanityY = config.ceilingHeightMeters * .49;
+    const vanityBody = mat('#9aa8bb', .32, .12);
+    const vanityFace = mat('#dce7f4', .25, .08);
+    const mirrorMat = new THREE.MeshPhysicalMaterial({ color: '#b9d7ed', roughness: .12, metalness: .32, emissive: '#142d45', emissiveIntensity: .14 });
+    addBox(scene, [.76, .07, .38], [vanityX, vanityY, lavZ - .33], vanityFace, 'toilet');
+    addBox(scene, [.72, .48, .34], [vanityX, vanityY - .27, lavZ - .32], vanityBody, 'toilet');
+    // Shallow inset bowl, rim, and tap.
+    addBox(scene, [.38, .045, .24], [vanityX, vanityY + .035, lavZ - .34], mat('#75879b', .24, .1), 'toilet');
+    addBox(scene, [.055, .15, .055], [vanityX, vanityY + .12, lavZ - .46], trimMat, 'toilet');
+    addBox(scene, [.09, .035, .06], [vanityX, vanityY + .18, lavZ - .46], trimMat, 'toilet');
+    // Mirror above the vanity with a narrow lit frame.
+    addBox(scene, [.52, .42, .035], [vanityX, vanityY + .47, lavZ - .47], mirrorMat, 'toilet', false);
+    addBox(scene, [.56, .025, .045], [vanityX, vanityY + .69, lavZ - .47], ledLensMat, 'toilet', false);
+    // Compact toilet and lid on the opposite side of the illustrative enclosure.
+    const toiletX = vanityX - .45;
+    addBox(scene, [.43, .08, .44], [toiletX, .43, lavZ + .03], vanityFace, 'toilet');
+    addBox(scene, [.38, .39, .38], [toiletX, .23, lavZ + .03], vanityBody, 'toilet');
+    addBox(scene, [.24, .24, .04], [toiletX, .79, lavZ + .25], vanityFace, 'toilet');
     addBox(scene, [.16, .8, 1.1], [0, .4, config.lengthMeters * .41], mat('#526275', .55), 'trolley');
 
     const raycaster = new THREE.Raycaster(); const pointer = new THREE.Vector2();
@@ -360,8 +383,9 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
     current.draw();
   }, [selected]);
 
-  const renderedSeatCount = config.layoutId === 'a350900'
-    ? CABIN_LAYOUTS.a350900.seatCount
+  const activeLayout = CABIN_LAYOUTS[config.layoutId];
+  const renderedSeatCount = 'seatCount' in activeLayout
+    ? activeLayout.seatCount
     : config.seatRows * CABIN_LAYOUTS[config.layoutId].groups.reduce((sum, count) => sum + count, 0);
   return <div className="cabin3d-root" data-cabin-layout={config.layoutId} data-rendered-seat-count={renderedSeatCount}>
     <div ref={canvasHost} className="cabin3d-canvas" onClick={() => setHelp('Drag to look · WASD to move · double-click a fixture to select its zone')} />
