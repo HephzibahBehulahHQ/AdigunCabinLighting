@@ -19,6 +19,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Fuzz firmware frame parser with sanitizers
+        run: |
+          clang -std=c11 -Wall -Wextra -Werror -fsanitize=fuzzer,address,undefined \
+            -Ifirmware/bench-controller/main \
+            firmware/bench-controller/main/firmware_core.c \
+            firmware/bench-controller/tests/fuzz_decode.c \
+            -o /tmp/adigun-fw-fuzz
+          /tmp/adigun-fw-fuzz -runs=50000 -max_len=128
       - name: Install ESP-IDF v6.1
         uses: espressif/install-esp-idf-action@v1
         with:
