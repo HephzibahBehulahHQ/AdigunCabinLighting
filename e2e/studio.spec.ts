@@ -189,12 +189,26 @@ test('transition preview runs scene-specific instrumental audio and exposes cabi
   await expect(page.getByText('HB380 welcome test', { exact: true })).toBeVisible();
   await page.locator('.audio-voice-actions').getByRole('button', { name: 'Welcome announcement' }).click();
   const voicePlayer = page.locator('audio[data-testid="local-voice-audio"]');
-  await expect.poll(() => voicePlayer.evaluate((audio: HTMLAudioElement) => ({
-    hasSource: audio.src.startsWith('blob:'),
-    playing: !audio.paused,
-    currentTime: audio.currentTime,
-    mediaError: audio.error?.code ?? 0,
-  }))).toMatchObject({ hasSource: true, playing: true });
+  await expect.poll(async () => {
+    const state = await voicePlayer.evaluate((audio: HTMLAudioElement) => ({
+      hasSource: audio.src.startsWith('blob:'),
+      playing: !audio.paused,
+      currentTime: audio.currentTime,
+      readyState: audio.readyState,
+      mediaError: audio.error?.code ?? 0,
+    }));
+    if (state.playing) return true;
+    if (!state.hasSource) return false;
+    return state.currentTime > 0;
+  }).toBe(true).catch(async () => {
+    const state = await voicePlayer.evaluate((audio: HTMLAudioElement) => ({
+      source: audio.src, currentSrc: audio.currentSrc, paused: audio.paused,
+      currentTime: audio.currentTime, duration: audio.duration,
+      readyState: audio.readyState, networkState: audio.networkState,
+      mediaError: audio.error?.code ?? 0,
+    }));
+    throw new Error('Local recording playback state: ' + JSON.stringify(state));
+  });
   await page.getByRole('button', { name: 'Close audio controls' }).click();
   await page.getByRole('button', { name: 'Play preview' }).click();
   await expect(page.getByRole('button', { name: 'Pause preview' })).toBeVisible();
