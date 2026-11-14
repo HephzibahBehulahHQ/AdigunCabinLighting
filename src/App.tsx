@@ -373,7 +373,8 @@ function Studio() {
     setUndo((history) => [...history, copy(zones)]); setZones(redo[redo.length - 1]); setEffectiveImmediately(Object.fromEntries(redo[redo.length - 1].map((zone) => [zone.id, zone.rgbw])) as Record<ZoneId, RGBW>); setRedo((history) => history.slice(0, -1)); setPlaying(false);
   };
   const saveScene = () => {
-    const frame = { atSeconds: scene.durationSeconds, targets: Object.fromEntries(zones.map((zone) => [zone.id, zone.rgbw])) as SceneFile['keyframes'][number]['targets'] };
+    const finalEasing = scene.keyframes.find((item) => item.atSeconds === scene.durationSeconds)?.easing;
+    const frame = { atSeconds: scene.durationSeconds, ...(finalEasing ? { easing: finalEasing } : {}), targets: Object.fromEntries(zones.map((zone) => [zone.id, zone.rgbw])) as SceneFile['keyframes'][number]['targets'] };
     const keyframes = scene.keyframes.filter((item) => item.atSeconds !== scene.durationSeconds).concat(frame).sort((a, b) => a.atSeconds - b.atSeconds);
     const updated = validateSceneFile({ ...scene, keyframes });
     setScenes((all) => all.map((item) => item.id === updated.id ? updated : item));
@@ -431,15 +432,17 @@ function Studio() {
   };
   const addKeyframe = () => {
     const at = Math.max(1, Math.min(scene.durationSeconds - 1, Math.round(time)));
-    const frame = { atSeconds: at, targets: Object.fromEntries(zones.map((zone) => [zone.id, zone.rgbw])) as SceneFile['keyframes'][number]['targets'] };
+    const existingEasing = scene.keyframes.find((item) => item.atSeconds === at)?.easing;
+    const frame = { atSeconds: at, ...(existingEasing ? { easing: existingEasing } : {}), targets: Object.fromEntries(zones.map((zone) => [zone.id, zone.rgbw])) as SceneFile['keyframes'][number]['targets'] };
     const frames = scene.keyframes.filter((item) => item.atSeconds !== at).concat(frame).sort((a, b) => a.atSeconds - b.atSeconds);
     setScenes((all) => all.map((item) => item.id === scene.id ? { ...item, keyframes: frames } : item)); setNotice(`Keyframe set at ${formatTime(at)}`);
   };
   const commitCurrentKeyframe = () => {
     const atSeconds = Math.max(0, Math.min(scene.durationSeconds, Math.round(time)));
     const targets = Object.fromEntries(zones.map((zone) => [zone.id, zone.rgbw])) as SceneFile['keyframes'][number]['targets'];
+    const existingEasing = scene.keyframes.find((frame) => frame.atSeconds === atSeconds)?.easing;
     const keyframes = scene.keyframes.filter((frame) => frame.atSeconds !== atSeconds)
-      .concat({ atSeconds, targets }).sort((a, b) => a.atSeconds - b.atSeconds);
+      .concat({ atSeconds, ...(existingEasing ? { easing: existingEasing } : {}), targets }).sort((a, b) => a.atSeconds - b.atSeconds);
     try {
       const updated = validateSceneFile({ ...scene, keyframes });
       setScenes((all) => all.map((item) => item.id === scene.id ? updated : item));

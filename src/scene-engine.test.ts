@@ -22,6 +22,23 @@ describe('RGBW scene engine', () => {
     expect(interpolateRGBW({ r: 0, g: 0, b: 0, w: 0 }, { r: 100, g: 0, b: 0, w: 0 }, 2).r).toBe(100);
   });
 
+  it('supports smoothstep and cubic-in-out transitions while keeping legacy scenes linear', () => {
+    const from = { r: 0, g: 0, b: 0, w: 0 };
+    const to = { r: 100, g: 100, b: 100, w: 100 };
+    expect(interpolateRGBW(from, to, .25).r).toBe(25);
+    expect(interpolateRGBW(from, to, .25, 'smoothstep').r).toBe(15.625);
+    expect(interpolateRGBW(from, to, .25, 'cubicInOut').r).toBe(6.25);
+
+    const scene = structuredClone(PRESETS[0]);
+    scene.durationSeconds = 100;
+    scene.keyframes[1].atSeconds = 100;
+    scene.keyframes[1].easing = 'smoothstep';
+    scene.keyframes[0].targets.ceiling = from;
+    scene.keyframes[1].targets.ceiling = to;
+    expect(interpolateScene(scene, 25).ceiling.r).toBe(15.625);
+    expect(validateSceneFile(scene).keyframes[1].easing).toBe('smoothstep');
+  });
+
   it('preserves zone independence in scene targets', () => {
     const scene = PRESETS.find((item) => item.id === 'boarding')!;
     const state = interpolateScene(scene, 0);
@@ -36,6 +53,9 @@ describe('RGBW scene engine', () => {
     const invalid = structuredClone(PRESETS[0]);
     invalid.keyframes[1].targets.ceiling.r = 101;
     expect(() => validateSceneFile(invalid)).toThrow(/Invalid RGBW/);
+    const unsupportedEasing = structuredClone(PRESETS[0]);
+    unsupportedEasing.keyframes[1].easing = 'bounce' as never;
+    expect(() => validateSceneFile(unsupportedEasing)).toThrow(/easing is not supported/i);
   });
 
   it('accepts a valid versioned scene export', () => {
