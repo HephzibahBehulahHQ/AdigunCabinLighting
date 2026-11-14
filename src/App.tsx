@@ -407,21 +407,25 @@ function Studio() {
     if (!file.type.startsWith('audio/') && !audioExtension) { setNotice('Choose a supported audio file.'); return; }
     if (!title.trim() || !rightsReference.trim()) { setNotice('Add the track title and a rights/source reference before importing.'); return; }
     const role = localAudioRole;
-    const sceneId = role === 'mood' ? scene.id : null;
-    const asset: StoredCabinAudioAsset = { key: cabinAudioAssetKey(projectId, role, sceneId ?? undefined), projectId, role, sceneId, fileName: file.name, mediaType: file.type || 'application/octet-stream', title: title.trim(), rightsReference: rightsReference.trim(), savedAt: new Date().toISOString(), blob: file };
+    const projectIdAtSave = projectId;
+    const sceneAtSave = scene;
+    const sceneId = role === 'mood' ? sceneAtSave.id : null;
+    const moodKey = projectIdAtSave + ':' + sceneId;
+    const voiceKey = projectIdAtSave + ':' + role;
+    const asset: StoredCabinAudioAsset = { key: cabinAudioAssetKey(projectIdAtSave, role, sceneId ?? undefined), projectId: projectIdAtSave, role, sceneId, fileName: file.name, mediaType: file.type || 'application/octet-stream', title: title.trim(), rightsReference: rightsReference.trim(), savedAt: new Date().toISOString(), blob: file };
     try { await saveCabinAudioAsset(asset); }
     catch { setNotice('Audio could not be saved in this browser. Check available local storage.'); return; }
     audioLoadTicket.current += 1;
     const objectUrl = URL.createObjectURL(file);
     localAudioObjectUrls.current.add(objectUrl);
     const cue = { objectUrl, fileName: file.name, title: title.trim(), rightsReference: rightsReference.trim() };
-    if (localAudioRole === 'mood') {
-      const previous = localMoodAudio[audioTrackKey];
+    if (role === 'mood') {
+      const previous = localMoodAudio[moodKey];
       if (previous) { URL.revokeObjectURL(previous.objectUrl); localAudioObjectUrls.current.delete(previous.objectUrl); }
-      setLocalMoodAudio((current) => ({ ...current, [audioTrackKey]: cue }));
-      setNotice('Local instrumental added to ' + scene.name + '; its rights declaration has not been verified.');
+      setLocalMoodAudio((current) => ({ ...current, [moodKey]: cue }));
+      setNotice('Local instrumental added to ' + sceneAtSave.name + '; its rights declaration has not been verified.');
     } else {
-      const roleKey = projectId + ':' + localAudioRole;
+      const roleKey = voiceKey;
       const previous = localVoiceAudio[roleKey];
       if (previous) {
         if (localVoiceAudioRef.current?.src === previous.objectUrl) { localVoiceAudioRef.current.pause(); localVoiceAudioRef.current.removeAttribute('src'); localVoiceAudioRef.current.load(); }
@@ -429,7 +433,7 @@ function Studio() {
         localAudioObjectUrls.current.delete(previous.objectUrl);
       }
       setLocalVoiceAudio((current) => ({ ...current, [roleKey]: cue }));
-      setNotice('Local ' + (localAudioRole === 'welcome' ? 'welcome' : 'tour') + ' recording added; its rights declaration has not been verified.');
+      setNotice('Local ' + (role === 'welcome' ? 'welcome' : 'tour') + ' recording added; its rights declaration has not been verified.');
     }
     setLocalMoodAudioDraft({ file: null, title: '', rightsReference: '' });
     if (moodAudioFileRef.current) moodAudioFileRef.current.value = '';
@@ -437,17 +441,21 @@ function Studio() {
   const removeLocalMoodAudio = async () => {
     const cue = currentConfiguredAudio;
     if (!cue) return;
+    const role = localAudioRole;
+    const moodKey = audioTrackKey;
+    const voiceKey = projectId + ':' + role;
+    const sceneName = scene.name;
     try { await deleteCabinAudioAsset(currentAudioAssetKey); }
     catch { setNotice('Audio could not be removed from this browser.'); return; }
     audioLoadTicket.current += 1;
-    if (localAudioRole === 'mood') {
-      setLocalMoodAudio((current) => { const next = { ...current }; delete next[audioTrackKey]; return next; });
-      setNotice('Local audio cue removed from ' + scene.name + '.');
+    if (role === 'mood') {
+      setLocalMoodAudio((current) => { const next = { ...current }; delete next[moodKey]; return next; });
+      setNotice('Local audio cue removed from ' + sceneName + '.');
     } else {
-      const roleKey = projectId + ':' + localAudioRole;
+      const roleKey = voiceKey;
       if (localVoiceAudioRef.current?.src === cue.objectUrl) { localVoiceAudioRef.current.pause(); localVoiceAudioRef.current.removeAttribute('src'); }
       setLocalVoiceAudio((current) => { const next = { ...current }; delete next[roleKey]; return next; });
-      setNotice('Local ' + (localAudioRole === 'welcome' ? 'welcome' : 'tour') + ' recording removed.');
+      setNotice('Local ' + (role === 'welcome' ? 'welcome' : 'tour') + ' recording removed.');
     }
     URL.revokeObjectURL(cue.objectUrl);
     localAudioObjectUrls.current.delete(cue.objectUrl);
