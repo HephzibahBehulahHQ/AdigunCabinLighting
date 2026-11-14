@@ -1,12 +1,12 @@
 # Active Goal — complete the AdigunCabinLighting roadmap
 
-**Pursuing now:** Deliver the gateway, bench firmware and hardware tests, advisory AI copilot, OEM SDK, operator workflows, localization, and safety/security evidence in small verified releases. Keep the owner-approved Studio interface locked. Do not alter its layout, styles, navigation, panels, labels, or controls. If a roadmap item cannot be delivered without changing that interface, record the dependency and defer that portion.
+**Pursuing now:** Deliver the gateway, bench firmware and hardware tests, advisory AI copilot, OEM SDK, operator workflows, localization, and safety/security evidence in small verified releases. Keep the approved Studio layout, styling, navigation, and panel positions locked. Add explicitly requested capability only inside its existing panel; do not move, resize, or redesign the workspace.
 
 ## Current milestone — portable, traceable offline scenarios
 
 The simulation-only gateway was merged in PR #16 and deployed as source/documentation; GitHub Pages does not host or run the Node service. The service remains local, loopback-only, and has no hardware adapter, telemetry source, actuator route, aircraft connection, or physical output. PR #17 added the initial safety/security evidence ledger and its Pages deployment succeeded.
 
-PR #19 merged a reproducible ESP-IDF v6.1 ESP32-S3 compile target and fail-closed core. It is software-only: no serial transport, authentication, identity provisioning, GPIO/PWM, or physical output; no board was flashed. The OEM SDK remains a typed unsupported contract with an ICD worksheet and no vendor adapter. Recent PRs #43 and #44 improved the visual preview and added a measured 4K export check without changing the locked Studio interface. PR #45 adds an offline scenario package workflow that binds cabin profile metadata and scenes as separate validated fields. It does not add aircraft, operator, or hardware approval evidence.
+PR #19 merged a reproducible ESP-IDF v6.1 ESP32-S3 compile target and fail-closed core. It is software-only: no serial transport, authentication, identity provisioning, GPIO/PWM, or physical output; no board was flashed. The OEM SDK remains a typed unsupported contract with an ICD worksheet and no vendor adapter. PRs #43–#48 added the visual RGBW response, 4K measurement, camera presets, aircraft planning-data provenance, offline scenario packages, and engineering preflight without shifting the locked Studio layout. PR #49 added a mood-specific browser-generated instrumental for each built-in scene, a volume control, a four-note chime, the HB380 concept welcome announcement, and a cabin guide voice inside Choreography. Speech uses the browser/OS voice; this is not an approved airline PA or aircraft integration. None of these changes adds aircraft-fit, operator, or hardware approval evidence.
 
 ## Roadmap status
 
