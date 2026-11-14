@@ -24,7 +24,7 @@ The command reads at most 64 KiB, rejects invalid UTF-8/JSON, and exits non-zero
 
 ## Studio export engineering preflight
 
-Use **More studio actions → Export engineering preflight · JSON** to download the selected scene with a schema/channel-range result, selected cabin dimensions and source/rights status, missing fixture-documentation coverage, and a scene comparison when a matching built-in preset baseline exists. Custom scene IDs without a supplied baseline are explicitly reported as `NO_BASELINE`. The report records the scene data and `physicalOutputEnabled: false`; it validates simulator data and source coverage only, not an aircraft fit, hardware, fixture photometry, or operating approval.
+Use **More studio actions → Export engineering preflight · JSON** to download the selected scene with a schema/channel-range result, selected cabin dimensions and source/rights status, field-level cabin provenance, fixture evidence by zone, and a scene comparison when a matching built-in preset baseline exists. Report version 2 marks manufacturer planning values, viewer-derived row counts, illustrative geometry, and user edits separately. Fixture identity, installation coordinates, photometric data, and source remain explicitly missing for the current procedural zones. Custom scene IDs without a supplied baseline are reported as `NO_BASELINE`. The report records the scene data and `physicalOutputEnabled: false`; it validates simulator data and evidence coverage only, not an aircraft fit, hardware, fixture photometry, or operating approval.
 
 ## Offline scene revision comparison
 
@@ -81,4 +81,5 @@ The output path is created only if it does not already exist. The package and ea
 ## Workflows not available
 
 Role-based approval, operator accounts, audit sign-off, device discovery, bench prepare/commit, physical interlock checks, telemetry reconciliation, aircraft CMS control, and dispatch/crew workflows are not implemented. Scenario packages are offline artifacts and are not imported into the locked Studio. The current gateway has no hardware command route. Do not interpret any review report as operator approval, bench verification, or OEM acceptance.
+
 
