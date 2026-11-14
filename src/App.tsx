@@ -585,26 +585,6 @@ function Studio() {
     if (speechUtterance.current) speechUtterance.current.volume = audioVolume / 100;
     if (localVoiceAudioRef.current) localVoiceAudioRef.current.volume = audioVolume / 100;
   }, [audioVolume]);
-  useEffect(() => {
-    if (!playing || !audioCues || !audioContext.current) return;
-    let cancelled = false;
-    const context = audioContext.current;
-    void context.resume().then(() => {
-      if (!cancelled) moodMusicRef.current = scheduleMoodMusic(context, scene.id, playbackTime.current, scene.durationSeconds, audioVolume);
-    }).catch(() => setNotice('Browser audio permission prevented the instrumental preview.'));
-    return () => {
-      cancelled = true;
-      moodMusicRef.current?.stop();
-      moodMusicRef.current = null;
-    };
-  }, [playing, audioCues, scene.id, scene.durationSeconds, audioVolume]);
-  useEffect(() => () => {
-    if (speechTimer.current !== null) window.clearTimeout(speechTimer.current);
-    speechUtterance.current = null;
-    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-    moodMusicRef.current?.stop();
-    void audioContext.current?.close();
-  }, []);
   const fadeZoneTo = (id: ZoneId, value: RGBW, seconds: number) => {
     if (seconds <= 0) {
       fadeTransitions.current[id] = undefined;
