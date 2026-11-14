@@ -9,8 +9,15 @@ describe('offline scenario packages', () => {
     expect(scenario.cabin.config.layoutId).toBe('a330300');
     expect(scenario.cabin.profile).toMatchObject({
       sourceUrl: 'https://www.aircraft.airbus.com/en/aircraft/a330/a330-300',
+      planningDocumentUrl: 'https://www.aircraft.airbus.com/sites/g/files/jlcbta126/files/2025-12/AC_A330_20251201.pdf',
+      sourceRevision: 'Airbus A330 Aircraft Characteristics · Rev Dec 01/25',
       evidenceStatus: 'PLANNING_REFERENCE_ONLY',
     });
+    expect(scenario.schemaVersion).toBe(2);
+    expect(scenario.cabin.profile.assetRights).toContain('permission not recorded');
+    expect(scenario.cabin.profile.fieldEvidence).toContainEqual(expect.objectContaining({
+      field: 'lengthMeters', value: 50.36, classification: 'MANUFACTURER_PLANNING_DATA',
+    }));
     expect(scenario.scenes.map((scene) => scene.id)).toEqual(['boarding', 'sleep']);
     expect(scenario.activeSceneId).toBe('boarding');
     expect(scenario.physicalOutputEnabled).toBe(false);
@@ -46,7 +53,33 @@ describe('offline scenario packages', () => {
       ...scenario,
       cabin: { ...scenario.cabin, profile: { ...scenario.cabin.profile, sourceUrl: 'https://fake.example/fit.pdf' } },
     })).toThrow(/provenance does not match/);
+    expect(() => validateScenarioPackage({
+      ...scenario,
+      cabin: { ...scenario.cabin, profile: { ...scenario.cabin.profile, sourceRevision: 'unverified revision' } },
+    })).toThrow(/provenance does not match/);
     expect(() => validateScenarioPackage({ ...scenario, physicalOutputEnabled: true })).toThrow(/simulation-only/);
+  });
+
+  it('upgrades version 1 scenario packages to traceable version 2 records', () => {
+    const current = createDefaultScenario('Legacy cabin review', 'a350900', 'boarding', [PRESETS[0]]);
+    const legacyPackage = {
+      ...current,
+      schemaVersion: 1,
+      cabin: {
+        config: current.cabin.config,
+        profile: {
+          id: current.cabin.profile.id,
+          name: current.cabin.profile.name,
+          sourceUrl: current.cabin.profile.sourceUrl,
+          evidenceStatus: current.cabin.profile.evidenceStatus,
+          limits: current.cabin.profile.limits,
+        },
+      },
+    };
+    const upgraded = validateScenarioPackage(legacyPackage);
+    expect(upgraded.schemaVersion).toBe(2);
+    expect(upgraded.cabin.profile.sourceRevision).toContain('Jul 15/25');
+    expect(upgraded.cabin.profile.fieldEvidence.length).toBeGreaterThan(10);
   });
 
   it('validates request manifests with spaced names and separate cabin and scene fields', () => {
@@ -65,4 +98,5 @@ describe('offline scenario packages', () => {
     expect(() => validateScenarioPackageRequest({ ...request, sceneFiles: [] })).toThrow(/scene file paths/);
   });
 });
+
 
