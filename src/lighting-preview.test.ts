@@ -31,4 +31,3 @@ describe('RGBW visual preview helpers', () => {
     expect(previewLightLevel({ r: Number.NaN, g: 0, b: 0, w: 0 }, Number.NaN)).toBe(0);
   });
 });
-

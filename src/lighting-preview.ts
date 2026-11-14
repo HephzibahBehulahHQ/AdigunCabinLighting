@@ -20,4 +20,3 @@ export function previewLightLevel(rgbw: RGBW, masterIntensity: number): number {
   const drive = Math.max(0, Math.min(1, setpoint * master));
   return drive === 0 ? 0 : drive ** .82;
 }
-

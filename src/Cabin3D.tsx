@@ -444,4 +444,3 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
   </div>;
 }
 
-

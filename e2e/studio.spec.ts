@@ -367,4 +367,3 @@ test('Studio menus open without moving the canvas and close with Escape', async 
 });
 
 
-
