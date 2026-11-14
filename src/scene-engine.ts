@@ -1,7 +1,8 @@
 export type RGBW = { r: number; g: number; b: number; w: number };
+export type SceneEasing = 'linear' | 'smoothstep' | 'cubicInOut';
 export type ZoneId = 'ceiling' | 'windows' | 'sidewalls' | 'footwell' | 'reading' | 'entry' | 'monuments' | 'toilet' | 'handrail' | 'trolley' | 'cabin';
 export type ZoneState = { id: ZoneId; name: string; detail: string; rgbw: RGBW; fadeSeconds: number };
-export type SceneKeyframe = { atSeconds: number; targets: Record<ZoneId, RGBW> };
+export type SceneKeyframe = { atSeconds: number; targets: Record<ZoneId, RGBW>; easing?: SceneEasing };
 export type SceneFile = {
   schemaVersion: 1;
   id: string;
@@ -31,8 +32,13 @@ export const clampChannel = (value: number): number => Math.max(0, Math.min(100,
 export const normalizeRGBW = (rgbw: RGBW): RGBW => ({
   r: clampChannel(rgbw.r), g: clampChannel(rgbw.g), b: clampChannel(rgbw.b), w: clampChannel(rgbw.w),
 });
-export function interpolateRGBW(from: RGBW, to: RGBW, progress: number): RGBW {
-  const t = Math.max(0, Math.min(1, Number.isFinite(progress) ? progress : 0));
+export function interpolateRGBW(from: RGBW, to: RGBW, progress: number, easing: SceneEasing = 'linear'): RGBW {
+  const rawProgress = Math.max(0, Math.min(1, Number.isFinite(progress) ? progress : 0));
+  const t = easing === 'smoothstep'
+    ? rawProgress * rawProgress * (3 - 2 * rawProgress)
+    : easing === 'cubicInOut'
+      ? rawProgress < .5 ? 4 * rawProgress ** 3 : 1 - ((-2 * rawProgress + 2) ** 3) / 2
+      : rawProgress;
   return normalizeRGBW({
     r: from.r + (to.r - from.r) * t, g: from.g + (to.g - from.g) * t,
     b: from.b + (to.b - from.b) * t, w: from.w + (to.w - from.w) * t,
@@ -45,7 +51,7 @@ const targets = (color: RGBW, overrides: Partial<Record<ZoneId, RGBW>> = {}): Re
 export const PRESETS: SceneFile[] = [
   { schemaVersion: 1, id: 'boarding', name: 'Boarding', durationSeconds: 45, keyframes: [
     { atSeconds: 0, targets: targets({ r: 15, g: 28, b: 45, w: 26 }, { footwell: { r: 6, g: 12, b: 18, w: 38 }, reading: ZERO }) },
-    { atSeconds: 45, targets: targets({ r: 12, g: 26, b: 42, w: 30 }, { footwell: { r: 4, g: 8, b: 14, w: 45 }, entry: { r: 30, g: 22, b: 8, w: 22 } }) },
+    { atSeconds: 45, easing: 'smoothstep', targets: targets({ r: 12, g: 26, b: 42, w: 30 }, { footwell: { r: 4, g: 8, b: 14, w: 45 }, entry: { r: 30, g: 22, b: 8, w: 22 } }) },
   ] },
   { schemaVersion: 1, id: 'aurora', name: 'Aurora', durationSeconds: 60, keyframes: [
     { atSeconds: 0, targets: targets({ r: 2, g: 9, b: 25, w: 4 }, { windows: { r: 14, g: 3, b: 23, w: 3 } }) },
@@ -53,7 +59,7 @@ export const PRESETS: SceneFile[] = [
   ] },
   { schemaVersion: 1, id: 'sunrise', name: 'Sunrise', durationSeconds: 90, keyframes: [
     { atSeconds: 0, targets: targets({ r: 13, g: 6, b: 18, w: 10 }, { windows: { r: 24, g: 7, b: 17, w: 18 } }) },
-    { atSeconds: 90, targets: targets({ r: 8, g: 17, b: 20, w: 52 }, { windows: { r: 28, g: 23, b: 15, w: 68 }, reading: { r: 4, g: 3, b: 2, w: 56 } }) },
+    { atSeconds: 90, easing: 'cubicInOut', targets: targets({ r: 8, g: 17, b: 20, w: 52 }, { windows: { r: 28, g: 23, b: 15, w: 68 }, reading: { r: 4, g: 3, b: 2, w: 56 } }) },
   ] },
   { schemaVersion: 1, id: 'sunset', name: 'Sunset', durationSeconds: 75, keyframes: [
     { atSeconds: 0, targets: targets({ r: 9, g: 18, b: 21, w: 43 }) },
@@ -69,11 +75,11 @@ export const PRESETS: SceneFile[] = [
   ] },
   { schemaVersion: 1, id: 'wake', name: 'Wake', durationSeconds: 60, keyframes: [
     { atSeconds: 0, targets: targets({ r: 4, g: 7, b: 17, w: 3 }, { reading: ZERO, footwell: { r: 1, g: 2, b: 4, w: 4 } }) },
-    { atSeconds: 60, targets: targets({ r: 15, g: 18, b: 21, w: 48 }, { ceiling: { r: 12, g: 21, b: 28, w: 35 }, reading: { r: 4, g: 5, b: 8, w: 60 }, footwell: { r: 3, g: 5, b: 7, w: 24 } }) },
+    { atSeconds: 60, easing: 'smoothstep', targets: targets({ r: 15, g: 18, b: 21, w: 48 }, { ceiling: { r: 12, g: 21, b: 28, w: 35 }, reading: { r: 4, g: 5, b: 8, w: 60 }, footwell: { r: 3, g: 5, b: 7, w: 24 } }) },
   ] },
   { schemaVersion: 1, id: 'landing', name: 'Landing', durationSeconds: 45, keyframes: [
     { atSeconds: 0, targets: targets({ r: 10, g: 13, b: 18, w: 12 }) },
-    { atSeconds: 45, targets: targets({ r: 7, g: 10, b: 12, w: 45 }, { footwell: { r: 3, g: 6, b: 8, w: 58 }, entry: { r: 14, g: 12, b: 8, w: 38 }, toilet: { r: 10, g: 12, b: 15, w: 32 } }) },
+    { atSeconds: 45, easing: 'cubicInOut', targets: targets({ r: 7, g: 10, b: 12, w: 45 }, { footwell: { r: 3, g: 6, b: 8, w: 58 }, entry: { r: 14, g: 12, b: 8, w: 38 }, toilet: { r: 10, g: 12, b: 15, w: 32 } }) },
   ] },
   { schemaVersion: 1, id: 'relax', name: 'Relax', durationSeconds: 75, keyframes: [
     { atSeconds: 0, targets: targets({ r: 10, g: 8, b: 16, w: 8 }) },
@@ -135,8 +141,7 @@ export function interpolateScene(scene: SceneFile, timeSeconds: number): Record<
   const progress = (time - left.atSeconds) / (right.atSeconds - left.atSeconds);
   return Object.fromEntries(ZONE_IDS.map((id) => {
     const a = left.targets[id]; const b = right.targets[id];
-    return [id, normalizeRGBW({ r: a.r + (b.r - a.r) * progress, g: a.g + (b.g - a.g) * progress,
-      b: a.b + (b.b - a.b) * progress, w: a.w + (b.w - a.w) * progress })];
+    return [id, interpolateRGBW(a, b, progress, right.easing ?? 'linear')];
   })) as Record<ZoneId, RGBW>;
 }
 
@@ -152,6 +157,7 @@ export function validateSceneFile(value: unknown): SceneFile {
   for (const frame of scene.keyframes) {
     if (!Number.isFinite(frame.atSeconds) || frame.atSeconds < 0 || frame.atSeconds > scene.durationSeconds || frame.atSeconds <= previous) throw new Error('Keyframe times must increase strictly within the scene duration.');
     previous = frame.atSeconds;
+    if (frame.easing !== undefined && !['linear', 'smoothstep', 'cubicInOut'].includes(frame.easing)) throw new Error('Keyframe easing is not supported.');
     if (!frame.targets || typeof frame.targets !== 'object') throw new Error('Each keyframe needs RGBW targets for every zone.');
     const normalizedTargets = { ...frame.targets } as Record<ZoneId, RGBW>;
     for (const id of ZONE_IDS) {
