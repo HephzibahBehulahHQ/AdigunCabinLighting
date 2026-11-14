@@ -1,6 +1,6 @@
 # ESP32-S3 bench-controller firmware core
 
-This is a compileable, output-disabled firmware core for the ESP32-S3 development-board family, using Espressif ESP-IDF v6.1. It provides a bounded protocol-frame validator (SOF, version, message type, payload length, sequence and CRC-32), a per-boot 16-bit duplicate/stale sequence guard, and a fail-closed state core. GitHub CI builds it for `esp32s3` and runs its portable host checks.
+This is a compileable, output-disabled firmware core for the ESP32-S3 development-board family, using Espressif ESP-IDF v6.1. It provides a bounded protocol-frame validator (SOF, version, message type, payload length, sequence and CRC-32), a per-boot 16-bit duplicate/stale sequence guard, and a fail-closed state core. GitHub CI builds it for `esp32s3` and runs its portable host checks. It also runs a bounded 50,000-input Clang libFuzzer smoke against the decoder/controller harness with AddressSanitizer and UndefinedBehaviorSanitizer.
 
 ## Current boundary
 
