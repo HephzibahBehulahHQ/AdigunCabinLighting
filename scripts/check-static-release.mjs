@@ -45,13 +45,13 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToP
   try {
     const findings = await inspectStaticRelease(root);
     if (findings.length) {
-      for (const finding of findings) console.error(`FAIL ${finding.code}: ${finding.file}`);
+      for (const finding of findings) process.stderr.write(`FAIL ${finding.code}: ${finding.file}\n`);
       process.exitCode = 1;
     } else {
-      console.log(`PASS static release inspection (${root})`);
+      process.stdout.write(`PASS static release inspection (${root})\n`);
     }
   } catch (error) {
-    console.error(error instanceof Error ? error.message : 'Static release inspection failed.');
+    process.stderr.write(`${error instanceof Error ? error.message : 'Static release inspection failed.'}\n`);
     process.exitCode = 1;
   }
 }
