@@ -50,17 +50,29 @@ describe('cabin audio direction', () => {
     expect(CABIN_GUIDED_TOUR).toContain('not an aircraft fit');
   });
 
-  it('schedules a bounded melodic score against the scene clock and can change volume or stop', () => {
+  it('schedules a bounded melodic score ahead of the scene clock and can change volume or stop', () => {
     const context = new AudioContextStub();
-    const handle = scheduleMoodMusic(context as unknown as AudioContext, 'relax', 7, 24, 38);
-    expect(context.oscillators.length).toBeGreaterThan(20);
-    expect(context.oscillators.every((voice) => voice.start.mock.calls[0][0] >= context.currentTime + .06)).toBe(true);
-    expect(context.oscillators.some((voice) => voice.frequency.setValueAtTime.mock.calls[0][0] > 500)).toBe(true);
-    handle.setVolume(65);
-    const volumeUpdate = context.gains[0].gain.setTargetAtTime.mock.calls[0];
-    expect(volumeUpdate[0]).toBeCloseTo(.104, 10);
-    expect(volumeUpdate.slice(1)).toEqual([12, .035]);
-    handle.stop();
-    expect(context.oscillators.every((voice) => voice.stop.mock.calls.length >= 2)).toBe(true);
+    vi.useFakeTimers();
+    try {
+      const handle = scheduleMoodMusic(context as unknown as AudioContext, 'relax', 6, 24, 38);
+      const initiallyScheduled = context.oscillators.length;
+      expect(initiallyScheduled).toBeGreaterThan(0);
+      expect(initiallyScheduled).toBeLessThan(40);
+      expect(context.oscillators.every((voice) => voice.start.mock.calls[0][0] >= context.currentTime + .06)).toBe(true);
+      expect(context.oscillators.some((voice) => voice.frequency.setValueAtTime.mock.calls[0][0] > 500)).toBe(true);
+      context.currentTime += 2;
+      vi.advanceTimersByTime(100);
+      expect(context.oscillators.length).toBeGreaterThan(initiallyScheduled);
+      handle.setVolume(65);
+      const volumeUpdate = context.gains[0].gain.setTargetAtTime.mock.calls[0];
+      expect(volumeUpdate[0]).toBeCloseTo(.104, 10);
+      expect(volumeUpdate.slice(1)).toEqual([12, .035]);
+      handle.stop();
+      vi.advanceTimersByTime(100);
+      expect(context.oscillators.every((voice) => voice.stop.mock.calls.length >= 2)).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
+
