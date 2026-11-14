@@ -703,12 +703,8 @@ function Studio() {
         return imported ? { ...base, ...imported, rgbw: normalizeRGBW(imported.rgbw) } : base;
       });
       const nextState: SavedState = {
-        zones: importedZones,
-        scenes: scenario.scenes.map(copy),
-        intensity: scenario.masterIntensity,
-        activeSceneId: scenario.activeSceneId,
-        selectedZoneId: 'ceiling',
-        projectName: scenario.projectName,
+        zones: importedZones, scenes: scenario.scenes.map(copy), intensity: scenario.masterIntensity,
+        activeSceneId: scenario.activeSceneId, selectedZoneId: 'ceiling', projectName: scenario.projectName,
         cabinConfig: scenario.cabin.config,
       };
       // Preserve the current workspace, then import as a separate browser-local project.
