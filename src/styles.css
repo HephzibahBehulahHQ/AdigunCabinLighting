@@ -190,3 +190,4 @@
 .audio-cue-active button{flex:none;border:0;background:transparent;color:#f5b1ab;font-size:8px;cursor:pointer}
 
 .landing-language{display:flex;align-items:center}.landing-locale{appearance:none;max-width:112px;min-height:34px;padding:0 25px 0 10px;border:1px solid #2a3b4f;border-radius:5px;background:#101c2a;color:#dbe6f1;font:500 11px var(--mono);color-scheme:dark;cursor:pointer}.landing-locale:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}.landing-nav .nav-cta{margin-left:12px}@media(max-width:680px){.landing-language{margin-left:auto}.landing-locale{max-width:90px;padding:0 20px 0 7px;font-size:9px}.landing-nav .nav-cta{margin-left:8px}}
+
