@@ -324,8 +324,8 @@ test('new cabin zones, scenes, and browser-local projects are usable', async ({ 
   await page.getByRole('button', { name: 'Change cabin' }).click();
   await expect(page.getByLabel('Length (m)')).toHaveValue('22.4');
   await page.getByRole('button', { name: 'Load cabin layout' }).click();
-  await page.locator('#zone-picker').selectOption('toilet');
-  await expect(page.getByRole('heading', { name: 'Lavatory' })).toBeVisible();
+  await expect(page.locator('#zone-picker option[value="toilet"]')).toHaveCount(1);
+  await expect(page.locator('#zone-picker option[value="trolley"]')).toHaveCount(1);
   page.once('dialog', (dialog) => void dialog.accept('Test scene'));
   await page.getByRole('button', { name: 'Create new scene' }).click();
   await expect(page.getByRole('button', { name: /Test scene/ })).toBeVisible();
@@ -356,6 +356,27 @@ test('new cabin zones, scenes, and browser-local projects are usable', async ({ 
   expect(cabinPng.readUInt32BE(16)).toBe(3840);
   expect(cabinPng.readUInt32BE(20)).toBe(2160);
   await expect(page.getByRole('status')).toContainText(/3D 4K: \d+ ms; ≥31\.6 MiB per RGBA surface \(peak unknown\)/);
+});
+
+test('Zone Inspector follows the selected aircraft GLB component inventory', async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await page.goto('/studio');
+  const picker = page.locator('#zone-picker');
+  await expect(picker.locator('option[value="toilet"]')).toHaveCount(0);
+  await expect(picker.locator('option[value="trolley"]')).toHaveCount(0);
+  await expect(picker.locator('option[value="spotlights"]')).toHaveCount(1);
+  await picker.selectOption('handrail');
+  await expect(page.getByRole('heading', { name: 'VIP console edge' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Change cabin' }).click();
+  await page.getByLabel('Aircraft or airline 3D model').selectOption('emirates-777-300er-328');
+  await page.getByRole('button', { name: 'Load cabin layout' }).click();
+  await expect(page.locator('.cabin-webgl-canvas')).toHaveAttribute('data-cabin-profile', 'emirates-777-300er-328');
+  await expect(picker.locator('option[value="reading"]')).toHaveCount(1);
+  await expect(picker.locator('option[value="monuments"]')).toHaveCount(0);
+  await expect(picker.locator('option[value="spotlights"]')).toHaveCount(0);
+  await expect(picker.locator('option[value="emergency"]')).toHaveCount(0);
+  await expect(picker.locator('option[value="exit"]')).toHaveCount(0);
 });
 
 test('Change cabin switches the 3D reference geometry from the left rail', async ({ page }) => {
@@ -394,8 +415,11 @@ test('owner image-derived VVIP cabin profile switches the matching seat and wind
   await page.getByRole('button', { name: 'Load cabin layout' }).click();
   const map = page.locator('.cabin-drawing');
   await expect(map).toHaveAttribute('data-layout-id', 'ownerVvip');
-  await expect(map.locator('g[aria-label^="Cabin row "]')).toHaveCount(7);
-  await expect(map.locator('g[aria-label^="Cabin window "]')).toHaveCount(22);
+  await expect(map).toHaveClass(/cabin-reference-view/);
+  await expect.poll(() => map.locator('img').evaluate((image: HTMLImageElement) => image.naturalWidth > 0)).toBe(true);
+  await expect(map.locator('svg g[role="button"]')).toHaveCount(6);
+  await map.getByRole('button', { name: 'Footwell' }).click();
+  await expect(page.locator('#zone-picker')).toHaveValue('footwell');
 
   await cabinView.getByRole('button', { name: '3D' }).click();
   const model = page.locator('.cabin-stage');

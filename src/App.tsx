@@ -18,8 +18,10 @@ import { MAX_SCENARIO_PACKAGE_BYTES, validateScenarioPackage } from '../operator
 import { CABIN_GUIDED_TOUR, CABIN_WELCOME_ANNOUNCEMENT, getMoodInstrumentLabel, getMoodScore, playWelcomeChime, scheduleMoodMusic, type MoodMusicHandle } from './cabin-audio';
 import { cabinAudioAssetKey, deleteCabinAudioAsset, readCabinAudioAsset, saveCabinAudioAsset, type StoredCabinAudioAsset } from './audio-asset-store';
 import { readAppLocale, saveAppLocale, studioText, type AppLocale, type StudioCopyKey } from './studio-localization';
-import { AIRCRAFT_DIMENSION_PROFILES, AIRLINE_MESH_PROFILES, DEFAULT_CABIN_MESH_ID, getCabinMeshProfile } from './aircraft-assets';
+import { AIRCRAFT_DIMENSION_PROFILES, AIRLINE_MESH_PROFILES, DEFAULT_CABIN_MESH_ID, getCabinMeshProfile, getProfileZones } from './aircraft-assets';
 import cabinReferenceImage from './assets/vvip-cabin-reference.jpg';
+
+const REFERENCE_INSPECTOR_ZONE_IDS: readonly ZoneId[] = ['ceiling', 'windows', 'footwell', 'reading', 'entry', 'monuments', 'toilet', 'handrail', 'trolley', 'cabin', 'ceiling_cove', 'left_sidewall', 'right_sidewall', 'spotlights', 'emergency', 'exit'];
 
 const STORAGE_KEY = 'adigun-cabin-studio:v1';
 const PROJECT_INDEX_KEY = 'adigun-cabin-projects:v1';
@@ -399,6 +401,13 @@ function Studio() {
   const [aircraftMeshId, setAircraftMeshId] = useState<string | null>(() => Object.hasOwn(stored, 'aircraftMeshId') ? getCabinMeshProfile(stored.aircraftMeshId)?.id ?? null : DEFAULT_CABIN_MESH_ID);
   const [aircraftMeshDraftId, setAircraftMeshDraftId] = useState<string | null>(() => Object.hasOwn(stored, 'aircraftMeshId') ? getCabinMeshProfile(stored.aircraftMeshId)?.id ?? null : DEFAULT_CABIN_MESH_ID);
   const selectedMeshProfile = getCabinMeshProfile(aircraftMeshId);
+  const inspectorZones = useMemo(() => selectedMeshProfile
+    ? getProfileZones(selectedMeshProfile, zones)
+    : zones.filter((zone) => REFERENCE_INSPECTOR_ZONE_IDS.includes(zone.id)), [selectedMeshProfile, zones]);
+  const inspectorZoneIds = useMemo(() => new Set(inspectorZones.map((zone) => zone.id)), [inspectorZones]);
+  useEffect(() => {
+    if (!inspectorZoneIds.has(selected) && inspectorZones[0]) setSelected(inspectorZones[0].id);
+  }, [inspectorZoneIds, inspectorZones, selected]);
   const [time, setTime] = useState(0);
   const [previewStartedAt, setPreviewStartedAt] = useState(0);
   const [effectiveRGBW, setEffectiveRGBW] = useState<Record<ZoneId, RGBW>>(() => Object.fromEntries(zones.map((zone) => [zone.id, { ...zone.rgbw }])) as Record<ZoneId, RGBW>);
@@ -447,7 +456,7 @@ function Studio() {
   const currentVoiceAudio = localAudioRole === 'mood' ? undefined : localVoiceAudio[`${projectId}:${localAudioRole}`];
   const currentConfiguredAudio = localAudioRole === 'mood' ? currentMoodAudio : currentVoiceAudio;
   const currentAudioAssetKey = cabinAudioAssetKey(projectId, localAudioRole, localAudioRole === 'mood' ? scene.id : undefined);
-  const currentZone = zones.find((zone) => zone.id === selected) ?? zones[0];
+  const currentZone = inspectorZones.find((zone) => zone.id === selected) ?? inspectorZones[0] ?? zones[0];
   useEffect(() => {
     let cancelled = false;
     const ticket = ++audioLoadTicket.current;
@@ -966,7 +975,7 @@ function Studio() {
                 <button type="submit" className="button button-quiet button-sm">{t('loadCabinLayout')}</button>
               </form>}
               <div className={`cabin-stage ${hq4k ? 'quality-high' : ''}`} data-view-mode={viewMode} data-cabin-layout={cabinConfig.layoutId} data-aircraft-mesh-id={selectedMeshProfile?.id ?? ''} ref={stageRef}><div className="stage-grid" /><div className="stage-crosshair" />
-                {viewMode === '3d' ? <><Suspense fallback={<div className="cabin3d-loading" role="status">Loading the selected aircraft cabin mesh…</div>}>{selectedMeshProfile ? <CabinAsset3D key={selectedMeshProfile.id} profile={selectedMeshProfile} zones={zones} effective={effectiveRGBW} intensity={intensity} selected={selected} onSelect={setSelected} highQuality={hq4k} previewActive={playing} previewMotion={playing && motionPreview} previewTime={time} previewDuration={scene.durationSeconds} previewStartedAt={previewStartedAt} scene={scene} cameraView={cameraView} captureRef={cabinCaptureRef} cameraResetRef={cameraResetRef} /> : <Cabin3D key={JSON.stringify(cabinConfig)} config={cabinConfig} zones={zones} effective={effectiveRGBW} intensity={intensity} selected={selected} onSelect={setSelected} highQuality={hq4k} previewActive={playing} previewMotion={playing && motionPreview} previewTime={time} previewDuration={scene.durationSeconds} cameraView={cameraView} captureRef={cabinCaptureRef} cameraResetRef={cameraResetRef} />}</Suspense><select className="camera-angle-select" aria-label="3D camera angle" value={cameraView} onChange={(event) => setCameraView(event.target.value as typeof cameraView)}><option value="entry">Entry view</option><option value="mid-cabin">Mid-cabin</option><option value="aft">Aft view</option><option value="window-row">Window row</option></select></> : <><CabinDrawing zones={zones.map((zone) => ({ ...zone, rgbw: Object.fromEntries(Object.entries(effectiveRGBW[zone.id]).map(([key, value]) => [key, value * intensity / 100])) as RGBW }))} selected={selected} onSelect={setSelected} config={cabinConfig} /><div className="stage-scale"><span /> {selectedMeshProfile ? `${selectedMeshProfile.label.toUpperCase()} · 2D REFERENCE MAP` : `${CABIN_LAYOUTS[cabinConfig.layoutId].name.toUpperCase()} · 2D REFERENCE MAP`}</div></>}
+                {viewMode === '3d' ? <><Suspense fallback={<div className="cabin3d-loading" role="status">Loading the selected aircraft cabin mesh…</div>}>{selectedMeshProfile ? <CabinAsset3D key={selectedMeshProfile.id} profile={selectedMeshProfile} zones={zones} effective={effectiveRGBW} intensity={intensity} selected={selected} onSelect={(id) => { if (inspectorZoneIds.has(id)) setSelected(id); }} highQuality={hq4k} previewActive={playing} previewMotion={playing && motionPreview} previewTime={time} previewDuration={scene.durationSeconds} previewStartedAt={previewStartedAt} scene={scene} cameraView={cameraView} captureRef={cabinCaptureRef} cameraResetRef={cameraResetRef} /> : <Cabin3D key={JSON.stringify(cabinConfig)} config={cabinConfig} zones={zones} effective={effectiveRGBW} intensity={intensity} selected={selected} onSelect={(id) => { if (inspectorZoneIds.has(id)) setSelected(id); }} highQuality={hq4k} previewActive={playing} previewMotion={playing && motionPreview} previewTime={time} previewDuration={scene.durationSeconds} cameraView={cameraView} captureRef={cabinCaptureRef} cameraResetRef={cameraResetRef} />}</Suspense><select className="camera-angle-select" aria-label="3D camera angle" value={cameraView} onChange={(event) => setCameraView(event.target.value as typeof cameraView)}><option value="entry">Entry view</option><option value="mid-cabin">Mid-cabin</option><option value="aft">Aft view</option><option value="window-row">Window row</option></select></> : <><CabinDrawing zones={inspectorZones.map((zone) => ({ ...zone, rgbw: Object.fromEntries(Object.entries(effectiveRGBW[zone.id]).map(([key, value]) => [key, value * intensity / 100])) as RGBW }))} selected={selected} onSelect={(id) => { if (inspectorZoneIds.has(id)) setSelected(id); }} config={cabinConfig} /><div className="stage-scale"><span /> {selectedMeshProfile ? `${selectedMeshProfile.label.toUpperCase()} · 2D REFERENCE MAP` : `${CABIN_LAYOUTS[cabinConfig.layoutId].name.toUpperCase()} · 2D REFERENCE MAP`}</div></>}
               </div>
               <div className="cabin-legend"><span><i className="legend-active" /> {t('activeZone')}: {currentZone.name}</span><span><i className="legend-zone" /> {t('doubleClickFixture')}</span><span className="legend-revision">{selectedMeshProfile ? `${selectedMeshProfile.accuracy} · simulation only` : 'Configurable reference geometry · not an aircraft fit'}</span></div>
             </section>
@@ -1019,7 +1028,7 @@ function Studio() {
           </div>
           <aside className="inspector panel" id="zone-inspector" tabIndex={-1}>
             <div className="inspector-head"><div><span className="panel-overline">{t('zoneInspector')}</span><h2>{currentZone.name}</h2><p>{currentZone.detail}</p></div><button className="icon-button" aria-label="Inspector settings" title="Inspector settings" onClick={() => setNotice('Zone values are editable in SIMULATION only.')}><Settings2 size={17} /></button></div>
-            <div className="zone-select"><label htmlFor="zone-picker">{t('editingZone')}</label><select id="zone-picker" value={selected} onChange={(e) => setSelected(e.target.value as ZoneId)}>{zones.map((zone) => <option key={zone.id} value={zone.id}>{zone.name}</option>)}</select><ChevronDown size={14} /></div>
+            <div className="zone-select"><label htmlFor="zone-picker">{t('editingZone')}</label><select id="zone-picker" value={inspectorZoneIds.has(selected) ? selected : inspectorZones[0]?.id} onChange={(e) => setSelected(e.target.value as ZoneId)}>{inspectorZones.map((zone) => <option key={zone.id} value={zone.id}>{zone.name}</option>)}</select><ChevronDown size={14} /></div>
             <div className="rgbw-head"><div><span className="panel-overline">{t('rgbwOutput')}</span><span className="channel-model">{t('channelRange')}</span></div><label className="color-well" aria-label="RGB color picker"><input type="color" aria-label="Choose RGB color" value={toHex(currentZone.rgbw)} onChange={(e) => { const hex = e.target.value; setZoneColor({ r: parseInt(hex.slice(1, 3), 16) / 2.55, g: parseInt(hex.slice(3, 5), 16) / 2.55, b: parseInt(hex.slice(5, 7), 16) / 2.55, w: currentZone.rgbw.w }); }} /><span style={{ background: toHex(currentZone.rgbw) }} /></label></div>
             <div className="channel-list">
               {(['r', 'g', 'b', 'w'] as const).map((channel) => <Channel key={channel} name={channel.toUpperCase()} value={currentZone.rgbw[channel]} color={{ r: '#ff6b72', g: '#59d6a5', b: '#6c9eff', w: '#e9edf2' }[channel]} onChange={(value) => setRGBW(channel, value)} />)}

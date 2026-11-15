@@ -4,16 +4,14 @@ import { makeDefaultZones, PRESETS } from '../src/scene-engine';
 
 const fixtureGroups = [
   ['windows', 'window-daylight', [60, 78, 100, 46]],
-  ['sidewalls', 'sidewall-pair', [24, 58, 92, 18]],
   ['left_sidewall', 'left-sidewall', [18, 76, 100, 12]],
   ['right_sidewall', 'right-sidewall', [100, 28, 68, 12]],
   ['handrail', 'handrail-bin-edge', [18, 92, 65, 12]],
   ['reading', 'reading-lights', [100, 82, 58, 54]],
   ['ceiling', 'ceiling-bin-wash', [72, 82, 100, 68]],
   ['ceiling_cove', 'central-ceiling-recess', [58, 30, 100, 24]],
+  ['monuments', 'service-monuments', [100, 74, 42, 62]],
   ['spotlights', 'focused-spotlights', [100, 86, 64, 76]],
-  ['emergency', 'emergency-escape-path', [8, 100, 26, 40]],
-  ['exit', 'exit-signs', [4, 100, 18, 48]],
   ['footwell', 'footwell-guidance', [10, 72, 86, 42]],
 ] as const;
 
@@ -71,8 +69,10 @@ test('model-tied cabin fixture groups and combined moods render in the existing 
   expect(await canvas.getAttribute('data-excluded-window-glass-count')).toBe('20');
   expect(counts.reading).toBeGreaterThan(0);
   expect(counts.handrail).toBeGreaterThan(0);
+  expect(counts.monuments).toBeGreaterThan(0);
   expect(counts.spotlights).toBeGreaterThanOrEqual(10);
-  expect(counts.exit).toBe(2);
+  expect(counts.emergency).toBe(0);
+  expect(counts.exit).toBe(0);
   expect(counts.placementBasis).toBe('vip-side-console-and-upper-sidewall');
 
   const music = previewPage.getByRole('button', { name: 'Mood music' });

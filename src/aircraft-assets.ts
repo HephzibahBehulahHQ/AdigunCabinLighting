@@ -2,6 +2,8 @@
 
 import aircraftCatalog from '../assets/aircraft-data/catalog.json';
 import airlineMeshCatalog from '../assets/aircraft-data/airline-mesh-catalog.json';
+import zoneAvailabilityCatalog from '../assets/aircraft-data/zone-availability.json';
+import type { ZoneId, ZoneState } from './scene-engine';
 
 type AircraftCatalog = typeof aircraftCatalog;
 type AirlineCatalog = typeof airlineMeshCatalog;
@@ -25,7 +27,21 @@ export type CabinMeshProfile = {
   meshUrl: string;
   modelPath: string;
   accuracy: string;
+  componentCounts: Record<string, number>;
+  zones: { id: ZoneId; name: string; basis: string }[];
 };
+
+type ZoneAvailability = typeof zoneAvailabilityCatalog.profiles[number];
+const zonesByProfile = new Map<string, ZoneAvailability>(zoneAvailabilityCatalog.profiles.map((profile) => [profile.id, profile] as const));
+
+function getMeshZoneData(id: string): Pick<CabinMeshProfile, 'componentCounts' | 'zones'> {
+  const inventory = zonesByProfile.get(id);
+  if (!inventory) throw new Error(`Missing GLB zone inventory for ${id}`);
+  return {
+    componentCounts: inventory.component_counts,
+    zones: inventory.zones as CabinMeshProfile['zones'],
+  };
+}
 
 export const DEFAULT_CABIN_MESH_ID = 'gulfstream-g650er';
 
@@ -47,6 +63,7 @@ const aircraftEntries = catalog.aircraft.map((entry) => {
     meshUrl: meshUrls[`../assets/aircraft-data/${meshPath}`],
     modelPath: `assets/aircraft-data/${meshPath}`,
     accuracy: 'dimension-based authored simulation geometry',
+    ...getMeshZoneData(entry.id),
   } satisfies CabinMeshProfile;
 });
 
@@ -67,6 +84,7 @@ const airlineEntries = airlineCatalog.profiles.map((profile) => {
     meshUrl: meshUrls[`../assets/aircraft-data/${meshPath}`],
     modelPath: `assets/aircraft-data/${meshPath}`,
     accuracy: profile.geometry_accuracy,
+    ...getMeshZoneData(profile.id),
   } satisfies CabinMeshProfile;
 });
 
@@ -76,4 +94,12 @@ export const AIRCRAFT_DIMENSION_PROFILES = aircraftEntries;
 
 export function getCabinMeshProfile(id: string | null | undefined): CabinMeshProfile | null {
   return id ? AIRCRAFT_MESH_PROFILES.find((profile) => profile.id === id) ?? null : null;
+}
+
+export function getProfileZones(profile: CabinMeshProfile, zones: readonly ZoneState[]): ZoneState[] {
+  const profileZones = new Map<ZoneId, CabinMeshProfile['zones'][number]>(profile.zones.map((zone) => [zone.id, zone] as const));
+  return zones.flatMap((zone) => {
+    const evidence = profileZones.get(zone.id);
+    return evidence ? [{ ...zone, name: evidence.name, detail: evidence.basis }] : [];
+  });
 }
