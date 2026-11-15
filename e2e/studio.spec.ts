@@ -20,7 +20,7 @@ test('landing opens the working Studio route', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test('landing page locale selector switches every public landing section without changing Studio copy', async ({ page }) => {
+test('landing page locale selector switches every public landing section', async ({ page }) => {
   await page.goto('/');
   const locale = page.locator('.landing-locale');
   const landing = page.locator('main.landing');
@@ -44,6 +44,30 @@ test('landing page locale selector switches every public landing section without
   await locale.selectOption('en');
   await expect(landing).toHaveAttribute('lang', 'en');
   await expect(page.getByRole('heading', { name: /Shape the cabin around the moment/i })).toBeVisible();
+});
+
+test('selected landing language carries into core Studio panels without adding controls', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/studio');
+  const fixedPanels = ['.studio-topbar', '.studio-rail', '#cabin-view', '#timeline', '#scene-library', '#zone-inspector'];
+  const englishBoxes = await Promise.all(fixedPanels.map((selector) => page.locator(selector).boundingBox()));
+
+  await page.goto('/');
+  await page.locator('.landing-locale').selectOption('de');
+  await page.goto('/studio');
+  const studio = page.locator('.studio-shell');
+  await expect(studio).toHaveAttribute('lang', 'de');
+  await expect(page.getByRole('heading', { name: 'Digitaler Kabinenzwilling' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Kabinenübersicht' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Übergangsvorschau' })).toBeVisible();
+  await expect(page.getByText('ZONENINSPEKTOR')).toBeVisible();
+  const germanBoxes = await Promise.all(fixedPanels.map((selector) => page.locator(selector).boundingBox()));
+  for (let index = 0; index < fixedPanels.length; index++) {
+    expect(germanBoxes[index], `${fixedPanels[index]} disappeared in German`).not.toBeNull();
+    for (const edge of ['x', 'y', 'width', 'height'] as const) {
+      expect(germanBoxes[index]![edge], `${fixedPanels[index]} ${edge} changed with locale`).toBeCloseTo(englishBoxes[index]![edge], 0);
+    }
+  }
 });
 
 test('zone RGBW edits persist and undo works', async ({ page }) => {
