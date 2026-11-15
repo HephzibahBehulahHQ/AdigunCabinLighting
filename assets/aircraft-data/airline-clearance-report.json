@@ -1,0 +1,46 @@
+{
+  "reports": [
+    {
+      "model": "british-airways-777-300er-256.glb",
+      "seat_count": 256,
+      "seat_envelope_overlaps": [],
+      "curved_sidewall_envelope_violations": [],
+      "test_method": "Aggregate seat AABBs checked against other seats; component AABBs checked against curved upper sidewalls and lower lining clearance. Does not verify OEM fit, egress compliance or unmodeled objects."
+    },
+    {
+      "model": "emirates-777-300er-328.glb",
+      "seat_count": 328,
+      "seat_envelope_overlaps": [],
+      "curved_sidewall_envelope_violations": [],
+      "test_method": "Aggregate seat AABBs checked against other seats; component AABBs checked against curved upper sidewalls and lower lining clearance. Does not verify OEM fit, egress compliance or unmodeled objects."
+    },
+    {
+      "model": "emirates-777-300er-360.glb",
+      "seat_count": 360,
+      "seat_envelope_overlaps": [],
+      "curved_sidewall_envelope_violations": [],
+      "test_method": "Aggregate seat AABBs checked against other seats; component AABBs checked against curved upper sidewalls and lower lining clearance. Does not verify OEM fit, egress compliance or unmodeled objects."
+    },
+    {
+      "model": "emirates-777-300er-419.glb",
+      "seat_count": 419,
+      "seat_envelope_overlaps": [],
+      "curved_sidewall_envelope_violations": [],
+      "test_method": "Aggregate seat AABBs checked against other seats; component AABBs checked against curved upper sidewalls and lower lining clearance. Does not verify OEM fit, egress compliance or unmodeled objects."
+    },
+    {
+      "model": "qantas-787-9-236.glb",
+      "seat_count": 236,
+      "seat_envelope_overlaps": [],
+      "curved_sidewall_envelope_violations": [],
+      "test_method": "Aggregate seat AABBs checked against other seats; component AABBs checked against curved upper sidewalls and lower lining clearance. Does not verify OEM fit, egress compliance or unmodeled objects."
+    },
+    {
+      "model": "qantaslink-a220-300-137.glb",
+      "seat_count": 137,
+      "seat_envelope_overlaps": [],
+      "curved_sidewall_envelope_violations": [],
+      "test_method": "Aggregate seat AABBs checked against other seats; component AABBs checked against curved upper sidewalls and lower lining clearance. Does not verify OEM fit, egress compliance or unmodeled objects."
+    }
+  ]
+}
