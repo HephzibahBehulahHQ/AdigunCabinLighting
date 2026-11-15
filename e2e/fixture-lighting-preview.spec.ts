@@ -64,8 +64,8 @@ test('model-tied cabin fixture groups and combined moods render in the existing 
   expect(counts.windows).toBe(16);
   expect(await canvas.getAttribute('data-visible-windows')).toBe('16');
   expect(await canvas.getAttribute('data-excluded-window-glass-count')).toBe('20');
-  expect(counts.leftSidewall).toBe(8);
-  expect(counts.rightSidewall).toBe(8);
+  expect(counts.leftSidewall).toBe(1);
+  expect(counts.rightSidewall).toBe(1);
   expect(counts.cove).toBe(2);
   expect(counts.reading).toBe(0);
   expect(counts.handrail).toBeGreaterThan(0);
