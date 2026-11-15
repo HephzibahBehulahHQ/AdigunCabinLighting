@@ -1,0 +1,35 @@
+[Unit]
+Description=AdigunCabinLighting loopback simulation gateway
+After=local-fs.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+DynamicUser=yes
+WorkingDirectory=/opt/adigun-cabin-lighting
+Environment=ADIGUN_GATEWAY_PORT=4510
+LoadCredential=adigun-gateway-token:/etc/adigun-cabin-lighting/gateway-token
+ExecStart=/usr/bin/node /opt/adigun-cabin-lighting/gateway/start.mjs
+Restart=on-failure
+RestartSec=2s
+KillSignal=SIGTERM
+TimeoutStopSec=25s
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LockPersonality=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target
