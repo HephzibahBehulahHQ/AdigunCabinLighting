@@ -7,11 +7,8 @@ const fixtureGroups = [
   ['left_sidewall', 'left-sidewall', [18, 76, 100, 12]],
   ['right_sidewall', 'right-sidewall', [100, 28, 68, 12]],
   ['handrail', 'handrail-bin-edge', [18, 92, 65, 12]],
-  ['reading', 'reading-lights', [100, 82, 58, 54]],
-  ['ceiling', 'ceiling-bin-wash', [72, 82, 100, 68]],
   ['ceiling_cove', 'central-ceiling-recess', [58, 30, 100, 24]],
   ['monuments', 'service-monuments', [100, 74, 42, 62]],
-  ['spotlights', 'focused-spotlights', [100, 86, 64, 76]],
   ['footwell', 'footwell-guidance', [10, 72, 86, 42]],
 ] as const;
 
@@ -67,13 +64,17 @@ test('model-tied cabin fixture groups and combined moods render in the existing 
   expect(counts.windows).toBe(16);
   expect(await canvas.getAttribute('data-visible-windows')).toBe('16');
   expect(await canvas.getAttribute('data-excluded-window-glass-count')).toBe('20');
-  expect(counts.reading).toBeGreaterThan(0);
+  expect(counts.leftSidewall).toBe(8);
+  expect(counts.rightSidewall).toBe(8);
+  expect(counts.cove).toBe(2);
+  expect(counts.reading).toBe(0);
   expect(counts.handrail).toBeGreaterThan(0);
   expect(counts.monuments).toBeGreaterThan(0);
-  expect(counts.spotlights).toBeGreaterThanOrEqual(10);
+  expect(counts.spotlights).toBe(0);
+  expect(counts.ceilingPanels).toBeUndefined();
   expect(counts.emergency).toBe(0);
   expect(counts.exit).toBe(0);
-  expect(counts.placementBasis).toBe('vip-side-console-and-upper-sidewall');
+  expect(counts.placementBasis).toBe('vip-side-console-mesh-bounds');
 
   const music = previewPage.getByRole('button', { name: 'Mood music' });
   if (await music.getAttribute('aria-pressed') === 'true') await music.click();
@@ -95,14 +96,14 @@ test('model-tied cabin fixture groups and combined moods render in the existing 
   await previewPage.locator('#cabin-view').screenshot({ path: `${previewDir}/camera-orbit-zoom.png` });
 });
 
-test('focused galley spotlights light the modeled service area', async ({ page }) => {
+test('G650 inspector omits reading and spotlight zones without modeled fixtures', async ({ page }) => {
   test.setTimeout(60_000);
   const zones = makeDefaultZones().map((zone) => ({
     ...zone,
-    rgbw: zone.id === 'spotlights' ? { r: 100, g: 86, b: 64, w: 76 } : { r: 0, g: 0, b: 0, w: 0 },
+    rgbw: zone.id === 'monuments' ? { r: 100, g: 86, b: 64, w: 76 } : { r: 0, g: 0, b: 0, w: 0 },
   }));
   const state = {
-    zones, scenes: PRESETS, intensity: 72, activeSceneId: 'aurora', selectedZoneId: 'spotlights',
+    zones, scenes: PRESETS, intensity: 72, activeSceneId: 'aurora', selectedZoneId: 'monuments',
     projectName: 'Cabin 01', aircraftMeshId: 'gulfstream-g650er',
   };
   await page.addInitScript((saved) => {
@@ -115,6 +116,11 @@ test('focused galley spotlights light the modeled service area', async ({ page }
   const canvas = page.locator('canvas.cabin-webgl-canvas');
   await expect(canvas).toHaveAttribute('data-cabin-profile', 'gulfstream-g650er');
   await expect.poll(async () => canvas.getAttribute('data-simulated-fixture-counts'), { timeout: 30_000 }).not.toBeNull();
+  await expect(page.locator('#zone-picker option[value="reading"]')).toHaveCount(0);
+  await expect(page.locator('#zone-picker option[value="spotlights"]')).toHaveCount(0);
+  const counts = await canvas.evaluate((element) => JSON.parse(element.dataset.simulatedFixtureCounts ?? '{}') as Record<string, number>);
+  expect(counts.reading).toBe(0);
+  expect(counts.spotlights).toBe(0);
   await page.getByLabel('3D camera angle').selectOption('aft');
   await mkdir('artifacts/lighting-fixtures', { recursive: true });
   await page.locator('#cabin-view').screenshot({ path: 'artifacts/lighting-fixtures/spotlights-focused-final.png' });
@@ -146,4 +152,5 @@ test('window daylight uses passive tinted glazing and a separate source', async 
   await mkdir('artifacts/lighting-fixtures', { recursive: true });
   await page.locator('#cabin-view').screenshot({ path: 'artifacts/lighting-fixtures/window-daylight-reviewed.png' });
 });
+
 
