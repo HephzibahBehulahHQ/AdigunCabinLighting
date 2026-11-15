@@ -540,6 +540,7 @@ test('airline cabin meshes load in the locked Studio and respond to controls', a
   await expect(canvas).toHaveAttribute('aria-label', /Emirates/);
   await expect(canvas).toBeVisible();
   await expect(page.locator('.cabin-asset-error')).toHaveCount(0);
+  expect(Number(await canvas.getAttribute('data-simulated-light-count'))).toBeLessThanOrEqual(34);
   const initialImage = await page.screenshot({ path: 'artifacts/screenshots/airline-emirates-328-3d.png' });
 
   await page.getByLabel('3D camera angle').selectOption('window-row');
