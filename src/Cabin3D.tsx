@@ -426,7 +426,7 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
       const disposed = new Set<THREE.Material>();
       scene.traverse((object) => { if (object instanceof THREE.Mesh) { const materials = Array.isArray(object.material) ? object.material : [object.material]; materials.forEach((material) => disposed.add(material)); } });
       disposed.forEach((material) => material.dispose());
-      renderer.dispose(); renderer.domElement.remove(); api.current = null;
+      renderer.dispose(); renderer.forceContextLoss(); renderer.domElement.remove(); api.current = null;
       captureRef.current = null;
       cameraResetRef.current = null;
     };

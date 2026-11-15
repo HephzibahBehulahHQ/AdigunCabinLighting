@@ -1,360 +1,2 @@
-import { useEffect, useRef, useState, type MutableRefObject } from 'react';
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import type { CabinMeshProfile } from './aircraft-assets';
-import type { RGBW, SceneFile, ZoneId, ZoneState } from './scene-engine';
-import { composePreviewRGB, previewLightLevel } from './lighting-preview';
-import { interpolateScene } from './scene-engine';
-import { CABIN_EXPORT_4K, canRenderExport } from './export-capabilities';
-
-type Props = {
-  profile: CabinMeshProfile;
-  zones: ZoneState[];
-  effective: Record<ZoneId, RGBW>;
-  intensity: number;
-  selected: ZoneId;
-  onSelect: (zone: ZoneId) => void;
-  highQuality: boolean;
-  previewActive: boolean;
-  previewMotion: boolean;
-  previewTime: number;
-  previewDuration: number;
-  previewStartedAt: number;
-  scene: SceneFile;
-  cameraView: 'entry' | 'mid-cabin' | 'aft' | 'window-row';
-  captureRef: MutableRefObject<(() => Promise<Blob>) | null>;
-  cameraResetRef: MutableRefObject<(() => void) | null>;
-};
-
-const MATERIAL_ZONES: Record<string, ZoneId> = {
-  ceiling_cove: 'ceiling_cove',
-  left_sidewall: 'left_sidewall',
-  right_sidewall: 'right_sidewall',
-  footwell: 'footwell',
-};
-
-function previewColor(value: RGBW) {
-  const rgb = composePreviewRGB(value);
-  return new THREE.Color(rgb.r / 100, rgb.g / 100, rgb.b / 100);
-}
-
-function applyZoneLighting(materials: Map<ZoneId, Set<THREE.Material>>, lights: Map<ZoneId, THREE.PointLight[]>, effective: Record<ZoneId, RGBW>, intensity: number) {
-  for (const id of ['ceiling_cove', 'left_sidewall', 'right_sidewall', 'footwell'] as const) {
-    const rgbw = effective[id];
-    const color = previewColor(rgbw);
-    const level = previewLightLevel(rgbw, intensity);
-    for (const material of materials.get(id) ?? []) {
-      if ('emissive' in material) {
-        const emissiveMaterial = material as THREE.MeshStandardMaterial;
-        emissiveMaterial.emissive.copy(color);
-        emissiveMaterial.emissiveIntensity = level === 0 ? 0 : .2 + level * 2.6;
-      }
-    }
-    for (const light of lights.get(id) ?? []) { light.color.copy(color); light.intensity = level * 25; }
-  }
-}
-
-function batchRepeatedCabinParts(root: THREE.Object3D, candidates: THREE.Mesh[]) {
-  root.updateMatrixWorld(true);
-  const rootInverse = root.matrixWorld.clone().invert();
-  const batches = new Map<string, THREE.Mesh[]>();
-  for (const mesh of candidates) {
-    if (Array.isArray(mesh.material)) continue;
-    const key = `${mesh.geometry.uuid}:${mesh.material.uuid}`;
-    const batch = batches.get(key);
-    if (batch) batch.push(mesh); else batches.set(key, [mesh]);
-  }
-  for (const meshes of batches.values()) {
-    if (meshes.length < 2) continue;
-    const first = meshes[0];
-    const instances = new THREE.InstancedMesh(first.geometry, first.material, meshes.length);
-    meshes.forEach((mesh, index) => {
-      // Instanced meshes are added below `root`, so store root-local transforms.
-      instances.setMatrixAt(index, rootInverse.clone().multiply(mesh.matrixWorld));
-      mesh.parent?.remove(mesh);
-    });
-    instances.instanceMatrix.needsUpdate = true;
-    instances.computeBoundingSphere();
-    instances.castShadow = false;
-    instances.receiveShadow = false;
-    instances.name = `Batched ${first.name || 'cabin component'} Ã— ${meshes.length}`;
-    root.add(instances);
-  }
-}
-
-export default function CabinAsset3D({ profile, zones, effective, intensity, selected, onSelect, highQuality, previewActive, previewMotion, previewTime, previewDuration, previewStartedAt, scene: activeScene, cameraView, captureRef, cameraResetRef }: Props) {
-  const hostRef = useRef<HTMLDivElement>(null);
-  const runtime = useRef<{ renderer: THREE.WebGLRenderer; scene: THREE.Scene; camera: THREE.PerspectiveCamera; materials: Map<ZoneId, Set<THREE.Material>>; lights: Map<ZoneId, THREE.PointLight[]>; selectable: THREE.Object3D[]; resize: ResizeObserver; reset: () => void; applyLighting: (values?: Record<ZoneId, RGBW>) => void; draw: () => void } | null>(null);
-  const [error, setError] = useState('');
-  const home = useRef<{ position: THREE.Vector3; quaternion: THREE.Quaternion } | null>(null);
-  const cameraViewRef = useRef(cameraView);
-  cameraViewRef.current = cameraView;
-  const previewActiveRef = useRef(previewActive);
-  previewActiveRef.current = previewActive;
-  const lighting = useRef({ effective, intensity });
-  lighting.current = { effective, intensity };
-
-  useEffect(() => {
-    const host = hostRef.current;
-    if (!host) return;
-    let disposed = false;
-    let renderer: THREE.WebGLRenderer;
-    try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: false });
-    } catch {
-      setError('WebGL is unavailable in this browser. The aircraft cabin mesh could not be rendered.');
-      return;
-    }
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.18;
-    renderer.shadowMap.enabled = false;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, highQuality ? 1.5 : 1.25));
-    renderer.setSize(host.clientWidth || 800, host.clientHeight || 500, false);
-    renderer.domElement.className = 'cabin-webgl-canvas';
-    renderer.domElement.setAttribute('role', 'img');
-    renderer.domElement.setAttribute('aria-label', `Interactive 3D ${profile.label}. Authored simulation geometry; not an OEM or verified airline fit.`);
-    renderer.domElement.tabIndex = 0;
-    host.replaceChildren(renderer.domElement);
-
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color('#07111d');
-    scene.add(new THREE.HemisphereLight('#e5f3ff', '#243143', 2.1));
-    const key = new THREE.DirectionalLight('#fff1db', 1.25);
-    key.position.set(-2, 7, 9);
-    key.castShadow = false;
-    scene.add(key);
-    const camera = new THREE.PerspectiveCamera(62, 1, .03, 250);
-    const root = new THREE.Group();
-    scene.add(root);
-    const modelLights = new Map<ZoneId, THREE.PointLight[]>();
-    const zoneMaterials = new Map<ZoneId, Set<THREE.Material>>();
-    const selectable: THREE.Object3D[] = [];
-    let box = new THREE.Box3(new THREE.Vector3(-2, 0, -20), new THREE.Vector3(2, 2.5, 20));
-    const viewCenter = () => box.getCenter(new THREE.Vector3());
-    const viewSize = () => box.getSize(new THREE.Vector3());
-    const pose = (view: Props['cameraView']) => {
-      const center = viewCenter();
-      const size = viewSize();
-      const y = box.min.y + Math.min(size.y * .66, 1.58);
-      const forward = Math.max(1, size.z * .46);
-      if (view === 'aft') return { position: new THREE.Vector3(center.x, y, box.min.z + forward * .16), target: new THREE.Vector3(center.x, y, box.max.z - forward * .2) };
-      if (view === 'window-row') return { position: new THREE.Vector3(center.x + size.x * .12, y, box.max.z - Math.max(1.8, size.z * .055)), target: new THREE.Vector3(center.x + size.x * .08, y * .94, box.min.z + size.z * .08) };
-      const z = view === 'mid-cabin' ? center.z + size.z * .15 : box.max.z - Math.max(1.8, size.z * .055);
-      return { position: new THREE.Vector3(center.x, y, z), target: new THREE.Vector3(center.x, y * .94, box.min.z + size.z * .08) };
-    };
-    const fitCamera = (view: Props['cameraView']) => {
-      const next = pose(view);
-      camera.position.copy(next.position);
-      camera.lookAt(next.target);
-      home.current = { position: camera.position.clone(), quaternion: camera.quaternion.clone() };
-    };
-    let frame: number | null = null;
-    let lastRender = 0;
-    const draw = () => {
-      const now = performance.now();
-      if (now - lastRender < (previewActiveRef.current ? 80 : 32)) return;
-      lastRender = now;
-      renderer.render(scene, camera);
-    };
-    const requestDraw = () => {
-      if (frame !== null) return;
-      frame = requestAnimationFrame(() => { frame = null; if (runtime.current) draw(); });
-    };
-    const resize = new ResizeObserver(() => {
-      const width = host.clientWidth; const height = host.clientHeight;
-      if (width && height) { camera.aspect = width / height; camera.updateProjectionMatrix(); renderer.setSize(width, height, false); requestDraw(); }
-    });
-    resize.observe(host);
-
-    let rootBoxReady = false;
-    const loader = new GLTFLoader();
-    void loader.loadAsync(profile.meshUrl).then((gltf) => {
-      if (disposed) { gltf.scene.traverse((item) => { if (item instanceof THREE.Mesh) { item.geometry.dispose(); const materials = Array.isArray(item.material) ? item.material : [item.material]; materials.forEach((material) => material.dispose()); } }); return; }
-      root.add(gltf.scene);
-      box = new THREE.Box3().setFromObject(gltf.scene);
-      const size = box.getSize(new THREE.Vector3());
-      const center = box.getCenter(new THREE.Vector3());
-      // Keep the model in meter-scale and level it on a local floor plane.
-      gltf.scene.position.set(-center.x, -box.min.y, -center.z);
-      box = new THREE.Box3().setFromObject(gltf.scene);
-      const radius = Math.max(size.x, size.y, size.z);
-      camera.near = Math.max(.02, radius / 2500);
-      camera.far = Math.max(120, radius * 6);
-      camera.updateProjectionMatrix();
-      scene.fog = new THREE.Fog('#07111d', size.z * .95, size.z * 2.5);
-      const repeatedParts: THREE.Mesh[] = [];
-      gltf.scene.traverse((object) => {
-        if (object instanceof THREE.Light) { object.intensity = 0; return; }
-        if (!(object instanceof THREE.Mesh)) return;
-        const list = Array.isArray(object.material) ? object.material : [object.material];
-        const zone = list.map((material) => MATERIAL_ZONES[material.name]).find(Boolean);
-        if (zone) {
-          object.userData.zoneId = zone;
-          selectable.push(object);
-          for (const material of list) {
-            const mappedZone = MATERIAL_ZONES[material.name];
-            if (mappedZone) {
-              const zoneMaterialSet = zoneMaterials.get(mappedZone) ?? new Set<THREE.Material>();
-              zoneMaterialSet.add(material);
-              zoneMaterials.set(mappedZone, zoneMaterialSet);
-            }
-          }
-        } else repeatedParts.push(object);
-        object.castShadow = false;
-        object.receiveShadow = false;
-      });
-      batchRepeatedCabinParts(gltf.scene, repeatedParts);
-      // Keep the interactive preview responsive on large cabins; material groups provide continuous zone coverage.
-      const fixtureCount = 2;
-      const addZoneLights = (zone: ZoneId, x: number, y: number) => {
-        const lights: THREE.PointLight[] = [];
-        for (let index = 0; index < fixtureCount; index++) {
-          const z = box.min.z + size.z * (index + .5) / fixtureCount;
-          const light = new THREE.PointLight('#ffffff', 0, Math.max(1.5, size.x * .95), 1.7);
-          light.position.set(x, y, z);
-          scene.add(light);
-          lights.push(light);
-        }
-        modelLights.set(zone, lights);
-      };
-      addZoneLights('ceiling_cove', -size.x * .2, box.min.y + size.y * .92);
-      addZoneLights('left_sidewall', -size.x * .43, box.min.y + size.y * .5);
-      addZoneLights('right_sidewall', size.x * .43, box.min.y + size.y * .5);
-      addZoneLights('footwell', 0, box.min.y + size.y * .12);
-      fitCamera(cameraView);
-      applyZoneLighting(zoneMaterials, modelLights, lighting.current.effective, lighting.current.intensity);
-      rootBoxReady = true;
-      setError('');
-      requestDraw();
-    }).catch((reason: unknown) => {
-      if (!disposed) setError(`Aircraft mesh failed to load: ${reason instanceof Error ? reason.message : 'unknown loader error'}`);
-    });
-
-    const raycaster = new THREE.Raycaster();
-    const pointer = new THREE.Vector2();
-    const onPick = (event: MouseEvent) => {
-      const rect = renderer.domElement.getBoundingClientRect();
-      pointer.set((event.clientX - rect.left) / rect.width * 2 - 1, -((event.clientY - rect.top) / rect.height * 2 - 1));
-      raycaster.setFromCamera(pointer, camera);
-      const hit = raycaster.intersectObjects(selectable, true)[0];
-      const zone = hit?.object.userData.zoneId as ZoneId | undefined;
-      if (zone) onSelect(zone);
-    };
-    const canvas = renderer.domElement;
-    canvas.addEventListener('dblclick', onPick);
-    let dragging = false; let lastX = 0; let lastY = 0;
-    const onDown = (event: PointerEvent) => { dragging = true; lastX = event.clientX; lastY = event.clientY; canvas.setPointerCapture(event.pointerId); };
-    const onMove = (event: PointerEvent) => {
-      if (!dragging) return;
-      const dx = event.clientX - lastX; const dy = event.clientY - lastY;
-      lastX = event.clientX; lastY = event.clientY;
-      // Rotate in place so orbit gestures cannot carry the camera through the cabin shell.
-      camera.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(camera.up, -dx * .0025));
-      const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion).normalize();
-      camera.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(right, -dy * .0025));
-      requestDraw();
-    };
-    const onUp = () => { dragging = false; };
-    const onWheel = (event: WheelEvent) => {
-      event.preventDefault();
-      const direction = camera.getWorldDirection(new THREE.Vector3());
-      camera.position.addScaledVector(direction, THREE.MathUtils.clamp(-event.deltaY * .003, -1, 1));
-      requestDraw();
-    };
-    canvas.addEventListener('pointerdown', onDown); canvas.addEventListener('pointermove', onMove); canvas.addEventListener('pointerup', onUp); canvas.addEventListener('pointercancel', onUp); canvas.addEventListener('wheel', onWheel, { passive: false });
-    const reset = () => { fitCamera(cameraViewRef.current); requestDraw(); };
-    cameraResetRef.current = reset;
-    const applyLighting = (values = lighting.current.effective) => applyZoneLighting(zoneMaterials, modelLights, values, lighting.current.intensity);
-    runtime.current = { renderer, scene, camera, materials: zoneMaterials, lights: modelLights, selectable, resize, reset, applyLighting, draw };
-    captureRef.current = async () => {
-      const gl = renderer.getContext();
-      const max = Number(gl.getParameter(gl.MAX_RENDERBUFFER_SIZE));
-      if (!canRenderExport(max, CABIN_EXPORT_4K.width, CABIN_EXPORT_4K.height)) throw new Error(`This device supports ${max}px render edges; 4K capture requires ${CABIN_EXPORT_4K.width} Ã— ${CABIN_EXPORT_4K.height}.`);
-      const sizeBefore = renderer.getSize(new THREE.Vector2()); const ratio = renderer.getPixelRatio(); const aspectBefore = camera.aspect;
-      const target = new THREE.WebGLRenderTarget(CABIN_EXPORT_4K.width, CABIN_EXPORT_4K.height, { format: THREE.RGBAFormat, type: THREE.UnsignedByteType, depthBuffer: true });
-      target.texture.colorSpace = THREE.SRGBColorSpace;
-      try {
-        renderer.setPixelRatio(1); renderer.setSize(CABIN_EXPORT_4K.width, CABIN_EXPORT_4K.height, false);
-        if (gl.drawingBufferWidth !== CABIN_EXPORT_4K.width || gl.drawingBufferHeight !== CABIN_EXPORT_4K.height) throw new Error(`The browser allocated ${gl.drawingBufferWidth} Ã— ${gl.drawingBufferHeight}; 4K capture was not started.`);
-        camera.aspect = CABIN_EXPORT_4K.width / CABIN_EXPORT_4K.height;
-        camera.updateProjectionMatrix();
-        renderer.setRenderTarget(target);
-        renderer.render(scene, camera);
-        const pixels = new Uint8Array(CABIN_EXPORT_4K.width * CABIN_EXPORT_4K.height * 4);
-        renderer.readRenderTargetPixels(target, 0, 0, CABIN_EXPORT_4K.width, CABIN_EXPORT_4K.height, pixels);
-        renderer.setRenderTarget(null);
-        const imageCanvas = document.createElement('canvas');
-        imageCanvas.width = CABIN_EXPORT_4K.width; imageCanvas.height = CABIN_EXPORT_4K.height;
-        const context = imageCanvas.getContext('2d');
-        if (!context) throw new Error('A 2D canvas is unavailable for the 4K image encode.');
-        const image = context.createImageData(CABIN_EXPORT_4K.width, CABIN_EXPORT_4K.height);
-        const rowBytes = CABIN_EXPORT_4K.width * 4;
-        for (let row = 0; row < CABIN_EXPORT_4K.height; row++) image.data.set(pixels.subarray((CABIN_EXPORT_4K.height - row - 1) * rowBytes, (CABIN_EXPORT_4K.height - row) * rowBytes), row * rowBytes);
-        context.putImageData(image, 0, 0);
-        return await new Promise<Blob>((resolve, reject) => imageCanvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('4K image encoding failed.'))));
-      } finally {
-        renderer.setRenderTarget(null); target.dispose(); camera.aspect = aspectBefore; camera.updateProjectionMatrix();
-        renderer.setPixelRatio(ratio); renderer.setSize(sizeBefore.x, sizeBefore.y, false); renderer.render(scene, camera);
-      }
-    };
-    const drawFrame = () => { if (rootBoxReady) draw(); };
-    drawFrame();
-
-    return () => {
-      disposed = true;
-      if (frame !== null) cancelAnimationFrame(frame);
-      resize.disconnect();
-      canvas.removeEventListener('dblclick', onPick); canvas.removeEventListener('pointerdown', onDown); canvas.removeEventListener('pointermove', onMove); canvas.removeEventListener('pointerup', onUp); canvas.removeEventListener('pointercancel', onUp); canvas.removeEventListener('wheel', onWheel);
-      root.traverse((object) => { if (object instanceof THREE.Mesh) { object.geometry.dispose(); const materials = Array.isArray(object.material) ? object.material : [object.material]; materials.forEach((material) => material.dispose()); } });
-      renderer.dispose(); renderer.domElement.remove(); runtime.current = null; captureRef.current = null; cameraResetRef.current = null; home.current = null;
-    };
-  }, [profile.id]);
-
-  useEffect(() => {
-    const current = runtime.current;
-    if (!previewActive || !current) return;
-    let animation = 0;
-    const animate = (now: number) => {
-      const elapsed = Math.max(0, (now - previewStartedAt) / 1000);
-      current.applyLighting(interpolateScene(activeScene, Math.min(previewDuration, elapsed)));
-      current.draw();
-      if (elapsed < previewDuration) animation = requestAnimationFrame(animate);
-    };
-    animation = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animation);
-  }, [previewActive, previewStartedAt, activeScene, previewDuration]);
-
-  useEffect(() => {
-    const current = runtime.current;
-    if (!current) return;
-    current.applyLighting();
-    if (previewMotion) {
-      home.current ??= { position: current.camera.position.clone(), quaternion: current.camera.quaternion.clone() };
-      const phase = previewDuration > 0 ? previewTime / previewDuration * Math.PI * 2 : 0;
-      current.camera.position.copy(home.current.position);
-      current.camera.position.x += Math.sin(phase) * .12;
-      current.camera.position.y += Math.sin(phase * .5) * .025;
-      current.camera.quaternion.copy(home.current.quaternion);
-    } else if (home.current) {
-      current.camera.position.copy(home.current.position); current.camera.quaternion.copy(home.current.quaternion); home.current = null;
-    }
-    current.draw();
-  }, [zones, effective, intensity, previewMotion, previewTime, previewDuration]);
-
-  useEffect(() => { runtime.current?.reset(); }, [cameraView]);
-  useEffect(() => {
-    const current = runtime.current;
-    if (!current) return;
-    const host = hostRef.current;
-    current.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, highQuality && !previewActive ? 1.5 : 1));
-    if (host) current.renderer.setSize(host.clientWidth, host.clientHeight, false);
-    current.renderer.shadowMap.enabled = highQuality && !previewActive;
-    current.draw();
-  }, [highQuality, previewActive]);
-
-  return <div className="cabin-asset-renderer" ref={hostRef} data-selected-zone={selected}>
-    {error && <div className="cabin-asset-error" role="alert">{error}</div>}
-    <span className="cabin-asset-attribution">{profile.label} Â· SIMULATION GEOMETRY</span>
-  </div>;
-}
+ÁªçŠx"žØ^ÂŠäŠx¢œ¨~ÊÜü&›Šp,±ëwÛ1,\"–VÞ­êeiÇo ‘,[azw±¶Ø¦xh­¶‹œ…ë"µ¥µÁ½ÉÐìÕÍ•™™•Ð°ÕÍ•I•˜°ÕÍ•MÑ…Ñ”°ÑåÁ”5ÕÑ…‰±•I•™=‰©•Ðô™É½´€É•…Ðœì)¥µÁ½ÉÐ€¨…ÌQ!I™É½´€Ñ¡É•”œì)¥µÁ½ÉÐì1Q1½…‘•Èô™É½´€Ñ¡É•”½…‘‘½¹Ì½±½…‘•ÉÌ½1Q1½…‘•È¹©Ìœì)¥µÁ½ÉÐÑåÁ”ì…‰¥¹5•Í¡AÉ½™¥±”ô™É½´€œ¸½…¥ÉÉ…™Ðµ…ÍÍ•ÑÌœì)¥µÁ½ÉÐÑåÁ”ìI	\°M•¹•¥±”°i½¹•%°i½¹•MÑ…Ñ”ô™É½´€œ¸½Í•¹”µ•¹¥¹”œì)¥µÁ½ÉÐì½µÁ½Í•AÉ•Ù¥•ÝI°ÁÉ•Ù¥•Ý1¥¡Ñ1•Ù•°ô™É½´€œ¸½±¥¡Ñ¥¹œµÁÉ•Ù¥•Üœì)¥µÁ½ÉÐì¥¹Ñ•ÉÁ½±…Ñ•M•¹”ô™É½´€œ¸½Í•¹”µ•¹¥¹”œì)¥µÁ½ÉÐì	%9}aA=IQ|Ñ,°…¹I•¹‘•ÉáÁ½ÉÐô™É½´€œ¸½•áÁ½ÉÐµ…Á…‰¥±¥Ñ¥•Ìœì()ÑåÁ”AÉ½ÁÌ€ôì(€ÁÉ½™¥±”è…‰¥¹5•Í¡AÉ½™¥±”ì(€é½¹•Ìèi½¹•MÑ…Ñ•mtì(€•™™•Ñ¥Ù”èI•½Éñi½¹•%°I	\øì(€¥¹Ñ•¹Í¥Ñäè¹Õµ‰•Èì(€Í•±•Ñ•èi½¹•%ì(€½¹M•±•Ðè€¡é½¹”èi½¹•%¤€ôøÙ½¥ì(€¡¥¡EÕ…±¥Ñäè‰½½±•…¸ì(€ÁÉ•Ù¥•ÝÑ¥Ù”è‰½½±•…¸ì(€ÁÉ•Ù¥•Ý5½Ñ¥½¸è‰½½±•…¸ì(€ÁÉ•Ù¥•ÝQ¥µ”è¹Õµ‰•Èì(€ÁÉ•Ù¥•ÝÕÉ…Ñ¥½¸è¹Õµ‰•Èì(€ÁÉ•Ù¥•ÝMÑ…ÉÑ•‘Ðè¹Õµ‰•Èì(€Í•¹”èM•¹•¥±”ì(€…µ•É…Y¥•Üè€•¹ÑÉäœð€µ¥µ…‰¥¸œð€…™Ðœð€Ý¥¹‘½ÜµÉ½Üœì(€…ÁÑÕÉ•I•˜è5ÕÑ…‰±•I•™=‰©•Ðð  ¤€ôøAÉ½µ¥Í”ñ	±½ˆø¤ð¹Õ±°øì(€…µ•É…I•Í•ÑI•˜è5ÕÑ…‰±•I•™=‰©•Ðð  ¤€ôøÙ½¥¤ð¹Õ±°øì)ôì()½¹ÍÐ5QI%1}i=9LèI•½ÉñÍÑÉ¥¹œ°i½¹•%ø€ôì(€•¥±¥¹}½Ù”è€•¥±¥¹}½Ù”œ°(€±•™Ñ}Í¥‘•Ý…±°è€±•™Ñ}Í¥‘•Ý…±°œ°(€É¥¡Ñ}Í¥‘•Ý…±°è€É¥¡Ñ}Í¥‘•Ý…±°œ°(€™½½ÑÝ•±°è€™½½ÑÝ•±°œ°)ôì()™Õ¹Ñ¥½¸ÁÉ•Ù¥•Ý½±½È¡Ù…±Õ”èI	\¤ì(€½¹ÍÐÉˆ€ô½µÁ½Í•AÉ•Ù¥•ÝI¡Ù…±Õ”¤ì(€É•ÑÕÉ¸¹•ÜQ!I¹½±½È¡Éˆ¹È€¼€ÄÀÀ°Éˆ¹œ€¼€ÄÀÀ°Éˆ¹ˆ€¼€ÄÀÀ¤ì)ô()™Õ¹Ñ¥½¸…ÁÁ±åi½¹•1¥¡Ñ¥¹œ¡µ…Ñ•É¥…±Ìè5…Àñi½¹•%°M•ÐñQ!I¹5…Ñ•É¥…°øø°±¥¡ÑÌè5…Àñi½¹•%°Q!I¹A½¥¹Ñ1¥¡Ñmtø°•™™•Ñ¥Ù”èI•½Éñi½¹•%°I	\ø°¥¹Ñ•¹Í¥Ñäè¹Õµ‰•È¤ì(€™½È€¡½¹ÍÐ¥½˜l•¥±¥¹}½Ù”œ°€±•™Ñ}Í¥‘•Ý…±°œ°€É¥¡Ñ}Í¥‘•Ý…±°œ°€™½½ÑÝ•±°t…Ì½¹ÍÐ¤ì(€€€½¹ÍÐÉ‰Ü€ô•™™•Ñ¥Ù•m¥‘tì(€€€½¹ÍÐ½±½È€ôÁÉ•Ù¥•Ý½±½È¡É‰Ü¤ì(€€€½¹ÍÐ±•Ù•°€ôÁÉ•Ù¥•Ý1¥¡Ñ1•Ù•°¡É‰Ü°¥¹Ñ•¹Í¥Ñä¤ì(€€€™½È€¡½¹ÍÐµ…Ñ•É¥…°½˜µ…Ñ•É¥…±Ì¹•Ð¡¥¤€üümt¤ì(€€€€€¥˜€ •µ¥ÍÍ¥Ù”œ¥¸µ…Ñ•É¥…°¤ì(€€€€€€€½¹ÍÐ•µ¥ÍÍ¥Ù•5…Ñ•É¥…°€ôµ…Ñ•É¥…°…ÌQ!I¹5•Í¡MÑ…¹‘…É‘5…Ñ•É¥…°ì(€€€€€€€•µ¥ÍÍ¥Ù•5…Ñ•É¥…°¹•µ¥ÍÍ¥Ù”¹½Áä¡½±½È¤ì(€€€€€€€•µ¥ÍÍ¥Ù•5…Ñ•É¥…°¹•µ¥ÍÍ¥Ù•%¹Ñ•¹Í¥Ñä€ô±•Ù•°€ôôô€À€ü€À€è€¸È€¬±•Ù•°€¨€È¸Øì(€€€€€ô(€€€ô(€€€™½È€¡½¹ÍÐ±¥¡Ð½˜±¥¡ÑÌ¹•Ð¡¥¤€üümt¤ì±¥¡Ð¹½±½È¹½Áä¡½±½È¤ì±¥¡Ð¹¥¹Ñ•¹Í¥Ñä€ô±•Ù•°€¨€ÈÔìô(€ô)ô()™Õ¹Ñ¥½¸‰…Ñ¡I•Á•…Ñ•‘…‰¥¹A…ÉÑÌ¡É½½ÐèQ!I¹=‰©•ÐÍ°…¹‘¥‘…Ñ•ÌèQ!I¹5•Í¡mt¤ì(€É½½Ð¹ÕÁ‘…Ñ•5…ÑÉ¥á]½É±¡ÑÉÕ”¤ì(€½¹ÍÐÉ½½Ñ%¹Ù•ÉÍ”€ôÉ½½Ð¹µ…ÑÉ¥á]½É±¹±½¹” ¤¹¥¹Ù•ÉÐ ¤ì(€½¹ÍÐ‰…Ñ¡•Ì€ô¹•Ü5…ÀñÍÑÉ¥¹œ°Q!I¹5•Í¡mtø ¤ì(€™½È€¡½¹ÍÐµ•Í ½˜…¹‘¥‘…Ñ•Ì¤ì(€€€¥˜€¡ÉÉ…ä¹¥ÍÉÉ…ä¡µ•Í ¹µ…Ñ•É¥…°¤¤½¹Ñ¥¹Õ”ì(€€€½¹ÍÐ­•ä€ô€‘íµ•Í ¹•½µ•ÑÉä¹ÕÕ¥‘ôè‘íµ•Í ¹µ…Ñ•É¥…°¹ÕÕ¥‘õ€ì(€€€½¹ÍÐ‰…Ñ €ô‰…Ñ¡•Ì¹•Ð¡­•ä¤ì(€€€¥˜€¡‰…Ñ ¤‰…Ñ ¹ÁÕÍ ¡µ•Í ¤ì•±Í”‰…Ñ¡•Ì¹Í•Ð¡­•ä°mµ•Í¡t¤ì(€ô(€™½È€¡½¹ÍÐµ•Í¡•Ì½˜‰…Ñ¡•Ì¹Ù…±Õ•Ì ¤¤ì(€€€¥˜€¡µ•Í¡•Ì¹±•¹Ñ €ð€È¤½¹Ñ¥¹Õ”ì(€€€½¹ÍÐ™¥ÉÍÐ€ôµ•Í¡•ÍlÁtì(€€€½¹ÍÐ¥¹ÍÑ…¹•Ì€ô¹•ÜQ!I¹%¹ÍÑ…¹•‘5•Í ¡™¥ÉÍÐ¹•½µ•ÑÉä°™¥ÉÍÐ¹µ…Ñ•É¥…°°µ•Í¡•Ì¹±•¹Ñ ¤ì(€€€µ•Í¡•Ì¹™½É…  ¡µ•Í °¥¹‘•à¤€ôøì(€€€€€€¼¼%¹ÍÑ…¹•µ•Í¡•Ì…É”…‘‘•‰•±½ÜÉ½½Ñ€°Í¼ÍÑ½É”É½½Ðµ±½…°ÑÉ…¹Í™½ÉµÌ¸(€€€€€¥¹ÍÑ…¹•Ì¹Í•Ñ5…ÑÉ¥áÐ¡¥¹‘•à°É½½Ñ%¹Ù•ÉÍ”¹±½¹” ¤¹µÕ±Ñ¥Á±ä¡µ•Í ¹µ…ÑÉ¥á]½É±¤¤ì(€€€€€µ•Í ¹Á…É•¹Ðü¹É•µ½Ù”¡µ•Í ¤ì(€€€ô¤ì(€€€¥¹ÍÑ…¹•Ì¹¥¹ÍÑ…¹•5…ÑÉ¥à¹¹••‘ÍUÁ‘…Ñ”€ôÑÉÕ”ì(€€€¥¹ÍÑ…¹•Ì¹½µÁÕÑ•	½Õ¹‘¥¹MÁ¡•É” ¤ì(€€€¥¹ÍÑ…¹•Ì¹…ÍÑM¡…‘½Ü€ô™…±Í”ì(€€€¥¹ÍÑ…¹•Ì¹É••¥Ù•M¡…‘½Ü€ô™…±Í”ì(€€€¥¹ÍÑ…¹•Ì¹¹…µ”€ô	…Ñ¡•€‘í™¥ÉÍÐ¹¹…µ”ñð€…‰¥¸½µÁ½¹•¹Ðôƒ\€‘íµ•Í¡•Ì¹±•¹Ñ¡õ€ì(€€€É½½Ð¹…‘¡¥¹ÍÑ…¹•Ì¤ì(€ô)ô()•áÁ½ÉÐ‘•™…Õ±Ð™Õ¹Ñ¥½¸…‰¥¹ÍÍ•ÐÍ¡ìÁÉ½™¥±”°é½¹•Ì°•™™•Ñ¥Ù”°¥¹Ñ•¹Í¥Ñä°Í•±•Ñ•°½¹M•±•Ð°¡¥¡EÕ…±¥Ñä°ÁÉ•Ù¥•ÝÑ¥Ù”°ÁÉ•Ù¥•Ý5½Ñ¥½¸°ÁÉ•Ù¥•ÝQ¥µ”°ÁÉ•Ù¥•ÝÕÉ…Ñ¥½¸°ÁÉ•Ù¥•ÝMÑ…ÉÑ•‘Ð°Í•¹”è…Ñ¥Ù•M•¹”°…µ•É…Y¥•Ü°…ÁÑÕÉ•I•˜°…µ•É…I•Í•ÑI•˜ôèAÉ½ÁÌ¤ì(€½¹ÍÐ¡½ÍÑI•˜€ôÕÍ•I•˜ñ!Q51¥Ù±•µ•¹Ðø¡¹Õ±°¤ì(€½¹ÍÐÉÕ¹Ñ¥µ”€ôÕÍ•I•˜ñìÉ•¹‘•É•ÈèQ!I¹]•‰1I•¹‘•É•ÈìÍ•¹”èQ!I¹M•¹”ì…µ•É„èQ!I¹A•ÉÍÁ•Ñ¥Ù•…µ•É„ìµ…Ñ•É¥…±Ìè5…Àñi½¹•%°M•ÐñQ!I¹5…Ñ•É¥…°øøì±¥¡ÑÌè5…Àñi½¹•%°Q!I¹A½¥¹Ñ1¥¡ÑmtøìÍ•±•Ñ…‰±”èQ!I¹=‰©•ÐÍmtìÉ•Í¥é”èI•Í¥é•=‰Í•ÉÙ•ÈìÉ•Í•Ðè€ ¤€ôøÙ½¥ì…ÁÁ±å1¥¡Ñ¥¹œè€¡Ù…±Õ•ÌüèI•½Éñi½¹•%°I	\ø¤€ôøÙ½¥ì‘É…Üè€ ¤€ôøÙ½¥ôð¹Õ±°ø¡¹Õ±°¤ì(€½¹ÍÐm•ÉÉ½È°Í•ÑÉÉ½Ét€ôÕÍ•MÑ…Ñ” œœ¤ì(€½¹ÍÐ¡½µ”€ôÕÍ•I•˜ñìÁ½Í¥Ñ¥½¸èQ!I¹Y•Ñ½ÈÌìÅÕ…Ñ•É¹¥½¸èQ!I¹EÕ…Ñ•É¹¥½¸ôð¹Õ±°ø¡¹Õ±°¤ì(€½¹ÍÐ…µ•É…Y¥•ÝI•˜€ôÕÍ•I•˜¡…µ•É…Y¥•Ü¤ì(€…µ•É…Y¥•ÝI•˜¹ÕÉÉ•¹Ð€ô…µ•É…Y¥•Üì(€½¹ÍÐÁÉ•Ù¥•ÝÑ¥Ù•I•˜€ôÕÍ•I•˜¡ÁÉ•Ù¥•ÝÑ¥Ù”¤ì(€ÁÉ•Ù¥•ÝÑ¥Ù•I•˜¹ÕÉÉ•¹Ð€ôÁÉ•Ù¥•ÝÑ¥Ù”ì(€½¹ÍÐ±¥¡Ñ¥¹œ€ôÕÍ•I•˜¡ì•™™•Ñ¥Ù”°¥¹Ñ•¹Í¥Ñäô¤ì(€±¥¡Ñ¥¹œ¹ÕÉÉ•¹Ð€ôì•™™•Ñ¥Ù”°¥¹Ñ•¹Í¥Ñäôì((€ÕÍ•™™•Ð  ¤€ôøì(€€€½¹ÍÐ¡½ÍÐ€ô¡½ÍÑI•˜¹ÕÉÉ•¹Ðì(€€€¥˜€ …¡½ÍÐ¤É•ÑÕÉ¸ì(€€€±•Ð‘¥ÍÁ½Í•€ô™…±Í”ì(€€€±•ÐÉ•¹‘•É•ÈèQ!I¹]•‰1I•¹‘•É•Èì(€€€ÑÉäì(€€€€€É•¹‘•É•È€ô¹•ÜQ!I¹]•‰1I•¹‘•É•È¡ì…¹Ñ¥…±¥…ÌèÑÉÕ”°…±Á¡„è™…±Í”°Á½Ý•ÉAÉ•™•É•¹”è€¡¥ µÁ•É™½Éµ…¹”œ°ÁÉ•Í•ÉÙ•É…Ý¥¹	Õ™™•Èè™…±Í”ô¤ì(€€€ô…Ñ ì(€€€€€Í•ÑÉÉ½È ]•‰0¥ÌÕ¹…Ù…¥±…‰±”¥¸Ñ¡¥Ì‰É½ÝÍ•È¸Q¡”…¥ÉÉ…™Ð…‰¥¸µ•Í ½Õ±¹½Ð‰”É•¹‘•É•¸œ¤ì(€€€€€É•ÑÕÉ¸ì(€€€ô(€€€É•¹‘•É•È¹½ÕÑÁÕÑ½±½ÉMÁ…”€ôQ!I¹MI	½±½ÉMÁ…”ì(€€€É•¹‘•É•È¹Ñ½¹•5…ÁÁ¥¹œ€ôQ!I¹M¥±µ¥Q½¹•5…ÁÁ¥¹œì(€€€É•¹‘•É•È¹Ñ½¹•5…ÁÁ¥¹áÁ½ÍÕÉ”€ô€Ä¸Äàì(€€€É•¹‘•É•È¹Í¡…‘½Ý5…À¹•¹…‰±•€ô™…±Í”ì(€€€É•¹‘•É•È¹Í•ÑA¥á•±I…Ñ¥¼¡5…Ñ ¹µ¥¸¡Ý¥¹‘½Ü¹‘•Ù¥•A¥á•±I…Ñ¥¼ñð€Ä°¡¥¡EÕ…±¥Ñä€ü€Ä¸Ô€è€Ä¸ÈÔ¤¤ì(€€€É•¹‘•É•È¹Í•ÑM¥é”¡¡½ÍÐ¹±¥•¹Ñ]¥‘Ñ ñð€àÀÀ°¡½ÍÐ¹±¥•¹Ñ!•¥¡Ðñð€ÔÀÀ°™…±Í”¤ì(€€€É•¹‘•É•È¹‘½µ±•µ•¹Ð¹±…ÍÍ9…µ”€ô€…‰¥¸µÝ•‰°µ…¹Ù…Ìœì(€€€É•¹‘•É•È¹‘½µ±•µ•¹Ð¹Í•ÑÑÑÉ¥‰ÕÑ” É½±”œ°€¥µœœ¤ì(€€€É•¹‘•É•È¹‘½µ±•µ•¹Ð¹Í•ÑÑÑÉ¥‰ÕÑ” …É¥„µ±…‰•°œ°%¹Ñ•É…Ñ¥Ù”€Í€‘íÁÉ½™¥±”¹±…‰•±ô¸ÕÑ¡½É•Í¥µÕ±…Ñ¥½¸•½µ•ÑÉäì¹½Ð…¸=4½ÈÙ•É¥™¥•…¥É±¥¹”™¥Ð¹€¤ì(€€€É•¹‘•É•È¹‘½µ±•µ•¹Ð¹Ñ…‰%¹‘•à€ô€Àì(€€€¡½ÍÐ¹É•Á±…•¡¥±‘É•¸¡É•¹‘•É•È¹‘½µ±•µ•¹Ð¤ì((€€€½¹ÍÐÍ•¹”€ô¹•ÜQ!I¹M•¹” ¤ì(€€€Í•¹”¹‰…­É½Õ¹€ô¹•ÜQ!I¹½±½È œŒÀÜÄÄÅœ¤ì(€€€Í•¹”¹…‘¡¹•ÜQ!I¹!•µ¥ÍÁ¡•É•1¥¡Ð œ”Õ˜Í™˜œ°€œŒÈÐÌÄÐÌœ°€È¸Ä¤¤ì(€€€½¹ÍÐ­•ä€ô¹•ÜQ!I¹¥É•Ñ¥½¹…±1¥¡Ð œ™™˜Å‘ˆœ°€Ä¸ÈÔ¤ì(€€€­•ä¹Á½Í¥Ñ¥½¸¹Í•Ð ´È°€Ü°€ä¤ì(€€€­•ä¹…ÍÑM¡…‘½Ü€ô™…±Í”ì(€€€Í•¹”¹…‘¡­•ä¤ì(€€€½¹ÍÐ…µ•É„€ô¹•ÜQ!I¹A•ÉÍÁ•Ñ¥Ù•…µ•É„ ØÈ°€Ä°€¸ÀÌ°€ÈÔÀ¤ì(€€€½¹ÍÐÉ½½Ð€ô¹•ÜQ!I¹É½ÕÀ ¤ì(€€€Í•¹”¹…‘¡É½½Ð¤ì(€€€½¹ÍÐµ½‘•±1¥¡ÑÌ€ô¹•Ü5…Àñi½¹•%°Q!I¹A½¥¹Ñ1¥¡Ñmtø ¤ì(€€€½¹ÍÐé½¹•5…Ñ•É¥…±Ì€ô¹•Ü5…Àñi½¹•%°M•ÐñQ!I¹5…Ñ•É¥…°øø ¤ì(€€€½¹ÍÐÍ•±•Ñ…‰±”èQ!I¹=‰©•ÐÍmt€ômtì(€€€±•Ð‰½à€ô¹•ÜQ!I¹	½àÌ¡¹•ÜQ!I¹Y•Ñ½ÈÌ ´È°€À°€´ÈÀ¤°¹•ÜQ!I¹Y•Ñ½ÈÌ È°€È¸Ô°€ÈÀ¤¤ì(€€€½¹ÍÐÙ¥•Ý•¹Ñ•È€ô€ ¤€ôø‰½à¹•Ñ•¹Ñ•È¡¹•ÜQ!I¹Y•Ñ½ÈÌ ¤¤ì(€€€½¹ÍÐÙ¥•ÝM¥é”€ô€ ¤€ôø‰½à¹•ÑM¥é”¡¹•ÜQ!I¹Y•Ñ½ÈÌ ¤¤ì(€€€½¹ÍÐÁ½Í”€ô€¡Ù¥•ÜèAÉ½ÁÍl…µ•É…Y¥•Üt¤€ôøì(€€€€€½¹ÍÐ•¹Ñ•È€ôÙ¥•Ý•¹Ñ•È ¤ì(€€€€€½¹ÍÐÍ¥é”€ôÙ¥•ÝM¥é” ¤ì(€€€€€½¹ÍÐä€ô‰½à¹µ¥¸¹ä€¬5…Ñ ¹µ¥¸¡Í¥é”¹ä€¨€¸ØØ°€Ä¸Ôà¤ì(€€€€€½¹ÍÐ™½ÉÝ…É€ô5…Ñ ¹µ…à Ä°Í¥é”¹è€¨€¸ÐØ¤ì(€€€€€¥˜€¡Ù¥•Ü€ôôô€…™Ðœ¤É•ÑÕÉ¸ìÁ½Í¥Ñ¥½¸è¹•ÜQ!I¹Y•Ñ½ÈÌ¡•¹Ñ•È¹à°ä°‰½à¹µ¥¸¹è€¬™½ÉÝ…É€¨€¸ÄØ¤°Ñ…É•Ðè¹•ÜQ!I¹Y•Ñ½ÈÌ¡•¹Ñ•È¹à°ä°‰½à¹µ…à¹è€´™½ÉÝ…É€¨€¸È¤ôì(€€€€€¥˜€¡Ù¥•Ü€ôôô€Ý¥¹‘½ÜµÉ½Üœ¤É•ÑÕÉ¸ìÁ½Í¥Ñ¥½¸è¹•ÜQ!I¹Y•Ñ½ÈÌ¡•¹Ñ•È¹à€¬Í¥é”¹à€¨€¸ÄÈ°ä°‰½à¹µ…à¹è€´5…Ñ ¹µ…à Ä¸à°Í¥é”¹è€¨€¸ÀÔÔ¤¤°Ñ…É•Ðè¹•ÜQ!I¹Y•Ñ½ÈÌ¡•¹Ñ•È¹à€¬Í¥é”¹à€¨€¸Àà°ä€¨€¸äÐ°‰½à¹µ¥¸¹è€¬Í¥é”¹è€¨€¸Àà¤ôì(€€€€€½¹ÍÐè€ôÙ¥•Ü€ôôô€µ¥µ…‰¥¸œ€ü•¹Ñ•È¹è€¬Í¥é”¹è€¨€¸ÄÔ€è‰½à¹µ…à¹è€´5…Ñ ¹µ…à Ä¸à°Í¥é”¹è€¨€¸ÀÔÔ¤ì(€€€€€É•ÑÕÉ¸ìÁ½Í¥Ñ¥½¸è¹•ÜQ!I¹Y•Ñ½ÈÌ¡•¹Ñ•È¹à°ä°è¤°Ñ…É•Ðè¹•ÜQ!I¹Y•Ñ½ÈÌ¡•¹Ñ•È¹à°ä€¨€¸äÐ°‰½à¹µ¥¸¹è€¬Í¥é”¹è€¨€¸Àà¤ôì(€€€ôì(€€€½¹ÍÐ™¥Ñ…µ•É„€ô€¡Ù¥•ÜèAÉ½ÁÍl…µ•É…Y¥•Üt¤€ôøì(€€€€€½¹ÍÐ¹•áÐ€ôÁ½Í”¡Ù¥•Ü¤ì(€€€€€…µ•É„¹Á½Í¥Ñ¥½¸¹½Áä¡¹•áÐ¹Á½Í¥Ñ¥½¸¤ì(€€€€€…µ•É„¹±½½­Ð¡¹•áÐ¹Ñ…É•Ð¤ì(€€€€€¡½µ”¹ÕÉÉ•¹Ð€ôìÁ½Í¥Ñ¥½¸è…µ•É„¹Á½Í¥Ñ¥½¸¹±½¹” ¤°ÅÕ…Ñ•É¹¥½¸è…µ•É„¹ÅÕ…Ñ•É¹¥½¸¹±½¹” ¤ôì(€€€ôì(€€€±•Ð™É…µ”è¹Õµ‰•Èð¹Õ±°€ô¹Õ±°ì(€€€±•Ð±…ÍÑI•¹‘•È€ô€Àì(€€€½¹ÍÐ‘É…Ü€ô€ ¤€ôøì(€€€€€½¹ÍÐ¹½Ü€ôÁ•É™½Éµ…¹”¹¹½Ü ¤ì(€€€€€¥˜€¡¹½Ü€´±…ÍÑI•¹‘•È€ð€¡ÁÉ•Ù¥•ÝÑ¥Ù•I•˜¹ÕÉÉ•¹Ð€ü€àÀ€è€ÌÈ¤¤É•ÑÕÉ¸ì(€€€€€±…ÍÑI•¹‘•È€ô¹½Üì(€€€€€É•¹‘•É•È¹É•¹‘•È¡Í•¹”°…µ•É„¤ì(€€€ôì(€€€½¹ÍÐÉ•ÅÕ•ÍÑÉ…Ü€ô€ ¤€ôøì(€€€€€¥˜€¡™É…µ”€„ôô¹Õ±°¤É•ÑÕÉ¸ì(€€€€€™É…µ”€ôÉ•ÅÕ•ÍÑ¹¥µ…Ñ¥½¹É…µ”  ¤€ôøì™É…µ”€ô¹Õ±°ì¥˜€¡ÉÕ¹Ñ¥µ”¹ÕÉÉ•¹Ð¤‘É…Ü ¤ìô¤ì(€€€ôì(€€€½¹ÍÐÉ•Í¥é”€ô¹•ÜI•Í¥é•=‰Í•ÉÙ•È  ¤€ôøì(€€€€€½¹ÍÐÝ¥‘Ñ €ô¡½ÍÐ¹±¥•¹Ñ]¥‘Ñ ì½¹ÍÐ¡•¥¡Ð€ô¡½ÍÐ¹±¥•¹Ñ!•¥¡Ðì(€€€€€¥˜€¡Ý¥‘Ñ €˜˜¡•¥¡Ð¤ì…µ•É„¹…ÍÁ•Ð€ôÝ¥‘Ñ €¼¡•¥¡Ðì…µ•É„¹ÕÁ‘…Ñ•AÉ½©•Ñ¥½¹5…ÑÉ¥à ¤ìÉ•¹‘•É•È¹Í•ÑM¥é”¡Ý¥‘Ñ °¡•¥¡Ð°™…±Í”¤ìÉ•ÅÕ•ÍÑÉ…Ü ¤ìô(€€€ô¤ì(€€€É•Í¥é”¹½‰Í•ÉÙ”¡¡½ÍÐ¤ì((€€€±•ÐÉ½½Ñ	½áI•…‘ä€ô™…±Í”ì(€€€½¹ÍÐ±½…‘•È€ô¹•Ü1Q1½…‘•È ¤ì(€€€Ù½¥±½…‘•È¹±½…‘Íå¹Œ¡ÁÉ½™¥±”¹µ•Í¡UÉ°¤¹Ñ¡•¸ ¡±Ñ˜¤€ôøì(€€€€€¥˜€¡‘¥ÍÁ½Í•¤ì±Ñ˜¹Í•¹”¹ÑÉ…Ù•ÉÍ” ¡¥Ñ•´¤€ôøì¥˜€¡¥Ñ•´¥¹ÍÑ…¹•½˜Q!I¹5•Í ¤ì¥Ñ•´¹•½µ•ÑÉä¹‘¥ÍÁ½Í” ¤ì½¹ÍÐµ…Ñ•É¥…±Ì€ôÉÉ…ä¹¥ÍÉÉ…ä¡¥Ñ•´¹µ…Ñ•É¥…°¤€ü¥Ñ•´¹µ…Ñ•É¥…°€èm¥Ñ•´¹µ…Ñ•É¥…±tìµ…Ñ•É¥…±Ì¹™½É…  ¡µ…Ñ•É¥…°¤€ôøµ…Ñ•É¥…°¹‘¥ÍÁ½Í” ¤¤ìôô¤ìÉ•ÑÕÉ¸ìô(€€€€€É½½Ð¹…‘¡±Ñ˜¹Í•¹”¤ì(€€€€€‰½à€ô¹•ÜQ!I¹	½àÌ ¤¹Í•ÑÉ½µ=‰©•Ð¡±Ñ˜¹Í•¹”¤ì(€€€€€½¹ÍÐÍ¥é”€ô‰½à¹•ÑM¥é”¡¹•ÜQ!I¹Y•Ñ½ÈÌ ¤¤ì(€€€€€½¹ÍÐ•¹Ñ•È€ô‰½à¹•Ñ•¹Ñ•È¡¹•ÜQ!I¹Y•Ñ½ÈÌ ¤¤ì(€€€€€€¼¼-••ÀÑ¡”µ½‘•°¥¸µ•Ñ•ÈµÍ…±”…¹±•Ù•°¥Ð½¸„±½…°™±½½ÈÁ±…¹”¸(€€€€€±Ñ˜¹Í•¹”¹Á½Í¥Ñ¥½¸¹Í•Ð µ•¹Ñ•È¹à°€µ‰½à¹µ¥¸¹ä°€µ•¹Ñ•È¹è¤ì(€€€€€‰½à€ô¹•ÜQ!I¹	½àÌ ¤¹Í•ÑÉ½µ=‰©•Ð¡±Ñ˜¹Í•¹”¤ì(€€€€€½¹ÍÐÉ…‘¥ÕÌ€ô5…Ñ ¹µ…à¡Í¥é”¹à°Í¥é”¹ä°Í¥é”¹è¤ì(€€€€€…µ•É„¹¹•…È€ô5…Ñ ¹µ…à ¸ÀÈ°É…‘¥ÕÌ€¼€ÈÔÀÀ¤ì(€€€€€…µ•É„¹™…È€ô5…Ñ ¹µ…à ÄÈÀ°É…‘¥ÕÌ€¨€Ø¤ì(€€€€€…µ•É„¹ÕÁ‘…Ñ•AÉ½©•Ñ¥½¹5…ÑÉ¥à ¤ì(€€€€€Í•¹”¹™½œ€ô¹•ÜQ!I¹½œ œŒÀÜÄÄÅœ°Í¥é”¹è€¨€¸äÔ°Í¥é”¹è€¨€È¸Ô¤ì(€€€€€½¹ÍÐÉ•Á•…Ñ•‘A…ÉÑÌèQ!I¹5•Í¡mt€ômtì(€€€€€±Ñ˜¹Í•¹”¹ÑÉ…Ù•ÉÍ” ¡½‰©•Ð¤€ôøì(€€€€€€€¥˜€¡½‰©•Ð¥¹ÍÑ…¹•½˜Q!I¹1¥¡Ð¤ì½‰©•Ð¹¥¹Ñ•¹Í¥Ñä€ô€ÀìÉ•ÑÕÉ¸ìô(€€€€€€€¥˜€ „¡½‰©•Ð¥¹ÍÑ…¹•½˜Q!I¹5•Í ¤¤É•ÑÕÉ¸ì(€€€€€€€½¹ÍÐ±¥ÍÐ€ôÉÉ…ä¹¥ÍÉÉ…ä¡½‰©•Ð¹µ…Ñ•É¥…°¤€ü½‰©•Ð¹µ…Ñ•É¥…°€èm½‰©•Ð¹µ…Ñ•É¥…±tì(€€€€€€€½¹ÍÐé½¹”€ô±¥ÍÐ¹µ…À ¡µ…Ñ•É¥…°¤€ôø5QI%1}i=9Mmµ…Ñ•É¥…°¹¹…µ•t¤¹™¥¹¡	½½±•…¸¤ì(€€€€€€€¥˜€¡é½¹”¤ì(€€€€€€€€€½‰©•Ð¹ÕÍ•É…Ñ„¹é½¹•%€ôé½¹”ì(€€€€€€€€€Í•±•Ñ…‰±”¹ÁÕÍ ¡½‰©•Ð¤ì(€€€€€€€€€™½È€¡½¹ÍÐµ…Ñ•É¥…°½˜±¥ÍÐ¤ì(€€€€€€€€€€€½¹ÍÐµ…ÁÁ•‘i½¹”€ô5QI%1}i=9Mmµ…Ñ•É¥…°¹¹…µ•tì(€€€€€€€€€€€¥˜€¡µ…ÁÁ•‘i½¹”¤ì(€€€€€€€€€€€€€½¹ÍÐé½¹•5…Ñ•É¥…±M•Ð€ôé½¹•5…Ñ•É¥…±Ì¹•Ð¡µ…ÁÁ•‘i½¹”¤€üü¹•ÜM•ÐñQ!I¹5…Ñ•É¥…°ø ¤ì(€€€€€€€€€€€€€é½¹•5…Ñ•É¥…±M•Ð¹…‘¡µ…Ñ•É¥…°¤ì(€€€€€€€€€€€€€é½¹•5…Ñ•É¥…±Ì¹Í•Ð¡µ…ÁÁ•‘i½¹”°é½¹•5…Ñ•É¥…±M•Ð¤ì(€€€€€€€€€€€ô(€€€€€€€€€ô(€€€€€€€ô•±Í”É•Á•…Ñ•‘A…ÉÑÌ¹ÁÕÍ ¡½‰©•Ð¤ì(€€€€€€€½‰©•Ð¹…ÍÑM¡…‘½Ü€ô™…±Í”ì(€€€€€€€½‰©•Ð¹É••¥Ù•M¡…‘½Ü€ô™…±Í”ì(€€€€€ô¤ì(€€€€€‰…Ñ¡I•Á•…Ñ•‘…‰¥¹A…ÉÑÌ¡±Ñ˜¹Í•¹”°É•Á•…Ñ•‘A…ÉÑÌ¤ì(€€€€€€¼¼-••ÀÑ¡”¥¹Ñ•É…Ñ¥Ù”ÁÉ•Ù¥•ÜÉ•ÍÁ½¹Í¥Ù”½¸±…É”…‰¥¹Ììµ…Ñ•É¥…°É½ÕÁÌÁÉ½Ù¥‘”½¹Ñ¥¹Õ½ÕÌé½¹”½Ù•É…”¸(€€€€€½¹ÍÐ™¥áÑÕÉ•½Õ¹Ð€ô€Èì(€€€€€½¹ÍÐ…‘‘i½¹•1¥¡ÑÌ€ô€¡é½¹”èi½¹•%°àè¹Õµ‰•È°äè¹Õµ‰•È¤€ôøì(€€€€€€€½¹ÍÐ±¥¡ÑÌèQ!I¹A½¥¹Ñ1¥¡Ñmt€ômtì(€€€€€€€™½È€¡±•Ð¥¹‘•à€ô€Àì¥¹‘•à€ð™¥áÑÕÉ•½Õ¹Ðì¥¹‘•à¬¬¤ì(€€€€€€€€€½¹ÍÐè€ô‰½à¹µ¥¸¹è€¬Í¥é”¹è€¨€¡¥¹‘•à€¬€¸Ô¤€¼™¥áÑÕÉ•½Õ¹Ðì(€€€€€€€€€½¹ÍÐ±¥¡Ð€ô¹•ÜQ!I¹A½¥¹Ñ1¥¡Ð œ™™™™™˜œ°€À°5…Ñ ¹µ…à Ä¸Ô°Í¥é”¹à€¨€¸äÔ¤°€Ä¸Ü¤ì(€€€€€€€€€±¥¡Ð¹Á½Í¥Ñ¥½¸¹Í•Ð¡à°ä°è¤ì(€€€€€€€€€Í•¹”¹…‘¡±¥¡Ð¤ì(€€€€€€€€€±¥¡ÑÌ¹ÁÕÍ ¡±¥¡Ð¤ì(€€€€€€€ô(€€€€€€€µ½‘•±1¥¡ÑÌ¹Í•Ð¡é½¹”°±¥¡ÑÌ¤ì(€€€€€ôì(€€€€€…‘‘i½¹•1¥¡ÑÌ •¥±¥¹}½Ù”œ°€µÍ¥é”¹à€¨€¸È°‰½à¹µ¥¸¹ä€¬Í¥é”¹ä€¨€¸äÈ¤ì(€€€€€…‘‘i½¹•1¥¡ÑÌ ±•™Ñ}Í¥‘•Ý…±°œ°€µÍ¥é”¹à€¨€¸ÐÌ°‰½à¹µ¥¸¹ä€¬Í¥é”¹ä€¨€¸Ô¤ì(€€€€€…‘‘i½¹•1¥¡ÑÌ É¥¡Ñ}Í¥‘•Ý…±°œ°Í¥é”¹à€¨€¸ÐÌ°‰½à¹µ¥¸¹ä€¬Í¥é”¹ä€¨€¸Ô¤ì(€€€€€…‘‘i½¹•1¥¡ÑÌ ™½½ÑÝ•±°œ°€À°‰½à¹µ¥¸¹ä€¬Í¥é”¹ä€¨€¸ÄÈ¤ì(€€€€€™¥Ñ…µ•É„¡…µ•É…Y¥•Ü¤ì(€€€€€…ÁÁ±åi½¹•1¥¡Ñ¥¹œ¡é½¹•5…Ñ•É¥…±Ì°µ½‘•±1¥¡ÑÌ°±¥¡Ñ¥¹œ¹ÕÉÉ•¹Ð¹•™™•Ñ¥Ù”°±¥¡Ñ¥¹œ¹ÕÉÉ•¹Ð¹¥¹Ñ•¹Í¥Ñä¤ì(€€€€€É½½Ñ	½áI•…‘ä€ôÑÉÕ”ì(€€€€€Í•ÑÉÉ½È œœ¤ì(€€€€€É•ÅÕ•ÍÑÉ…Ü ¤ì(€€€ô¤¹…Ñ  ¡É•…Í½¸èÕ¹­¹½Ý¸¤€ôøì(€€€€€¥˜€ …‘¥ÍÁ½Í•¤Í•ÑÉÉ½È¡¥ÉÉ…™Ðµ•Í ™…¥±•Ñ¼±½…è€‘íÉ•…Í½¸¥¹ÍÑ…¹•½˜ÉÉ½È€üÉ•…Í½¸¹µ•ÍÍ…”€è€Õ¹­¹½Ý¸±½…‘•È•ÉÉ½Èõ€¤ì(€€€ô¤ì((€€€½¹ÍÐÉ…å…ÍÑ•È€ô¹•ÜQ!I¹I…å…ÍÑ•È ¤ì(€€€½¹ÍÐÁ½¥¹Ñ•È€ô¹•ÜQ!I¹Y•Ñ½ÈÈ ¤ì(€€€½¹ÍÐ½¹A¥¬€ô€¡•Ù•¹Ðè5½ÕÍ•Ù•¹Ð¤€ôøì(€€€€€½¹ÍÐÉ•Ð€ôÉ•¹‘•É•È¹‘½µ±•µ•¹Ð¹•Ñ	½Õ¹‘¥¹±¥•¹ÑI•Ð ¤ì(€€€€€Á½¥¹Ñ•È¹Í•Ð ¡•Ù•¹Ð¹±¥•¹Ñ`€´É•Ð¹±•™Ð¤€¼É•Ð¹Ý¥‘Ñ €¨€È€´€Ä°€´ ¡•Ù•¹Ð¹±¥•¹Ñd€´É•Ð¹Ñ½À¤€¼É•Ð¹¡•¥¡Ð€¨€È€´€Ä¤¤ì(€€€€€É…å…ÍÑ•È¹Í•ÑÉ½µ…µ•É„¡Á½¥¹Ñ•È°…µ•É„¤ì(€€€€€½¹ÍÐ¡¥Ð€ôÉ…å…ÍÑ•È¹¥¹Ñ•ÉÍ•Ñ=‰©•ÑÌ¡Í•±•Ñ…‰±”°ÑÉÕ”¥lÁtì(€€€€€½¹ÍÐé½¹”€ô¡¥Ðü¹½‰©•Ð¹ÕÍ•É…Ñ„¹é½¹•%…Ìi½¹•%ðÕ¹‘•™¥¹•ì(€€€€€¥˜€¡é½¹”¤½¹M•±•Ð¡é½¹”¤ì(€€€ôì(€€€½¹ÍÐ…¹Ù…Ì€ôÉ•¹‘•É•È¹‘½µ±•µ•¹Ðì(€€€…¹Ù…Ì¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ‘‰±±¥¬œ°½¹A¥¬¤ì(€€€±•Ð‘É…¥¹œ€ô™…±Í”ì±•Ð±…ÍÑ`€ô€Àì±•Ð±…ÍÑd€ô€Àì(€€€½¹ÍÐ½¹½Ý¸€ô€¡•Ù•¹ÐèA½¥¹Ñ•ÉÙ•¹Ð¤€ôøì‘É…¥¹œ€ôÑÉÕ”ì±…ÍÑ`€ô•Ù•¹Ð¹±¥•¹Ñ`ì±…ÍÑd€ô•Ù•¹Ð¹±¥•¹Ñdì…¹Ù…Ì¹Í•ÑA½¥¹Ñ•É…ÁÑÕÉ”¡•Ù•¹Ð¹Á½¥¹Ñ•É%¤ìôì(€€€½¹ÍÐ½¹5½Ù”€ô€¡•Ù•¹ÐèA½¥¹Ñ•ÉÙ•¹Ð¤€ôøì(€€€€€¥˜€ …‘É…¥¹œ¤É•ÑÕÉ¸ì(€€€€€½¹ÍÐ‘à€ô•Ù•¹Ð¹±¥•¹Ñ`€´±…ÍÑ`ì½¹ÍÐ‘ä€ô•Ù•¹Ð¹±¥•¹Ñd€´±…ÍÑdì(€€€€€±…ÍÑ`€ô•Ù•¹Ð¹±¥•¹Ñ`ì±…ÍÑd€ô•Ù•¹Ð¹±¥•¹Ñdì(€€€€€€¼¼I½Ñ…Ñ”¥¸Á±…”Í¼½É‰¥Ð•ÍÑÕÉ•Ì…¹¹½Ð…ÉÉäÑ¡”…µ•É„Ñ¡É½Õ Ñ¡”…‰¥¸Í¡•±°¸(€€€€€…µ•É„¹ÅÕ…Ñ•É¹¥½¸¹ÁÉ•µÕ±Ñ¥Á±ä¡¹•ÜQ!I¹EÕ…Ñ•É¹¥½¸ ¤¹Í•ÑÉ½µá¥Í¹±”¡…µ•É„¹ÕÀ°€µ‘à€¨€¸ÀÀÈÔ¤¤ì(€€€€€½¹ÍÐÉ¥¡Ð€ô¹•ÜQ!I¹Y•Ñ½ÈÌ Ä°€À°€À¤¹…ÁÁ±åEÕ…Ñ•É¹¥½¸¡…µ•É„¹ÅÕ…Ñ•É¹¥½¸¤¹¹½Éµ…±¥é” ¤ì(€€€€€…µ•É„¹ÅÕ…Ñ•É¹¥½¸¹ÁÉ•µÕ±Ñ¥Á±ä¡¹•ÜQ!I¹EÕ…Ñ•É¹¥½¸ ¤¹Í•ÑÉ½µá¥Í¹±”¡É¥¡Ð°€µ‘ä€¨€¸ÀÀÈÔ¤¤ì(€€€€€É•ÅÕ•ÍÑÉ…Ü ¤ì(€€€ôì(€€€½¹ÍÐ½¹UÀ€ô€ ¤€ôøì‘É…¥¹œ€ô™…±Í”ìôì(€€€½¹ÍÐ½¹]¡••°€ô€¡•Ù•¹Ðè]¡••±Ù•¹Ð¤€ôøì(€€€€€•Ù•¹Ð¹ÁÉ•Ù•¹Ñ•™…Õ±Ð ¤ì(€€€€€½¹ÍÐ‘¥É•Ñ¥½¸€ô…µ•É„¹•Ñ]½É±‘¥É•Ñ¥½¸¡¹•ÜQ!I¹Y•Ñ½ÈÌ ¤¤ì(€€€€€…µ•É„¹Á½Í¥Ñ¥½¸¹…‘‘M…±•‘Y•Ñ½È¡‘¥É•Ñ¥½¸°Q!I¹5…Ñ¡UÑ¥±Ì¹±…µÀ µ•Ù•¹Ð¹‘•±Ñ…d€¨€¸ÀÀÌ°€´Ä°€Ä¤¤ì(€€€€€É•ÅÕ•ÍÑÉ…Ü ¤ì(€€€ôì(€€€…¹Ù…Ì¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È Á½¥¹Ñ•É‘½Ý¸œ°½¹½Ý¸¤ì…¹Ù…Ì¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È Á½¥¹Ñ•Éµ½Ù”œ°½¹5½Ù”¤ì…¹Ù…Ì¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È Á½¥¹Ñ•ÉÕÀœ°½¹UÀ¤ì…¹Ù…Ì¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È Á½¥¹Ñ•É…¹•°œ°½¹UÀ¤ì…¹Ù…Ì¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È Ý¡••°œ°½¹]¡••°°ìÁ…ÍÍ¥Ù”è™…±Í”ô¤ì(€€€½¹ÍÐÉ•Í•Ð€ô€ ¤€ôøì™¥Ñ…µ•É„¡…µ•É…Y¥•ÝI•˜¹ÕÉÉ•¹Ð¤ìÉ•ÅÕ•ÍÑÉ…Ü ¤ìôì(€€€…µ•É…I•Í•ÑI•˜¹ÕÉÉ•¹Ð€ôÉ•Í•Ðì(€€€½¹ÍÐ…ÁÁ±å1¥¡Ñ¥¹œ€ô€¡Ù…±Õ•Ì€ô±¥¡Ñ¥¹œ¹ÕÉÉ•¹Ð¹•™™•Ñ¥Ù”¤€ôø…ÁÁ±åi½¹•1¥¡Ñ¥¹œ¡é½¹•5…Ñ•É¥…±Ì°µ½‘•±1¥¡ÑÌ°Ù…±Õ•Ì°±¥¡Ñ¥¹œ¹ÕÉÉ•¹Ð¹¥¹Ñ•¹Í¥Ñä¤ì(€€€ÉÕ¹Ñ¥µ”¹ÕÉÉ•¹Ð€ôìÉ•¹‘•É•È°Í•¹”°…µ•É„°µ…Ñ•É¥…±Ìèé½¹•5…Ñ•É¥…±Ì°±¥¡ÑÌèµ½‘•±1¥¡ÑÌ°Í•±•Ñ…‰±”°É•Í¥é”°É•Í•Ð°…ÁÁ±å1¥¡Ñ¥¹œ°‘É…Üôì(€€€…ÁÑÕÉ•I•˜¹ÕÉÉ•¹Ð€ô…Íå¹Œ€ ¤€ôøì(€€€€€½¹ÍÐ°€ôÉ•¹‘•É•È¹•Ñ½¹Ñ•áÐ ¤ì(€€€€€½¹ÍÐµ…à€ô9Õµ‰•È¡°¹•ÑA…É…µ•Ñ•È¡°¹5a}I9I	UI}M%i¤¤ì(€€€€€¥˜€ ……¹I•¹‘•ÉáÁ½ÉÐ¡µ…à°	%9}aA=IQ|Ñ,¹Ý¥‘Ñ °	%9}aA=IQ|Ñ,¹¡•¥¡Ð¤¤Ñ¡É½Ü¹•ÜÉÉ½È¡Q¡¥Ì‘•Ù¥”ÍÕÁÁ½ÉÑÌ€‘íµ…áõÁàÉ•¹‘•È•‘•Ìì€Ñ,…ÁÑÕÉ”É•ÅÕ¥É•Ì€‘í	%9}aA=IQ|Ñ,¹Ý¥‘Ñ¡ôƒ\€‘í	%9}aA=IQ|Ñ,¹¡•¥¡Ñô¹€¤ì(€€€€€½¹ÍÐÍ¥é•	•™½É”€ôÉ•¹‘•É•È¹•ÑM¥é”¡¹•ÜQ!I¹Y•Ñ½ÈÈ ¤¤ì½¹ÍÐÉ…Ñ¥¼€ôÉ•¹‘•É•È¹•ÑA¥á•±I…Ñ¥¼ ¤ì½¹ÍÐ…ÍÁ•Ñ	•™½É”€ô…µ•É„¹…ÍÁ•Ðì(€€€€€½¹ÍÐÑ…É•Ð€ô¹•ÜQ!I¹]•‰1I•¹‘•ÉQ…É•Ð¡	%9}aA=IQ|Ñ,¹Ý¥‘Ñ °	%9}aA=IQ|Ñ,¹¡•¥¡Ð°ì™½Éµ…ÐèQ!I¹I	½Éµ…Ð°ÑåÁ”èQ!I¹U¹Í¥¹•‘	åÑ•QåÁ”°‘•ÁÑ¡	Õ™™•ÈèÑÉÕ”ô¤ì(€€€€€Ñ…É•Ð¹Ñ•áÑÕÉ”¹½±½ÉMÁ…”€ôQ!I¹MI	½±½ÉMÁ…”ì(€€€€€ÑÉäì(€€€€€€€É•¹‘•É•È¹Í•ÑA¥á•±I…Ñ¥¼ Ä¤ìÉ•¹‘•É•È¹Í•ÑM¥é”¡	%9}aA=IQ|Ñ,¹Ý¥‘Ñ °	%9}aA=IQ|Ñ,¹¡•¥¡Ð°™…±Í”¤ì(€€€€€€€¥˜€¡°¹‘É…Ý¥¹	Õ™™•É]¥‘Ñ €„ôô	%9}aA=IQ|Ñ,¹Ý¥‘Ñ ñð°¹‘É…Ý¥¹	Õ™™•É!•¥¡Ð€„ôô	%9}aA=IQ|Ñ,¹¡•¥¡Ð¤Ñ¡É½Ü¹•ÜÉÉ½È¡Q¡”‰É½ÝÍ•È…±±½…Ñ•€‘í°¹‘É…Ý¥¹	Õ™™•É]¥‘Ñ¡ôƒ\€‘í°¹‘É…Ý¥¹	Õ™™•É!•¥¡Ñôì€Ñ,…ÁÑÕÉ”Ý…Ì¹½ÐÍÑ…ÉÑ•¹€¤ì(€€€€€€€…µ•É„¹…ÍÁ•Ð€ô	%9}aA=IQ|Ñ,¹Ý¥‘Ñ €¼	%9}aA=IQ|Ñ,¹¡•¥¡Ðì(€€€€€€€…µ•É„¹ÕÁ‘…Ñ•AÉ½©•Ñ¥½¹5…ÑÉ¥à ¤ì(€€€€€€€É•¹‘•É•È¹Í•ÑI•¹‘•ÉQ…É•Ð¡Ñ…É•Ð¤ì(€€€€€€€É•¹‘•É•È¹É•¹‘•È¡Í•¹”°…µ•É„¤ì(€€€€€€€½¹ÍÐÁ¥á•±Ì€ô¹•ÜU¥¹ÐáÉÉ…ä¡	%9}aA=IQ|Ñ,¹Ý¥‘Ñ €¨	%9}aA=IQ|Ñ,¹¡•¥¡Ð€¨€Ð¤ì(€€€€€€€É•¹‘•É•È¹É•…‘I•¹‘•ÉQ…É•ÑA¥á•±Ì¡Ñ…É•Ð°€À°€À°	%9}aA=IQ|Ñ,¹Ý¥‘Ñ °	%9}aA=IQ|Ñ,¹¡•¥¡Ð°Á¥á•±Ì¤ì(€€€€€€€É•¹‘•É•È¹Í•ÑI•¹‘•ÉQ…É•Ð¡¹Õ±°¤ì(€€€€€€€½¹ÍÐ¥µ…•…¹Ù…Ì€ô‘½Õµ•¹Ð¹É•…Ñ•±•µ•¹Ð …¹Ù…Ìœ¤ì(€€€€€€€¥µ…•…¹Ù…Ì¹Ý¥‘Ñ €ô	%9}aA=IQ|Ñ,¹Ý¥‘Ñ ì¥µ…•…¹Ù…Ì¹¡•¥¡Ð€ô	%9}aA=IQ|Ñ,¹¡•¥¡Ðì(€€€€€€€½¹ÍÐ½¹Ñ•áÐ€ô¥µ…•…¹Ù…Ì¹•Ñ½¹Ñ•áÐ œÉœ¤ì(€€€€€€€¥˜€ …½¹Ñ•áÐ¤Ñ¡É½Ü¹•ÜÉÉ½È €É…¹Ù…Ì¥ÌÕ¹…Ù…¥±…‰±”™½ÈÑ¡”€Ñ,¥µ…”•¹½‘”¸œ¤ì(€€€€€€€½¹ÍÐ¥µ…”€ô½¹Ñ•áÐ¹É•…Ñ•%µ…•…Ñ„¡	%9}aA=IQ|Ñ,¹Ý¥‘Ñ °	%9}aA=IQ|Ñ,¹¡•¥¡Ð¤ì(€€€€€€€½¹ÍÐÉ½Ý	åÑ•Ì€ô	%9}aA=IQ|Ñ,¹Ý¥‘Ñ €¨€Ðì(€€€€€€€™½È€¡±•ÐÉ½Ü€ô€ÀìÉ½Ü€ð	%9}aA=IQ|Ñ,¹¡•¥¡ÐìÉ½Ü¬¬¤¥µ…”¹‘…Ñ„¹Í•Ð¡Á¥á•±Ì¹ÍÕ‰…ÉÉ…ä ¡	%9}aA=IQ|Ñ,¹¡•¥¡Ð€´É½Ü€´€Ä¤€¨É½Ý	åÑ•Ì°€¡	%9}aA=IQ|Ñ,¹¡•¥¡Ð€´É½Ü¤€¨É½Ý	åÑ•Ì¤°É½Ü€¨É½Ý	åÑ•Ì¤ì(€€€€€€€½¹Ñ•áÐ¹ÁÕÑ%µ…•…Ñ„¡¥µ…”°€À°€À¤ì(€€€€€€€É•ÑÕÉ¸…Ý…¥Ð¹•ÜAÉ½µ¥Í”ñ	±½ˆø ¡É•Í½±Ù”°É•©•Ð¤€ôø¥µ…•…¹Ù…Ì¹Ñ½	±½ˆ ¡‰±½ˆ¤€ôø‰±½ˆ€üÉ•Í½±Ù”¡‰±½ˆ¤€èÉ•©•Ð¡¹•ÜÉÉ½È œÑ,¥µ…”•¹½‘¥¹œ™…¥±•¸œ¤¤¤¤ì(€€€€€ô™¥¹…±±äì(€€€€€€€É•¹‘•É•È¹Í•ÑI•¹‘•ÉQ…É•Ð¡¹Õ±°¤ìÑ…É•Ð¹‘¥ÍÁ½Í” ¤ì…µ•É„¹…ÍÁ•Ð€ô…ÍÁ•Ñ	•™½É”ì…µ•É„¹ÕÁ‘…Ñ•AÉ½©•Ñ¥½¹5…ÑÉ¥à ¤ì(€€€€€€€É•¹‘•É•È¹Í•ÑA¥á•±I…Ñ¥¼¡É…Ñ¥¼¤ìÉ•¹‘•É•È¹Í•ÑM¥é”¡Í¥é•	•™½É”¹à°Í¥é•	•™½É”¹ä°™…±Í”¤ìÉ•¹‘•É•È¹É•¹‘•È¡Í•¹”°…µ•É„¤ì(€€€€€ô(€€€ôì(€€€½¹ÍÐ‘É…ÝÉ…µ”€ô€ ¤€ôøì¥˜€¡É½½Ñ	½áI•…‘ä¤‘É…Ü ¤ìôì(€€€‘É…ÝÉ…µ” ¤ì((€€€É•ÑÕÉ¸€ ¤€ôøì(€€€€€‘¥ÍÁ½Í•€ôÑÉÕ”ì(€€€€€¥˜€¡™É…µ”€„ôô¹Õ±°¤…¹•±¹¥µ…Ñ¥½¹É…µ”¡™É…µ”¤ì(€€€€€É•Í¥é”¹‘¥Í½¹¹•Ð ¤ì(€€€€€…¹Ù…Ì¹É•µ½Ù•Ù•¹Ñ1¥ÍÑ•¹•È ‘‰±±¥¬œ°½¹A¥¬¤ì…¹Ù…Ì¹É•µ½Ù•Ù•¹Ñ1¥ÍÑ•¹•È Á½¥¹Ñ•É‘½Ý¸œ°½¹½Ý¸¤ì…¹Ù…Ì¹É•µ½Ù•Ù•¹Ñ1¥ÍÑ•¹•È Á½¥¹Ñ•Éµ½Ù”œ°½¹5½Ù”¤ì…¹Ù…Ì¹É•µ½Ù•Ù•¹Ñ1¥ÍÑ•¹•È Á½¥¹Ñ•ÉÕÀœ°½¹UÀ¤ì…¹Ù…Ì¹É•µ½Ù•Ù•¹Ñ1¥ÍÑ•¹•È Á½¥¹Ñ•É…¹•°œ°½¹UÀ¤ì…¹Ù…Ì¹É•µ½Ù•Ù•¹Ñ1¥ÍÑ•¹•È Ý¡••°œ°½¹]¡••°¤ì(€€€€€É½½Ð¹ÑÉ…Ù•ÉÍ” ¡½‰©•Ð¤€ôøì¥˜€¡½‰©•Ð¥¹ÍÑ…¹•½˜Q!I¹5•Í ¤ì½‰©•Ð¹•½µ•ÑÉä¹‘¥ÍÁ½Í” ¤ì½¹ÍÐµ…Ñ•É¥…±Ì€ôÉÉ…ä¹¥ÍÉÉ…ä¡½‰©•Ð¹µ…Ñ•É¥…°¤€ü½‰©•Ð¹µ…Ñ•É¥…°€èm½‰©•Ð¹µ…Ñ•É¥…±tìµ…Ñ•É¥…±Ì¹™½É…  ¡µ…Ñ•É¥…°¤€ôøµ…Ñ•É¥…°¹‘¥ÍÁ½Í” ¤¤ìôô¤ì(€€€€€É•¹‘•É•È¹‘¥ÍÁ½Í” ¤ìÉ•¹‘•É•È¹™½É•½¹Ñ•áÑ1½ÍÌ ¤ìÉ•¹‘•É•È¹‘½µ±•µ•¹Ð¹É•µ½Ù” ¤ìÉÕ¹Ñ¥µ”¹ÕÉÉ•¹Ð€ô¹Õ±°ì…ÁÑÕÉ•I•˜¹ÕÉÉ•¹Ð€ô¹Õ±°ì…µ•É…I•Í•ÑI•˜¹ÕÉÉ•¹Ð€ô¹Õ±°ì¡½µ”¹ÕÉÉ•¹Ð€ô¹Õ±°ì(€€€ôì(€ô°mÁÉ½™¥±”¹¥‘t¤ì((€ÕÍ•™™•Ð  ¤€ôøì(€€€½¹ÍÐÕÉÉ•¹Ð€ôÉÕ¹Ñ¥µ”¹ÕÉÉ•¹Ðì(€€€¥˜€ …ÁÉ•Ù¥•ÝÑ¥Ù”ñð€…ÕÉÉ•¹Ð¤É•ÑÕÉ¸ì(€€€±•Ð…¹¥µ…Ñ¥½¸€ô€Àì(€€€½¹ÍÐ…¹¥µ…Ñ”€ô€¡¹½Üè¹Õµ‰•È¤€ôøì(€€€€€½¹ÍÐ•±…ÁÍ•€ô5…Ñ ¹µ…à À°€¡¹½Ü€´ÁÉ•Ù¥•ÝMÑ…ÉÑ•‘Ð¤€¼€ÄÀÀÀ¤ì(€€€€€ÕÉÉ•¹Ð¹…ÁÁ±å1¥¡Ñ¥¹œ¡¥¹Ñ•ÉÁ½±…Ñ•M•¹”¡…Ñ¥Ù•M•¹”°5…Ñ ¹µ¥¸¡ÁÉ•Ù¥•ÝÕÉ…Ñ¥½¸°•±…ÁÍ•¤¤¤ì(€€€€€ÕÉÉ•¹Ð¹‘É…Ü ¤ì(€€€€€¥˜€¡•±…ÁÍ•€ðÁÉ•Ù¥•ÝÕÉ…Ñ¥½¸¤…¹¥µ…Ñ¥½¸€ôÉ•ÅÕ•ÍÑ¹¥µ…Ñ¥½¹É…µ”¡…¹¥µ…Ñ”¤ì(€€€ôì(€€€…¹¥µ…Ñ¥½¸€ôÉ•ÅÕ•ÍÑ¹¥µ…Ñ¥½¹É…µ”¡…¹¥µ…Ñ”¤ì(€€€É•ÑÕÉ¸€ ¤€ôø…¹•±¹¥µ…Ñ¥½¹É…µ”¡…¹¥µ…Ñ¥½¸¤ì(€ô°mÁÉ•Ù¥•ÝÑ¥Ù”°ÁÉ•Ù¥•ÝMÑ…ÉÑ•‘Ð°…Ñ¥Ù•M•¹”°ÁÉ•Ù¥•ÝÕÉ…Ñ¥½¹t¤ì((€ÕÍ•™™•Ð  ¤€ôøì(€€€½¹ÍÐÕÉÉ•¹Ð€ôÉÕ¹Ñ¥µ”¹ÕÉÉ•¹Ðì(€€€¥˜€ …ÕÉÉ•¹Ð¤É•ÑÕÉ¸ì(€€€ÕÉÉ•¹Ð¹…ÁÁ±å1¥¡Ñ¥¹œ ¤ì(€€€¥˜€¡ÁÉ•Ù¥•Ý5½Ñ¥½¸¤ì(€€€€€¡½µ”¹ÕÉÉ•¹Ð€üüôìÁ½Í¥Ñ¥½¸èÕÉÉ•¹Ð¹…µ•É„¹Á½Í¥Ñ¥½¸¹±½¹” ¤°ÅÕ…Ñ•É¹¥½¸èÕÉÉ•¹Ð¹…µ•É„¹ÅÕ…Ñ•É¹¥½¸¹±½¹” ¤ôì(€€€€€½¹ÍÐÁ¡…Í”€ôÁÉ•Ù¥•ÝÕÉ…Ñ¥½¸€ø€À€üÁÉ•Ù¥•ÝQ¥µ”€¼ÁÉ•Ù¥•ÝÕÉ…Ñ¥½¸€¨5…Ñ ¹A$€¨€È€è€Àì(€€€€€ÕÉÉ•¹Ð¹…µ•É„¹Á½Í¥Ñ¥½¸¹½Áä¡¡½µ”¹ÕÉÉ•¹Ð¹Á½Í¥Ñ¥½¸¤ì(€€€€€ÕÉÉ•¹Ð¹…µ•É„¹Á½Í¥Ñ¥½¸¹à€¬ô5…Ñ ¹Í¥¸¡Á¡…Í”¤€¨€¸ÄÈì(€€€€€ÕÉÉ•¹Ð¹…µ•É„¹Á½Í¥Ñ¥½¸¹ä€¬ô5…Ñ ¹Í¥¸¡Á¡…Í”€¨€¸Ô¤€¨€¸ÀÈÔì(€€€€€ÕÉÉ•¹Ð¹…µ•É„¹ÅÕ…Ñ•É¹¥½¸¹½Áä¡¡½µ”¹ÕÉÉ•¹Ð¹ÅÕ…Ñ•É¹¥½¸¤ì(€€€ô•±Í”¥˜€¡¡½µ”¹ÕÉÉ•¹Ð¤ì(€€€€€ÕÉÉ•¹Ð¹…µ•É„¹Á½Í¥Ñ¥½¸¹½Áä¡¡½µ”¹ÕÉÉ•¹Ð¹Á½Í¥Ñ¥½¸¤ìÕÉÉ•¹Ð¹…µ•É„¹ÅÕ…Ñ•É¹¥½¸¹½Áä¡¡½µ”¹ÕÉÉ•¹Ð¹ÅÕ…Ñ•É¹¥½¸¤ì¡½µ”¹ÕÉÉ•¹Ð€ô¹Õ±°ì(€€€ô(€€€ÕÉÉ•¹Ð¹‘É…Ü ¤ì(€ô°mé½¹•Ì°•™™•Ñ¥Ù”°¥¹Ñ•¹Í¥Ñä°ÁÉ•Ù¥•Ý5½Ñ¥½¸°ÁÉ•Ù¥•ÝQ¥µ”°ÁÉ•Ù¥•ÝÕÉ…Ñ¥½¹t¤ì((€ÕÍ•™™•Ð  ¤€ôøìÉÕ¹Ñ¥µ”¹ÕÉÉ•¹Ðü¹É•Í•Ð ¤ìô°m…µ•É…Y¥•Ýt¤ì(€ÕÍ•™™•Ð  ¤€ôøì(€€€½¹ÍÐÕÉÉ•¹Ð€ôÉÕ¹Ñ¥µ”¹ÕÉÉ•¹Ðì(€€€¥˜€ …ÕÉÉ•¹Ð¤É•ÑÕÉ¸ì(€€€½¹ÍÐ¡½ÍÐ€ô¡½ÍÑI•˜¹ÕÉÉ•¹Ðì(€€€ÕÉÉ•¹Ð¹É•¹‘•É•È¹Í•ÑA¥á•±I…Ñ¥¼¡5…Ñ ¹µ¥¸¡Ý¥¹‘½Ü¹‘•Ù¥•A¥á•±I…Ñ¥¼ñð€Ä°¡¥¡EÕ…±¥Ñä€˜˜€…ÁÉ•Ù¥•ÝÑ¥Ù”€ü€Ä¸Ô€è€Ä¤¤ì(€€€¥˜€¡¡½ÍÐ¤ÕÉÉ•¹Ð¹É•¹‘•É•È¹Í•ÑM¥é”¡¡½ÍÐ¹±¥•¹Ñ]¥‘Ñ °¡½ÍÐ¹±¥•¹Ñ!•¥¡Ð°™…±Í”¤ì(€€€ÕÉÉ•¹Ð¹É•¹‘•É•È¹Í¡…‘½Ý5…À¹•¹…‰±•€ô¡¥¡EÕ…±¥Ñä€˜˜€…ÁÉ•Ù¥•ÝÑ¥Ù”ì(€€€ÕÉÉ•¹Ð¹‘É…Ü ¤ì(€ô°m¡¥¡EÕ…±¥Ñä°ÁÉ•Ù¥•ÝÑ¥Ù•t¤ì((€É•ÑÕÉ¸€ñ‘¥Ø±…ÍÍ9…µ”ô‰…‰¥¸µ…ÍÍ•ÐµÉ•¹‘•É•ÈˆÉ•˜õí¡½ÍÑI•™ô‘…Ñ„µÍ•±•Ñ•µé½¹”õíÍ•±•Ñ•‘ôø(€€€í•ÉÉ½È€˜˜€ñ‘¥Ø±…ÍÍ9…µ”ô‰…‰¥¸µ…ÍÍ•Ðµ•ÉÉ½ÈˆÉ½±”ô‰…±•ÉÐˆùí•ÉÉ½Éôð½‘¥Øùô(€€€€ñÍÁ…¸±…ÍÍ9…µ”ô‰…‰¥¸µ…ÍÍ•Ðµ…ÑÑÉ¥‰ÕÑ¥½¸ˆùíÁÉ½™¥±”¹±…‰•±ôƒ
+ÜM%5U1Q%=8=5QIdð½ÍÁ…¸ø(€€ð½‘¥Øøì)ô(
