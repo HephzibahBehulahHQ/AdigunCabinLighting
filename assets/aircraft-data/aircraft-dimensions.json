@@ -1,0 +1,71 @@
+{
+  "schema_version": "1.0",
+  "units": "meters",
+  "purpose": "Dimensional reference for 3D cabin simulation",
+  "reference_image_aircraft_identified": false,
+  "aircraft": [
+    {
+      "id": "airbus-a380",
+      "manufacturer": "Airbus",
+      "model": "A380",
+      "source": {
+        "url": "https://www.airbus.com/sites/g/files/jlcbta136/files/2025-01/airbus-a380-facts-and-figures-february-2022.pdf",
+        "title": "A380 Facts and Figures",
+        "publication_date": "2022-02",
+        "precision": "Rounded manufacturer fact-sheet dimensions"
+      },
+      "exterior": {
+        "overall_length_m": 72.7,
+        "overall_height_m": 24.1,
+        "wingspan_m": 79.8,
+        "fuselage_diameter_m": 7.1
+      },
+      "interior": {
+        "published_cabin_length_m": 49.9,
+        "main_deck_maximum_cabin_width_m": 6.5,
+        "upper_deck_maximum_cabin_width_m": 5.8,
+        "cabin_height_m": null,
+        "window_dimensions_m": null,
+        "seat_dimensions_m": null
+      },
+      "drawing_reference": {
+        "url": "https://www.airbus.com/sites/g/files/jlcbta136/files/2021-11/Airbus-Aircraft-AC-A380.pdf",
+        "publication_revision": "2020-11-01",
+        "plan_view_section": "2-4-0",
+        "cross_section_section": "2-5-0"
+      }
+    },
+    {
+      "id": "gulfstream-g650er",
+      "manufacturer": "Gulfstream Aerospace",
+      "model": "G650ER",
+      "source": {
+        "url": "https://assets.gulfstream.aero/downloads/22_464552_G650ER_Product_Sheet_PROD_DAM.pdf",
+        "title": "G650ER Technical Specifications",
+        "publication_date": "2022-02"
+      },
+      "exterior": {
+        "overall_length_m": 30.40,
+        "overall_height_m": 7.82,
+        "wingspan_m": 30.35
+      },
+      "interior": {
+        "finished_cabin_width_m": 2.49,
+        "finished_cabin_height_m": 1.91,
+        "cabin_length_excluding_baggage_m": 14.27,
+        "total_interior_length_m": 16.33,
+        "panoramic_oval_window_count": 16,
+        "window_dimensions_m": null,
+        "seat_dimensions_m": null
+      }
+    }
+  ],
+  "modeling_constraints": {
+    "dimensions_are_not_complete_mesh_geometry": true,
+    "unknown_measurements_are_null": true,
+    "do_not_combine_aircraft_dimensions": true,
+    "reference_image_aircraft_assignment": null,
+    "seat_layout": null,
+    "cross_section_coordinates": null
+  }
+}
