@@ -39,6 +39,7 @@ npm run build:gateway
 sudo install -d -m 0755 /opt/adigun-cabin-lighting/gateway /opt/adigun-cabin-lighting/dist-gateway
 sudo cp -R dist-gateway/. /opt/adigun-cabin-lighting/dist-gateway/
 sudo install -m 0644 gateway/start.mjs /opt/adigun-cabin-lighting/gateway/start.mjs
+sudo install -m 0644 package.json /opt/adigun-cabin-lighting/package.json
 \`\`\`
 
 If Node.js is not at \`/usr/bin/node\`, edit \`ExecStart\` in the unit to the absolute path reported by \`command -v node\`. Create a root-only credential file without printing its contents, install the unit, then start it:
