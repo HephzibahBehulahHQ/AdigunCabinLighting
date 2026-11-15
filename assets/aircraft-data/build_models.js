@@ -1,6 +1,14 @@
+import { Buffer } from 'node:buffer';
+import { log } from 'node:console';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { argv } from 'node:process';
+import { TextEncoder } from 'node:util';
+import { fileURLToPath } from 'node:url';
+
 function makeCabin(record) {
  const interior=record.interior, ex=record.exterior;
- const isBoeing=record.manufacturer==='Boeing', wide=/777|787|A330|A350|A380/.test(record.model), vip=/G650/.test(record.model);
+ const wide=/777|787|A330|A350|A380/.test(record.model), vip=/G650/.test(record.model);
  const width=interior.maximum_cabin_width_m || interior.main_deck_maximum_cabin_width_m || interior.finished_cabin_width_m || (/777/.test(record.model)?5.86:/787/.test(record.model)?5.49:3.54);
  const length=interior.published_cabin_length_m || interior.cabin_length_excluding_baggage_m || +(ex.overall_length_m*(wide?.76:.72)).toFixed(2);
  const height=interior.finished_cabin_height_m || (vip?1.91:wide?2.45:2.12);
@@ -60,17 +68,18 @@ function makeCabin(record) {
  return {base64,metadata,stats:{bytes:result.length,meshes:meshes.length,nodes:nodes.length,triangles:accessors.filter(a=>a.type==='SCALAR').reduce((a,b)=>a+b.count/3,0)}};
 }
 
-if (typeof require !== 'undefined' && require.main === module) {
- const fs = require('fs'), path = require('path');
- const root = __dirname, catalog = JSON.parse(fs.readFileSync(path.join(root, 'aircraft-dimensions.json'), 'utf8'));
- fs.mkdirSync(path.join(root, 'meshes'), { recursive: true });
+const scriptPath = fileURLToPath(import.meta.url);
+if (argv[1] && resolve(argv[1]) === scriptPath) {
+ const root = dirname(scriptPath), catalog = JSON.parse(readFileSync(join(root, 'aircraft-dimensions.json'), 'utf8'));
+ mkdirSync(join(root, 'meshes'), { recursive: true });
  const models = [];
  for (const record of catalog.aircraft) {
   const model = makeCabin(record);
   const file = 'meshes/' + record.id + '.glb';
-  fs.writeFileSync(path.join(root, file), Buffer.from(model.base64, 'base64'));
+  writeFileSync(join(root, file), Buffer.from(model.base64, 'base64'));
   models.push({ file, ...model.stats, ...model.metadata });
  }
- fs.writeFileSync(path.join(root, 'mesh-manifest.json'), JSON.stringify({ models }, null, 2));
- console.log('Generated', models.length, 'GLB cabin meshes.');
+ writeFileSync(join(root, 'mesh-manifest.json'), JSON.stringify({ models }, null, 2));
+ log('Generated', models.length, 'GLB cabin meshes.');
 }
+
