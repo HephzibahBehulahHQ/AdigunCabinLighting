@@ -359,7 +359,11 @@ test('new cabin zones, scenes, and browser-local projects are usable', async ({ 
 
 test('Change cabin switches the 3D reference geometry from the left rail', async ({ page }) => {
   await page.goto('/studio');
-  await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-cabin-layout', 'singleAisle');
+  await expect(page.locator('.cabin-webgl-canvas')).toHaveAttribute('data-cabin-profile', 'gulfstream-g650er');
+  await expect(page.locator('.cabin-webgl-canvas')).toHaveAttribute('data-visible-windows', '16');
+  await expect(page.locator('.cabin-webgl-canvas')).toHaveAttribute('data-rendered-seats', '10');
+  await expect(page.locator('.cabin-webgl-canvas')).toHaveAttribute('data-seat-overlaps', '0');
+  await expect(page.locator('.cabin-webgl-canvas')).toHaveAttribute('data-seat-floor-gap', '0');
   await page.getByRole('button', { name: 'Change cabin' }).click();
   await page.getByLabel('Cabin layout').selectOption('regional');
   await expect(page.locator('.cabin-profile-summary')).toContainText('4 seats/row');

@@ -6,6 +6,7 @@ import type { RGBW, SceneFile, ZoneId, ZoneState } from './scene-engine';
 import { composePreviewRGB, previewLightLevel } from './lighting-preview';
 import { interpolateScene } from './scene-engine';
 import { CABIN_EXPORT_4K, canRenderExport } from './export-capabilities';
+import { inspectG650ERSeatClearance, isG650ERPublishedWindow, seatG650ERSeatAssemblies } from './aircraft-geometry';
 
 type Props = {
   profile: CabinMeshProfile;
@@ -115,6 +116,8 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
     renderer.domElement.setAttribute('role', 'img');
     renderer.domElement.setAttribute('aria-label', `Interactive 3D ${profile.label}. Authored simulation geometry; not an OEM or verified airline fit.`);
     renderer.domElement.tabIndex = 0;
+    renderer.domElement.dataset.cabinProfile = profile.id;
+    if (profile.id === 'gulfstream-g650er') renderer.domElement.dataset.visibleWindows = '0';
     host.replaceChildren(renderer.domElement);
 
     const scene = new THREE.Scene();
@@ -184,10 +187,23 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
       camera.updateProjectionMatrix();
       scene.fog = new THREE.Fog('#07111d', size.z * .95, size.z * 2.5);
       const repeatedParts: THREE.Mesh[] = [];
+      let visibleG650WindowGlass = 0;
+      if (profile.id === 'gulfstream-g650er') seatG650ERSeatAssemblies(gltf.scene);
       gltf.scene.traverse((object) => {
+        if (profile.id === 'gulfstream-g650er') {
+          const windowVisible = isG650ERPublishedWindow(object.name);
+          if (windowVisible !== null) object.visible = windowVisible;
+          if (windowVisible && /^Window (?:glass|glazing) /i.test(object.name.replace(/_/g, ' '))) visibleG650WindowGlass++;
+        }
         if (object instanceof THREE.Light) { object.intensity = 0; return; }
         if (!(object instanceof THREE.Mesh)) return;
         const list = Array.isArray(object.material) ? object.material : [object.material];
+        if (profile.id === 'gulfstream-g650er') for (const material of list) {
+          if (material.name.replace(/_/g, ' ') === 'Ivory molded cabin lining' && 'color' in material) {
+            (material as THREE.MeshStandardMaterial).color.set('#e2d5bd');
+            (material as THREE.MeshStandardMaterial).roughness = 0.82;
+          }
+        }
         const zone = list.map((material) => MATERIAL_ZONES[material.name]).find(Boolean);
         if (zone) {
           object.userData.zoneId = zone;
@@ -204,6 +220,13 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
         object.castShadow = false;
         object.receiveShadow = false;
       });
+      if (profile.id === 'gulfstream-g650er') {
+        renderer.domElement.dataset.visibleWindows = String(visibleG650WindowGlass);
+        const seatAudit = inspectG650ERSeatClearance(gltf.scene);
+        renderer.domElement.dataset.renderedSeats = String(seatAudit.seatCount);
+        renderer.domElement.dataset.seatOverlaps = String(seatAudit.overlapCount);
+        renderer.domElement.dataset.seatFloorGap = String(seatAudit.floorGapMeters ?? 'unknown');
+      }
       batchRepeatedCabinParts(gltf.scene, repeatedParts);
       // Keep the interactive preview responsive on large cabins; material groups provide continuous zone coverage.
       const fixtureCount = 2;

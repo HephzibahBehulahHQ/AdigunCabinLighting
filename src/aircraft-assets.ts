@@ -27,18 +27,21 @@ export type CabinMeshProfile = {
   accuracy: string;
 };
 
+export const DEFAULT_CABIN_MESH_ID = 'gulfstream-g650er';
+
 const catalog = aircraftCatalog as AircraftCatalog;
 const airlineCatalog = airlineMeshCatalog as AirlineCatalog;
 const aircraftEntries = catalog.aircraft.map((entry) => {
   const dataKey = `../assets/aircraft-data/aircraft/${entry.id}.json`;
-  const metadata = (import.meta.glob('../assets/aircraft-data/aircraft/*.json', { eager: true, import: 'default' }) as Record<string, { manufacturer?: string; model?: string; source?: { url?: string; precision?: string }; interior?: { published_cabin_length_m?: number | null; maximum_cabin_width_m?: number | null } }>)[dataKey];
+  const metadata = (import.meta.glob('../assets/aircraft-data/aircraft/*.json', { eager: true, import: 'default' }) as Record<string, { manufacturer?: string; model?: string; source?: { url?: string; precision?: string }; interior?: { published_cabin_length_m?: number | null; maximum_cabin_width_m?: number | null; cabin_height_m?: number | null; cabin_length_excluding_baggage_m?: number | null; total_interior_length_m?: number | null; finished_cabin_width_m?: number | null; finished_cabin_height_m?: number | null } }>)[dataKey];
   const meshPath = `meshes/${entry.id}.glb`;
   return {
     id: entry.id,
     label: `${metadata?.manufacturer ?? 'Aircraft'} ${metadata?.model ?? entry.model} · dimension-based simulation`,
     aircraft: `${metadata?.manufacturer ?? ''} ${metadata?.model ?? entry.model}`.trim(),
-    widthMeters: metadata?.interior?.maximum_cabin_width_m ?? undefined,
-    lengthMeters: metadata?.interior?.published_cabin_length_m ?? undefined,
+    widthMeters: metadata?.interior?.maximum_cabin_width_m ?? metadata?.interior?.finished_cabin_width_m ?? undefined,
+    lengthMeters: metadata?.interior?.published_cabin_length_m ?? metadata?.interior?.cabin_length_excluding_baggage_m ?? metadata?.interior?.total_interior_length_m ?? undefined,
+    heightMeters: metadata?.interior?.cabin_height_m ?? metadata?.interior?.finished_cabin_height_m ?? undefined,
     sourceUrl: metadata?.source?.url,
     sourceNote: 'Published planning dimensions with authored cabin geometry; not OEM cabin CAD or an operator fit.',
     meshUrl: meshUrls[`../assets/aircraft-data/${meshPath}`],
