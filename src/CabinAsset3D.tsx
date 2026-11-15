@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import type { CabinMeshProfile } from './aircraft-assets';
 import type { RGBW, SceneFile, ZoneId, ZoneState } from './scene-engine';
 import { composePreviewRGB, previewLightLevel } from './lighting-preview';
-import { interpolateScene } from './scene-engine';
+import { interpolateScene, preserveSafetyZones } from './scene-engine';
 import { CABIN_EXPORT_4K, canRenderExport } from './export-capabilities';
 import { inspectG650ERSeatClearance, isG650ERPublishedWindow, seatG650ERSeatAssemblies } from './aircraft-geometry';
 
@@ -32,26 +32,55 @@ const MATERIAL_ZONES: Record<string, ZoneId> = {
   left_sidewall: 'left_sidewall',
   right_sidewall: 'right_sidewall',
   footwell: 'footwell',
+  'Window glass': 'windows',
+  'Window glazing': 'windows',
 };
+
+function featureZone(name: string): ZoneId | undefined {
+  const normalized = name.replace(/_/g, ' ').toLowerCase();
+  if (/window (glass|glazing)/.test(normalized)) return 'windows';
+  if (/sidewall light/.test(normalized)) return normalized.includes('-1') ? 'left_sidewall' : 'right_sidewall';
+  if (/footwell/.test(normalized)) return 'footwell';
+  return undefined;
+}
 
 function previewColor(value: RGBW) {
   const rgb = composePreviewRGB(value);
   return new THREE.Color(rgb.r / 100, rgb.g / 100, rgb.b / 100);
 }
 
-function applyZoneLighting(materials: Map<ZoneId, Set<THREE.Material>>, lights: Map<ZoneId, THREE.PointLight[]>, effective: Record<ZoneId, RGBW>, intensity: number) {
-  for (const id of ['ceiling_cove', 'left_sidewall', 'right_sidewall', 'footwell'] as const) {
+function applyZoneLighting(materials: Map<ZoneId, Set<THREE.Material>>, lights: Map<ZoneId, THREE.Light[]>, effective: Record<ZoneId, RGBW>, intensity: number) {
+  for (const id of ['ceiling', 'windows', 'sidewalls', 'footwell', 'reading', 'entry', 'monuments', 'toilet', 'handrail', 'trolley', 'cabin', 'ceiling_cove', 'left_sidewall', 'right_sidewall', 'spotlights', 'emergency', 'exit'] as const) {
     const rgbw = effective[id];
     const color = previewColor(rgbw);
     const level = previewLightLevel(rgbw, intensity);
     for (const material of materials.get(id) ?? []) {
       if ('emissive' in material) {
         const emissiveMaterial = material as THREE.MeshStandardMaterial;
+        const modeledEmitter = id === 'ceiling_cove' || id === 'left_sidewall' || id === 'right_sidewall' || id === 'footwell';
+        // Window glazing is a passive surface. Keep its authored glass tint and
+        // let the separately modeled window source and aimed local lights create
+        // the daylight spill; emissive glass reads as a flat glowing cutout.
+        if (id === 'windows') {
+          // Retain a readable cool glass tint in the view while the separate
+          // diffuser and local sources do the actual simulated illumination.
+          emissiveMaterial.emissive.set('#416a8c');
+          emissiveMaterial.emissiveIntensity = level === 0 ? 0 : .18 + level * .14;
+          continue;
+        }
+        // GLB light-channel meshes carry illustrative base colors. Darken those
+        // actual emitters at zero so an inactive strip cannot glow as a mood.
+        if (modeledEmitter) emissiveMaterial.color.copy(level === 0 ? new THREE.Color('#101821') : color);
         emissiveMaterial.emissive.copy(color);
-        emissiveMaterial.emissiveIntensity = level === 0 ? 0 : .2 + level * 2.6;
+        emissiveMaterial.emissiveIntensity = level === 0 ? 0 : .08 + level * .72;
       }
     }
-    for (const light of lights.get(id) ?? []) { light.color.copy(color); light.intensity = level * 25; }
+    // Avoid clipped white pools when local real-time lights overlap on pale cabin surfaces.
+    const fixturePower = id === 'windows' ? 8 : id === 'reading' ? 36 : id === 'spotlights' ? 20 : id === 'ceiling' ? 18 : id === 'emergency' || id === 'exit' ? 4 : 2.5;
+    for (const light of lights.get(id) ?? []) {
+      const fillScale = id === 'spotlights' ? .10 : .35;
+      light.color.copy(color); light.intensity = level * (light instanceof THREE.SpotLight ? fixturePower : fixturePower * fillScale);
+    }
   }
 }
 
@@ -85,15 +114,15 @@ function batchRepeatedCabinParts(root: THREE.Object3D, candidates: THREE.Mesh[])
 
 export default function CabinAsset3D({ profile, zones, effective, intensity, selected, onSelect, highQuality, previewActive, previewMotion, previewTime, previewDuration, previewStartedAt, scene: activeScene, cameraView, captureRef, cameraResetRef }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const runtime = useRef<{ renderer: THREE.WebGLRenderer; scene: THREE.Scene; camera: THREE.PerspectiveCamera; materials: Map<ZoneId, Set<THREE.Material>>; lights: Map<ZoneId, THREE.PointLight[]>; selectable: THREE.Object3D[]; resize: ResizeObserver; reset: () => void; applyLighting: (values?: Record<ZoneId, RGBW>) => void; draw: () => void } | null>(null);
+  const runtime = useRef<{ renderer: THREE.WebGLRenderer; scene: THREE.Scene; camera: THREE.PerspectiveCamera; materials: Map<ZoneId, Set<THREE.Material>>; lights: Map<ZoneId, THREE.Light[]>; selectable: THREE.Object3D[]; resize: ResizeObserver; reset: () => void; applyLighting: (values?: Record<ZoneId, RGBW>) => void; draw: () => void } | null>(null);
   const [error, setError] = useState('');
   const home = useRef<{ position: THREE.Vector3; quaternion: THREE.Quaternion } | null>(null);
   const cameraViewRef = useRef(cameraView);
   cameraViewRef.current = cameraView;
   const previewActiveRef = useRef(previewActive);
   previewActiveRef.current = previewActive;
-  const lighting = useRef({ effective, intensity });
-  lighting.current = { effective, intensity };
+  const lighting = useRef({ effective, intensity, zones });
+  lighting.current = { effective, intensity, zones };
 
   useEffect(() => {
     const host = hostRef.current;
@@ -108,7 +137,7 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
     }
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.18;
+    renderer.toneMappingExposure = 1.02;
     renderer.shadowMap.enabled = false;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, highQuality ? 1.5 : 1.25));
     renderer.setSize(host.clientWidth || 800, host.clientHeight || 500, false);
@@ -122,15 +151,15 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color('#07111d');
-    scene.add(new THREE.HemisphereLight('#e5f3ff', '#243143', 2.1));
-    const key = new THREE.DirectionalLight('#fff1db', 1.25);
+    scene.add(new THREE.HemisphereLight('#e5f3ff', '#243143', .72));
+    const key = new THREE.DirectionalLight('#fff1db', .52);
     key.position.set(-2, 7, 9);
     key.castShadow = false;
     scene.add(key);
     const camera = new THREE.PerspectiveCamera(62, 1, .03, 250);
     const root = new THREE.Group();
     scene.add(root);
-    const modelLights = new Map<ZoneId, THREE.PointLight[]>();
+    const modelLights = new Map<ZoneId, THREE.Light[]>();
     const zoneMaterials = new Map<ZoneId, Set<THREE.Material>>();
     const selectable: THREE.Object3D[] = [];
     let box = new THREE.Box3(new THREE.Vector3(-2, 0, -20), new THREE.Vector3(2, 2.5, 20));
@@ -187,6 +216,12 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
       camera.updateProjectionMatrix();
       scene.fog = new THREE.Fog('#07111d', size.z * .95, size.z * 2.5);
       const repeatedParts: THREE.Mesh[] = [];
+      const windowBounds: THREE.Box3[] = [];
+      const seatBounds: THREE.Box3[] = [];
+      const binBounds: THREE.Box3[] = [];
+      const consoleBounds: THREE.Box3[] = [];
+      const monumentBounds: THREE.Box3[] = [];
+      let hasAuthoredCeiling = false;
       let visibleG650WindowGlass = 0;
       if (profile.id === 'gulfstream-g650er') seatG650ERSeatAssemblies(gltf.scene);
       gltf.scene.traverse((object) => {
@@ -195,21 +230,57 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
           if (windowVisible !== null) object.visible = windowVisible;
           if (windowVisible && /^Window (?:glass|glazing) /i.test(object.name.replace(/_/g, ' '))) visibleG650WindowGlass++;
         }
-        if (object instanceof THREE.Light) { object.intensity = 0; return; }
+        if (object instanceof THREE.Light) {
+          const lightZone = object.name.includes('left_sidewall') ? 'left_sidewall' : object.name.includes('right_sidewall') ? 'right_sidewall' : undefined;
+          object.intensity = 0;
+          if (lightZone) { const entries = modelLights.get(lightZone) ?? []; entries.push(object); modelLights.set(lightZone, entries); }
+          return;
+        }
         if (!(object instanceof THREE.Mesh)) return;
-        const list = Array.isArray(object.material) ? object.material : [object.material];
+        const feature = featureZone(object.name);
+        let list = Array.isArray(object.material) ? object.material : [object.material];
+        if (feature === 'windows') {
+          list = list.map((material) => material.name.toLowerCase().includes('window glass') ? material.clone() : material);
+          object.material = Array.isArray(object.material) ? list : list[0];
+          const bounds = new THREE.Box3().setFromObject(object);
+          if (!bounds.isEmpty()) windowBounds.push(bounds);
+        }
+        const normalizedName = object.name.replace(/_/g, ' ').toLowerCase();
+        if (object instanceof THREE.Mesh && /(?:cabin )?ceiling (?:panel|shell|lining)/.test(normalizedName)) hasAuthoredCeiling = true;
+        if (/seat.*headrest/.test(normalizedName)) {
+          const bounds = new THREE.Box3().setFromObject(object); if (!bounds.isEmpty()) seatBounds.push(bounds);
+        }
+        if (/overhead luggage bin/.test(normalizedName)) {
+          const bounds = new THREE.Box3().setFromObject(object); if (!bounds.isEmpty()) binBounds.push(bounds);
+        }
+        if (/vip side console/.test(normalizedName)) {
+          const bounds = new THREE.Box3().setFromObject(object); if (!bounds.isEmpty()) consoleBounds.push(bounds);
+        }
+        if (/galley module|monument/.test(normalizedName)) {
+          const bounds = new THREE.Box3().setFromObject(object); if (!bounds.isEmpty()) monumentBounds.push(bounds);
+        }
         if (profile.id === 'gulfstream-g650er') for (const material of list) {
-          if (material.name.replace(/_/g, ' ') === 'Ivory molded cabin lining' && 'color' in material) {
+          const materialName = material.name.replace(/_/g, ' ');
+          if (materialName === 'Ivory molded cabin lining' && 'color' in material) {
             (material as THREE.MeshStandardMaterial).color.set('#e2d5bd');
             (material as THREE.MeshStandardMaterial).roughness = 0.82;
           }
+          if (materialName === 'Navy woven upholstery' && 'color' in material) {
+            (material as THREE.MeshStandardMaterial).color.set('#b8aa95');
+            (material as THREE.MeshStandardMaterial).roughness = 0.78;
+          }
+          if (materialName === 'Pearl seat headrest' && 'color' in material) {
+            (material as THREE.MeshStandardMaterial).color.set('#e4d8c6');
+            (material as THREE.MeshStandardMaterial).roughness = 0.74;
+          }
+          if (materialName === 'Upholstery stitching' && 'color' in material) (material as THREE.MeshStandardMaterial).color.set('#76695a');
         }
-        const zone = list.map((material) => MATERIAL_ZONES[material.name]).find(Boolean);
+        const zone = feature ?? list.map((material) => MATERIAL_ZONES[material.name]).find(Boolean);
         if (zone) {
           object.userData.zoneId = zone;
           selectable.push(object);
           for (const material of list) {
-            const mappedZone = MATERIAL_ZONES[material.name];
+            const mappedZone = feature ?? MATERIAL_ZONES[material.name];
             if (mappedZone) {
               const zoneMaterialSet = zoneMaterials.get(mappedZone) ?? new Set<THREE.Material>();
               zoneMaterialSet.add(material);
@@ -228,23 +299,197 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
         renderer.domElement.dataset.seatFloorGap = String(seatAudit.floorGapMeters ?? 'unknown');
       }
       batchRepeatedCabinParts(gltf.scene, repeatedParts);
-      // Keep the interactive preview responsive on large cabins; material groups provide continuous zone coverage.
-      const fixtureCount = 2;
-      const addZoneLights = (zone: ZoneId, x: number, y: number) => {
-        const lights: THREE.PointLight[] = [];
-        for (let index = 0; index < fixtureCount; index++) {
-          const z = box.min.z + size.z * (index + .5) / fixtureCount;
-          const light = new THREE.PointLight('#ffffff', 0, Math.max(1.5, size.x * .95), 1.7);
-          light.position.set(x, y, z);
-          scene.add(light);
-          lights.push(light);
-        }
-        modelLights.set(zone, lights);
+      gltf.scene.updateMatrixWorld(true);
+      const fixtureGeometry = new THREE.BoxGeometry(1, 1, 1);
+      const addFixtures = (zone: ZoneId, items: { position: THREE.Vector3; size: THREE.Vector3; rotation?: THREE.Euler }[]) => {
+        if (!items.length) return;
+        const material = new THREE.MeshStandardMaterial({ color: '#07111d', emissive: '#000000', emissiveIntensity: 0, roughness: .38, metalness: .16 });
+        const mesh = new THREE.InstancedMesh(fixtureGeometry, material, items.length);
+        mesh.name = `Simulated ${zone} fixture group · ${items.length}`;
+        mesh.userData.zoneId = zone;
+        const transform = new THREE.Object3D();
+        items.forEach((item, index) => {
+          transform.position.copy(item.position); transform.scale.copy(item.size);
+          if (item.rotation) transform.rotation.copy(item.rotation); else transform.rotation.set(0, 0, 0);
+          transform.updateMatrix(); mesh.setMatrixAt(index, transform.matrix);
+        });
+        mesh.instanceMatrix.needsUpdate = true; mesh.computeBoundingSphere();
+        root.add(mesh); selectable.push(mesh);
+        const registered = zoneMaterials.get(zone) ?? new Set<THREE.Material>(); registered.add(material); zoneMaterials.set(zone, registered);
       };
-      addZoneLights('ceiling_cove', -size.x * .2, box.min.y + size.y * .92);
-      addZoneLights('left_sidewall', -size.x * .43, box.min.y + size.y * .5);
-      addZoneLights('right_sidewall', size.x * .43, box.min.y + size.y * .5);
-      addZoneLights('footwell', 0, box.min.y + size.y * .12);
+      const addPoint = (zone: ZoneId, position: THREE.Vector3, distance: number, decay = 2) => {
+        const light = new THREE.PointLight('#ffffff', 0, distance, decay); light.position.copy(position); light.name = `Simulated ${zone} source`;
+        scene.add(light); const list = modelLights.get(zone) ?? []; list.push(light); modelLights.set(zone, list);
+      };
+      const addSpot = (zone: ZoneId, position: THREE.Vector3, targetPosition: THREE.Vector3, distance: number, angle = Math.PI / 5) => {
+        const light = new THREE.SpotLight('#ffffff', 0, distance, angle, .72, 2); light.position.copy(position); light.name = `Simulated ${zone} aimed source`;
+        const target = new THREE.Object3D(); target.position.copy(targetPosition); scene.add(target); light.target = target; scene.add(light);
+        const list = modelLights.get(zone) ?? []; list.push(light); modelLights.set(zone, list);
+      };
+      const centerX = box.getCenter(new THREE.Vector3()).x;
+      const cabinSpan = Math.max(.1, box.max.z - box.min.z);
+      const roofHalfWidth = size.x * .49;
+      const roofEdgeDrop = Math.max(.16, size.y * .14);
+      const roofY = (x: number) => box.max.y - .035 - roofEdgeDrop * Math.min(1, ((x - centerX) / roofHalfWidth) ** 2);
+      // The VVIP mesh has no ceiling shell. Add a curved, model-relative lining
+      // surface so light groups illuminate a cabin surface instead of empty sky.
+      const roofGeometry = new THREE.BufferGeometry();
+      const roofColumns = 12; const roofRows = 40;
+      const roofVertices: number[] = []; const roofIndices: number[] = [];
+      for (let row = 0; row <= roofRows; row++) {
+        const z = box.min.z + .08 + (cabinSpan - .16) * row / roofRows;
+        for (let column = 0; column <= roofColumns; column++) {
+          const x = centerX - roofHalfWidth + roofHalfWidth * 2 * column / roofColumns;
+          roofVertices.push(x, roofY(x), z);
+        }
+      }
+      for (let row = 0; row < roofRows; row++) for (let column = 0; column < roofColumns; column++) {
+        const a = row * (roofColumns + 1) + column; const b = a + 1; const c = a + roofColumns + 1; const d = c + 1;
+        roofIndices.push(a, b, c, b, d, c);
+      }
+      roofGeometry.setAttribute('position', new THREE.Float32BufferAttribute(roofVertices, 3));
+      roofGeometry.setIndex(roofIndices); roofGeometry.computeVertexNormals();
+      const roofMaterial = new THREE.MeshStandardMaterial({ color: '#e2d5bd', emissive: '#c9b998', emissiveIntensity: .32, roughness: .84, metalness: .015, side: THREE.DoubleSide });
+      if (!hasAuthoredCeiling) {
+        const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+        roof.name = 'Estimated curved ceiling lining · dimension-based'; roof.castShadow = false; roof.receiveShadow = true;
+        root.add(roof);
+      } else {
+        roofGeometry.dispose(); roofMaterial.dispose();
+      }
+      const panes = windowBounds.map((bounds) => {
+        const center = bounds.getCenter(new THREE.Vector3()); const inward = center.x < centerX ? 1 : -1;
+        return { bounds, position: center.add(new THREE.Vector3(inward * Math.max(.12, size.x * .045), 0, 0)), inward };
+      });
+      const windowSourceItems = panes.map(({ bounds, position, inward }) => {
+        const extent = bounds.getSize(new THREE.Vector3());
+        return {
+          // A slim luminous diffuser sits just inside the glazing plane. The
+          // original glass stays tinted and non-emissive like a real window.
+          position: new THREE.Vector3(position.x - inward * Math.max(.08, size.x * .032), position.y, position.z),
+          size: new THREE.Vector3(.012, Math.max(.12, extent.y * .68), Math.max(.12, extent.z * .68)),
+        };
+      });
+      addFixtures('windows', windowSourceItems);
+      panes.filter((_, index) => index % Math.max(1, Math.ceil(panes.length / 16)) === 0).forEach(({ position, inward }) => {
+        const source = position.clone();
+        source.x -= inward * .025;
+        const target = new THREE.Vector3(centerX, box.min.y + size.y * .34, source.z);
+        addSpot('windows', source, target, Math.max(1.5, size.x * 1.1), Math.PI / 4);
+      });
+
+      // The bin edge uses each actual bin mesh's aisle-facing lower lip as its placement datum.
+      const binItems = binBounds.map((bounds) => {
+        const center = bounds.getCenter(new THREE.Vector3()); const side = center.x < centerX ? -1 : 1;
+        return { position: new THREE.Vector3(center.x - side * bounds.getSize(new THREE.Vector3()).x * .43, bounds.min.y + .018, center.z), size: new THREE.Vector3(.018, .014, Math.max(.18, bounds.getSize(new THREE.Vector3()).z * .82)) };
+      });
+      const edgeItems = binItems.length ? binItems : consoleBounds.map((bounds) => {
+        const center = bounds.getCenter(new THREE.Vector3()); const side = center.x < centerX ? -1 : 1;
+        return { position: new THREE.Vector3(center.x - side * bounds.getSize(new THREE.Vector3()).x * .42, bounds.max.y + .012, center.z), size: new THREE.Vector3(.016, .012, Math.max(.18, bounds.getSize(new THREE.Vector3()).z * .88)) };
+      });
+      addFixtures('handrail', edgeItems);
+      edgeItems.filter((_, index) => index % Math.max(1, Math.ceil(edgeItems.length / 18)) === 0).forEach((item) => addPoint('handrail', item.position.clone(), Math.max(1.2, size.x * .42)));
+
+      // Ceiling wash strips sit just above the overhead-bin tops and aim upward.
+      const ceilingItems = binBounds.map((bounds) => {
+        const center = bounds.getCenter(new THREE.Vector3()); const extent = bounds.getSize(new THREE.Vector3());
+        return { position: new THREE.Vector3(center.x, bounds.max.y + .022, center.z), size: new THREE.Vector3(Math.max(.12, extent.x * .62), .012, Math.max(.18, extent.z * .78)) };
+      });
+      if (!ceilingItems.length) {
+        for (const side of [-1, 1]) {
+          const x = centerX + side * size.x * .29;
+          ceilingItems.push({ position: new THREE.Vector3(x, roofY(x) - .025, box.getCenter(new THREE.Vector3()).z), size: new THREE.Vector3(.035, .018, cabinSpan * .84) });
+        }
+      }
+      addFixtures('ceiling', ceilingItems);
+      ceilingItems.filter((_, index) => index % Math.max(1, Math.ceil(ceilingItems.length / 12)) === 0).forEach((item) => {
+        const surfaceY = roofY(item.position.x);
+        const source = item.position.clone();
+        source.y = Math.min(source.y, surfaceY - .055);
+        const target = new THREE.Vector3(item.position.x, surfaceY - .006, item.position.z);
+        addSpot('ceiling', source, target, Math.max(1.5, size.x * .52), Math.PI / 4);
+      });
+
+      // Central cove is a linear, ceiling-mounted source, independent from the bin-top wash.
+      const coveY = roofY(centerX) - .025;
+      addFixtures('ceiling_cove', [{ position: new THREE.Vector3(centerX, coveY, box.getCenter(new THREE.Vector3()).z), size: new THREE.Vector3(Math.max(.035, size.x * .018), .025, cabinSpan * .86) }]);
+      for (let index = 0; index < 8; index++) addPoint('ceiling_cove', new THREE.Vector3(centerX, coveY - .025, box.min.z + cabinSpan * (index + .5) / 8), Math.max(1.5, size.x * .62));
+
+      // One visible task emitter per authored seat headrest; physical spotlights are sampled along the cabin to bound draw cost.
+      const readingItems = seatBounds.map((bounds) => {
+        const center = bounds.getCenter(new THREE.Vector3());
+        return { position: new THREE.Vector3(center.x, Math.min(roofY(center.x) - .035, bounds.max.y + .42), center.z), size: new THREE.Vector3(.045, .018, .035) };
+      });
+      addFixtures('reading', readingItems);
+      readingItems.filter((_, index) => index % Math.max(1, Math.ceil(readingItems.length / 24)) === 0).forEach((item) => {
+        const target = item.position.clone().add(new THREE.Vector3(0, -Math.max(.42, size.y * .24), .24));
+        addSpot('reading', item.position.clone(), target, Math.max(1.5, size.x * .62), Math.PI / 6);
+      });
+
+      // Focused work lights are tied to modeled galley/monument bounds, not arbitrary cabin coordinates.
+      const workItems = monumentBounds.map((bounds) => {
+        const center = bounds.getCenter(new THREE.Vector3());
+        const aisleFaceX = center.x < centerX ? bounds.max.x : bounds.min.x;
+        return {
+          position: new THREE.Vector3(center.x, Math.min(roofY(center.x) - .12, bounds.max.y + .25), center.z),
+          size: new THREE.Vector3(.045, .022, .045),
+          target: new THREE.Vector3(aisleFaceX, Math.min(bounds.max.y - .04, bounds.min.y + .68), center.z),
+        };
+      });
+      // Where the cabin has no operator galley/monument surface near the seated
+      // passenger view, derive additional task spots from the modeled side-console
+      // bounds, evenly spaced along their actual longitudinal run.
+      for (const bounds of consoleBounds) {
+        const center = bounds.getCenter(new THREE.Vector3());
+        const extent = bounds.getSize(new THREE.Vector3());
+        const aisleFaceX = center.x < centerX ? bounds.max.x : bounds.min.x;
+        for (let index = 0; index < 4; index++) {
+          const z = bounds.min.z + extent.z * (index + .5) / 4;
+          workItems.push({
+            position: new THREE.Vector3(center.x, Math.min(roofY(center.x) - .12, bounds.max.y + .34), z),
+            size: new THREE.Vector3(.045, .022, .045),
+            target: new THREE.Vector3(aisleFaceX, bounds.max.y - .012, z),
+          });
+        }
+      }
+      addFixtures('spotlights', workItems.map(({ position, size: fixtureSize }) => ({ position, size: fixtureSize })));
+      workItems.forEach((item) => {
+        addSpot('spotlights', item.position.clone(), item.target, Math.max(1.2, size.x * .7), Math.PI / 7);
+        addPoint('spotlights', item.target.clone(), Math.max(1.2, size.x * .35), 2.2);
+      });
+
+      // Escape-path guides remain independent of decorative scene tracks.
+      const pathX = Math.max(.05, size.x * .035);
+      const pathItems = [-1, 1].map((side) => ({ position: new THREE.Vector3(centerX + side * pathX, box.min.y + .045, box.getCenter(new THREE.Vector3()).z), size: new THREE.Vector3(.018, .018, cabinSpan * .92) }));
+      addFixtures('emergency', pathItems);
+      for (let index = 0; index < 10; index++) addPoint('emergency', new THREE.Vector3(centerX, box.min.y + .07, box.min.z + cabinSpan * (index + .5) / 10), Math.max(1.1, size.x * .25));
+
+      // Exit cues are deliberately marked as estimated at the modeled cabin ends; the GLBs contain no exit stations.
+      const signItems = [box.min.z + Math.min(.42, cabinSpan * .025), box.max.z - Math.min(.42, cabinSpan * .025)].map((z, index) => ({
+        position: new THREE.Vector3(centerX, box.min.y + size.y * .76, z), size: new THREE.Vector3(.30, .12, .025), rotation: new THREE.Euler(0, index ? Math.PI : 0, 0),
+      }));
+      const signCanvas = document.createElement('canvas'); signCanvas.width = 256; signCanvas.height = 96;
+      const signContext = signCanvas.getContext('2d');
+      if (signContext) {
+        signContext.fillStyle = '#123d2b'; signContext.fillRect(0, 0, signCanvas.width, signCanvas.height);
+        signContext.strokeStyle = '#69e7a4'; signContext.lineWidth = 6; signContext.strokeRect(3, 3, signCanvas.width - 6, signCanvas.height - 6);
+        signContext.fillStyle = '#aaffd0'; signContext.font = '700 54px Arial'; signContext.textAlign = 'center'; signContext.textBaseline = 'middle';
+        signContext.fillText('EXIT  ›', signCanvas.width / 2, signCanvas.height / 2);
+      }
+      const signTexture = new THREE.CanvasTexture(signCanvas); signTexture.colorSpace = THREE.SRGBColorSpace;
+      const signMaterial = new THREE.MeshStandardMaterial({ color: '#ffffff', map: signTexture, emissive: '#000000', emissiveMap: signTexture, emissiveIntensity: 0, roughness: .4, metalness: .05 });
+      const signMesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, .375), signMaterial, signItems.length);
+      signMesh.name = `Estimated simulated EXIT signs · ${signItems.length}`; signMesh.userData.zoneId = 'exit';
+      const signTransform = new THREE.Object3D();
+      signItems.forEach((item, index) => {
+        signTransform.position.copy(item.position); signTransform.scale.set(item.size.x, item.size.y, 1); signTransform.rotation.copy(item.rotation ?? new THREE.Euler());
+        signTransform.updateMatrix(); signMesh.setMatrixAt(index, signTransform.matrix);
+      });
+      signMesh.instanceMatrix.needsUpdate = true; signMesh.computeBoundingSphere(); root.add(signMesh); selectable.push(signMesh);
+      const signMaterials = zoneMaterials.get('exit') ?? new Set<THREE.Material>(); signMaterials.add(signMaterial); zoneMaterials.set('exit', signMaterials);
+      signItems.forEach((item) => addPoint('exit', item.position.clone(), Math.max(.8, size.x * .20)));
+
+      renderer.domElement.dataset.simulatedFixtureCounts = JSON.stringify({ windows: panes.length, ceiling: ceilingItems.length, handrail: edgeItems.length, reading: readingItems.length, spotlights: workItems.length, emergency: pathItems.length, exit: signItems.length, placementBasis: binBounds.length ? 'overhead-bins' : consoleBounds.length ? 'vip-side-console-and-upper-sidewall' : 'upper-sidewall-fallback' });
       fitCamera(cameraView);
       applyZoneLighting(zoneMaterials, modelLights, lighting.current.effective, lighting.current.intensity);
       rootBoxReady = true;
@@ -329,7 +574,7 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
       if (frame !== null) cancelAnimationFrame(frame);
       resize.disconnect();
       canvas.removeEventListener('dblclick', onPick); canvas.removeEventListener('pointerdown', onDown); canvas.removeEventListener('pointermove', onMove); canvas.removeEventListener('pointerup', onUp); canvas.removeEventListener('pointercancel', onUp); canvas.removeEventListener('wheel', onWheel);
-      root.traverse((object) => { if (object instanceof THREE.Mesh) { object.geometry.dispose(); const materials = Array.isArray(object.material) ? object.material : [object.material]; materials.forEach((material) => material.dispose()); } });
+      root.traverse((object) => { if (object instanceof THREE.Mesh) { object.geometry.dispose(); const materials = Array.isArray(object.material) ? object.material : [object.material]; materials.forEach((material) => { if (material instanceof THREE.MeshStandardMaterial) { material.map?.dispose(); material.emissiveMap?.dispose(); } material.dispose(); }); } });
       renderer.dispose(); renderer.forceContextLoss(); renderer.domElement.remove(); runtime.current = null; captureRef.current = null; cameraResetRef.current = null; home.current = null;
     };
   }, [profile.id]);
@@ -345,7 +590,8 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
       // Recomputing every mapped material on every RAF starved playback on software WebGL.
       if (now - lastLightUpdate >= 80 || elapsed >= previewDuration) {
         lastLightUpdate = now;
-        current.applyLighting(interpolateScene(activeScene, Math.min(previewDuration, elapsed)));
+        const independentSafety = Object.fromEntries(lighting.current.zones.filter((zone) => zone.id === 'emergency' || zone.id === 'exit').map((zone) => [zone.id, zone.rgbw]));
+        current.applyLighting(preserveSafetyZones(interpolateScene(activeScene, Math.min(previewDuration, elapsed)), independentSafety));
         current.draw();
       }
       if (elapsed < previewDuration) animation = requestAnimationFrame(animate);
@@ -387,3 +633,4 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
     <span className="cabin-asset-attribution">{profile.label} · SIMULATION GEOMETRY</span>
   </div>;
 }
+
