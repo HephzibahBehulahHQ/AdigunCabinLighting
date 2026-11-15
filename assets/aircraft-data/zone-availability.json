@@ -11,8 +11,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 560,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 82,
         "bin_handles": 82,
         "galley_modules": 2,
@@ -47,12 +51,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
@@ -60,19 +64,9 @@
           "basis": "2 named footwell components"
         },
         {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "560 seat headrests anchor simulated task emitters"
-        },
-        {
           "id": "monuments",
           "name": "Service monuments / VIP consoles",
           "basis": "2 named service-surface components"
-        },
-        {
-          "id": "spotlights",
-          "name": "Spotlights",
-          "basis": "2 service-surface bounds anchor simulated spots"
         }
       ]
     },
@@ -84,8 +78,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 10,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 0,
         "bin_handles": 0,
         "galley_modules": 2,
@@ -103,11 +101,6 @@
           "basis": "36 named glass/glazing components"
         },
         {
-          "id": "ceiling",
-          "name": "Upper-sidewall ceiling wash",
-          "basis": "No bins; uses the modelled upper-sidewall datum"
-        },
-        {
           "id": "handrail",
           "name": "VIP console edge",
           "basis": "2 VIP side-console components"
@@ -120,12 +113,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
@@ -133,19 +126,9 @@
           "basis": "2 named footwell components"
         },
         {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "10 seat headrests anchor simulated task emitters"
-        },
-        {
           "id": "monuments",
           "name": "Service monuments / VIP consoles",
           "basis": "4 named service-surface components"
-        },
-        {
-          "id": "spotlights",
-          "name": "Spotlights",
-          "basis": "4 service-surface bounds anchor simulated spots"
         }
       ]
     },
@@ -157,8 +140,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 120,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 38,
         "bin_handles": 38,
         "galley_modules": 2,
@@ -193,12 +180,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
@@ -206,19 +193,9 @@
           "basis": "2 named footwell components"
         },
         {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "120 seat headrests anchor simulated task emitters"
-        },
-        {
           "id": "monuments",
           "name": "Service monuments / VIP consoles",
           "basis": "2 named service-surface components"
-        },
-        {
-          "id": "spotlights",
-          "name": "Spotlights",
-          "basis": "2 service-surface bounds anchor simulated spots"
         }
       ]
     },
@@ -230,8 +207,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 145,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 46,
         "bin_handles": 46,
         "galley_modules": 2,
@@ -266,12 +247,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
@@ -279,19 +260,9 @@
           "basis": "2 named footwell components"
         },
         {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "145 seat headrests anchor simulated task emitters"
-        },
-        {
           "id": "monuments",
           "name": "Service monuments / VIP consoles",
           "basis": "2 named service-surface components"
-        },
-        {
-          "id": "spotlights",
-          "name": "Spotlights",
-          "basis": "2 service-surface bounds anchor simulated spots"
         }
       ]
     },
@@ -303,8 +274,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 174,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 46,
         "bin_handles": 46,
         "galley_modules": 2,
@@ -339,12 +314,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
@@ -352,19 +327,9 @@
           "basis": "2 named footwell components"
         },
         {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "174 seat headrests anchor simulated task emitters"
-        },
-        {
           "id": "monuments",
           "name": "Service monuments / VIP consoles",
           "basis": "2 named service-surface components"
-        },
-        {
-          "id": "spotlights",
-          "name": "Spotlights",
-          "basis": "2 service-surface bounds anchor simulated spots"
         }
       ]
     },
@@ -376,8 +341,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 222,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 56,
         "bin_handles": 56,
         "galley_modules": 2,
@@ -412,12 +381,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
@@ -425,19 +394,9 @@
           "basis": "2 named footwell components"
         },
         {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "222 seat headrests anchor simulated task emitters"
-        },
-        {
           "id": "monuments",
           "name": "Service monuments / VIP consoles",
           "basis": "2 named service-surface components"
-        },
-        {
-          "id": "spotlights",
-          "name": "Spotlights",
-          "basis": "2 service-surface bounds anchor simulated spots"
         }
       ]
     },
@@ -449,8 +408,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 400,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 74,
         "bin_handles": 74,
         "galley_modules": 2,
@@ -485,12 +448,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
@@ -498,19 +461,9 @@
           "basis": "2 named footwell components"
         },
         {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "400 seat headrests anchor simulated task emitters"
-        },
-        {
           "id": "monuments",
           "name": "Service monuments / VIP consoles",
           "basis": "2 named service-surface components"
-        },
-        {
-          "id": "spotlights",
-          "name": "Spotlights",
-          "basis": "2 service-surface bounds anchor simulated spots"
         }
       ]
     },
@@ -522,8 +475,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 456,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 84,
         "bin_handles": 84,
         "galley_modules": 2,
@@ -558,12 +515,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
@@ -571,19 +528,9 @@
           "basis": "2 named footwell components"
         },
         {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "456 seat headrests anchor simulated task emitters"
-        },
-        {
           "id": "monuments",
           "name": "Service monuments / VIP consoles",
           "basis": "2 named service-surface components"
-        },
-        {
-          "id": "spotlights",
-          "name": "Spotlights",
-          "basis": "2 service-surface bounds anchor simulated spots"
         }
       ]
     },
@@ -595,8 +542,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 522,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 84,
         "bin_handles": 84,
         "galley_modules": 2,
@@ -631,12 +582,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
@@ -644,19 +595,9 @@
           "basis": "2 named footwell components"
         },
         {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "522 seat headrests anchor simulated task emitters"
-        },
-        {
           "id": "monuments",
           "name": "Service monuments / VIP consoles",
           "basis": "2 named service-surface components"
-        },
-        {
-          "id": "spotlights",
-          "name": "Spotlights",
-          "basis": "2 service-surface bounds anchor simulated spots"
         }
       ]
     },
@@ -668,8 +609,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 594,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 96,
         "bin_handles": 96,
         "galley_modules": 2,
@@ -704,12 +649,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
@@ -717,19 +662,9 @@
           "basis": "2 named footwell components"
         },
         {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "594 seat headrests anchor simulated task emitters"
-        },
-        {
           "id": "monuments",
           "name": "Service monuments / VIP consoles",
           "basis": "2 named service-surface components"
-        },
-        {
-          "id": "spotlights",
-          "name": "Spotlights",
-          "basis": "2 service-surface bounds anchor simulated spots"
         }
       ]
     },
@@ -741,8 +676,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 144,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 40,
         "bin_handles": 40,
         "galley_modules": 2,
@@ -777,12 +716,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
@@ -790,19 +729,9 @@
           "basis": "2 named footwell components"
         },
         {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "144 seat headrests anchor simulated task emitters"
-        },
-        {
           "id": "monuments",
           "name": "Service monuments / VIP consoles",
           "basis": "2 named service-surface components"
-        },
-        {
-          "id": "spotlights",
-          "name": "Spotlights",
-          "basis": "2 service-surface bounds anchor simulated spots"
         }
       ]
     },
@@ -814,8 +743,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 180,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 46,
         "bin_handles": 46,
         "galley_modules": 2,
@@ -850,12 +783,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
@@ -863,19 +796,9 @@
           "basis": "2 named footwell components"
         },
         {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "180 seat headrests anchor simulated task emitters"
-        },
-        {
           "id": "monuments",
           "name": "Service monuments / VIP consoles",
           "basis": "2 named service-surface components"
-        },
-        {
-          "id": "spotlights",
-          "name": "Spotlights",
-          "basis": "2 service-surface bounds anchor simulated spots"
         }
       ]
     },
@@ -887,8 +810,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 192,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 50,
         "bin_handles": 50,
         "galley_modules": 2,
@@ -923,12 +850,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
@@ -936,19 +863,9 @@
           "basis": "2 named footwell components"
         },
         {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "192 seat headrests anchor simulated task emitters"
-        },
-        {
           "id": "monuments",
           "name": "Service monuments / VIP consoles",
           "basis": "2 named service-surface components"
-        },
-        {
-          "id": "spotlights",
-          "name": "Spotlights",
-          "basis": "2 service-surface bounds anchor simulated spots"
         }
       ]
     },
@@ -960,8 +877,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 156,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 42,
         "bin_handles": 42,
         "galley_modules": 2,
@@ -996,12 +917,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
@@ -1009,19 +930,9 @@
           "basis": "2 named footwell components"
         },
         {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "156 seat headrests anchor simulated task emitters"
-        },
-        {
           "id": "monuments",
           "name": "Service monuments / VIP consoles",
           "basis": "2 named service-surface components"
-        },
-        {
-          "id": "spotlights",
-          "name": "Spotlights",
-          "basis": "2 service-surface bounds anchor simulated spots"
         }
       ]
     },
@@ -1033,8 +944,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 180,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 46,
         "bin_handles": 46,
         "galley_modules": 2,
@@ -1069,12 +984,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
@@ -1082,19 +997,9 @@
           "basis": "2 named footwell components"
         },
         {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "180 seat headrests anchor simulated task emitters"
-        },
-        {
           "id": "monuments",
           "name": "Service monuments / VIP consoles",
           "basis": "2 named service-surface components"
-        },
-        {
-          "id": "spotlights",
-          "name": "Spotlights",
-          "basis": "2 service-surface bounds anchor simulated spots"
         }
       ]
     },
@@ -1106,8 +1011,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 192,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 50,
         "bin_handles": 50,
         "galley_modules": 2,
@@ -1142,12 +1051,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
@@ -1155,19 +1064,9 @@
           "basis": "2 named footwell components"
         },
         {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "192 seat headrests anchor simulated task emitters"
-        },
-        {
           "id": "monuments",
           "name": "Service monuments / VIP consoles",
           "basis": "2 named service-surface components"
-        },
-        {
-          "id": "spotlights",
-          "name": "Spotlights",
-          "basis": "2 service-surface bounds anchor simulated spots"
         }
       ]
     },
@@ -1179,8 +1078,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 204,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 52,
         "bin_handles": 52,
         "galley_modules": 2,
@@ -1215,12 +1118,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
@@ -1228,19 +1131,9 @@
           "basis": "2 named footwell components"
         },
         {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "204 seat headrests anchor simulated task emitters"
-        },
-        {
           "id": "monuments",
           "name": "Service monuments / VIP consoles",
           "basis": "2 named service-surface components"
-        },
-        {
-          "id": "spotlights",
-          "name": "Spotlights",
-          "basis": "2 service-surface bounds anchor simulated spots"
         }
       ]
     },
@@ -1252,8 +1145,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 540,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 80,
         "bin_handles": 80,
         "galley_modules": 2,
@@ -1288,12 +1185,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
@@ -1301,19 +1198,9 @@
           "basis": "2 named footwell components"
         },
         {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "540 seat headrests anchor simulated task emitters"
-        },
-        {
           "id": "monuments",
           "name": "Service monuments / VIP consoles",
           "basis": "2 named service-surface components"
-        },
-        {
-          "id": "spotlights",
-          "name": "Spotlights",
-          "basis": "2 service-surface bounds anchor simulated spots"
         }
       ]
     },
@@ -1325,8 +1212,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 540,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 80,
         "bin_handles": 80,
         "galley_modules": 2,
@@ -1361,12 +1252,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
@@ -1374,19 +1265,9 @@
           "basis": "2 named footwell components"
         },
         {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "540 seat headrests anchor simulated task emitters"
-        },
-        {
           "id": "monuments",
           "name": "Service monuments / VIP consoles",
           "basis": "2 named service-surface components"
-        },
-        {
-          "id": "spotlights",
-          "name": "Spotlights",
-          "basis": "2 service-surface bounds anchor simulated spots"
         }
       ]
     },
@@ -1398,8 +1279,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 640,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 92,
         "bin_handles": 92,
         "galley_modules": 2,
@@ -1434,12 +1319,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
@@ -1447,19 +1332,9 @@
           "basis": "2 named footwell components"
         },
         {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "640 seat headrests anchor simulated task emitters"
-        },
-        {
           "id": "monuments",
           "name": "Service monuments / VIP consoles",
           "basis": "2 named service-surface components"
-        },
-        {
-          "id": "spotlights",
-          "name": "Spotlights",
-          "basis": "2 service-surface bounds anchor simulated spots"
         }
       ]
     },
@@ -1471,8 +1346,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 432,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 70,
         "bin_handles": 70,
         "galley_modules": 2,
@@ -1507,12 +1386,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
@@ -1520,19 +1399,9 @@
           "basis": "2 named footwell components"
         },
         {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "432 seat headrests anchor simulated task emitters"
-        },
-        {
           "id": "monuments",
           "name": "Service monuments / VIP consoles",
           "basis": "2 named service-surface components"
-        },
-        {
-          "id": "spotlights",
-          "name": "Spotlights",
-          "basis": "2 service-surface bounds anchor simulated spots"
         }
       ]
     },
@@ -1544,8 +1413,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 477,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 78,
         "bin_handles": 78,
         "galley_modules": 2,
@@ -1580,12 +1453,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
@@ -1593,19 +1466,9 @@
           "basis": "2 named footwell components"
         },
         {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "477 seat headrests anchor simulated task emitters"
-        },
-        {
           "id": "monuments",
           "name": "Service monuments / VIP consoles",
           "basis": "2 named service-surface components"
-        },
-        {
-          "id": "spotlights",
-          "name": "Spotlights",
-          "basis": "2 service-surface bounds anchor simulated spots"
         }
       ]
     },
@@ -1617,8 +1480,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 531,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 86,
         "bin_handles": 86,
         "galley_modules": 2,
@@ -1653,12 +1520,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
@@ -1666,19 +1533,9 @@
           "basis": "2 named footwell components"
         },
         {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "531 seat headrests anchor simulated task emitters"
-        },
-        {
           "id": "monuments",
           "name": "Service monuments / VIP consoles",
           "basis": "2 named service-surface components"
-        },
-        {
-          "id": "spotlights",
-          "name": "Spotlights",
-          "basis": "2 service-surface bounds anchor simulated spots"
         }
       ]
     },
@@ -1690,8 +1547,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 360,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 92,
         "bin_handles": 92,
         "galley_modules": 0,
@@ -1726,22 +1587,17 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
           "name": "Footwell",
           "basis": "2 named footwell components"
-        },
-        {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "360 seat headrests anchor simulated task emitters"
         }
       ]
     },
@@ -1753,8 +1609,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 328,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 92,
         "bin_handles": 92,
         "galley_modules": 0,
@@ -1789,22 +1649,17 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
           "name": "Footwell",
           "basis": "2 named footwell components"
-        },
-        {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "328 seat headrests anchor simulated task emitters"
         }
       ]
     },
@@ -1816,8 +1671,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 419,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 92,
         "bin_handles": 92,
         "galley_modules": 0,
@@ -1852,22 +1711,17 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
           "name": "Footwell",
           "basis": "2 named footwell components"
-        },
-        {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "419 seat headrests anchor simulated task emitters"
         }
       ]
     },
@@ -1879,8 +1733,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 256,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 98,
         "bin_handles": 98,
         "galley_modules": 0,
@@ -1915,22 +1773,17 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
           "name": "Footwell",
           "basis": "2 named footwell components"
-        },
-        {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "256 seat headrests anchor simulated task emitters"
         }
       ]
     },
@@ -1942,8 +1795,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 137,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 46,
         "bin_handles": 46,
         "galley_modules": 0,
@@ -1978,22 +1835,17 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
           "name": "Footwell",
           "basis": "2 named footwell components"
-        },
-        {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "137 seat headrests anchor simulated task emitters"
         }
       ]
     },
@@ -2005,8 +1857,12 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
+        "left_sidewall_fixture_meshes": 8,
+        "right_sidewall_fixture_meshes": 8,
         "footwells": 2,
         "seat_headrests": 236,
+        "reading_fixtures": 0,
+        "spotlight_fixtures": 0,
         "overhead_bins": 80,
         "bin_handles": 80,
         "galley_modules": 0,
@@ -2041,24 +1897,20 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "1 left-sidewall fixture components"
+          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "1 right-sidewall fixture components"
+          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
         },
         {
           "id": "footwell",
           "name": "Footwell",
           "basis": "2 named footwell components"
-        },
-        {
-          "id": "reading",
-          "name": "Reading lights",
-          "basis": "236 seat headrests anchor simulated task emitters"
         }
       ]
     }
   ]
 }
+
