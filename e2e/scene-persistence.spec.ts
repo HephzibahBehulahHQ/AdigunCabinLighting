@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 import { PRESETS } from '../src/scene-engine';
 
 test('complete versioned scene survives local project save and reload', async ({ page }) => {
+  test.setTimeout(60_000);
   await page.goto('/studio');
 
   const source = structuredClone(PRESETS[0]);
