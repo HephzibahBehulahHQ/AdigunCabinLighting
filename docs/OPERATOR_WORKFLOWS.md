@@ -50,6 +50,25 @@ The command reads the file through the same 64 KiB bounded reader, validates it 
 
 The receipt is an integrity fingerprint and schema result only. It does not identify an operator, record an approval, contain a signature, or provide an immutable audit log. It does not validate aircraft fit, OEM limits, electrical safety, or hardware behavior. No gateway/device command is sent and physical output remains disabled.
 
+## Signed offline scene receipt
+
+For tamper-evident transfer between reviewers, create a local Ed25519 key pair and keep the private key outside the repository and shared folders:
+
+```sh
+openssl genpkey -algorithm Ed25519 -out operator-private.pem
+chmod 600 operator-private.pem
+openssl pkey -in operator-private.pem -pubout -out operator-public.pem
+```
+
+Sign an exported scene into a new receipt file (the command refuses to overwrite an existing output):
+
+```sh
+npm run operator:sign-scene -- path/to/exported-scene.json operator-private.pem path/to/signed-receipt.json
+npm run operator:verify-scene-receipt -- path/to/exported-scene.json path/to/signed-receipt.json operator-public.pem
+```
+
+The private-key contents are read from the specified file, never passed as a command argument or printed. Verification checks the bounded source scene, exact-byte SHA-256, receipt fields, Ed25519 signature, and the public-key fingerprint. Distribute or pin the public key through a separately trusted channel before relying on a signature. The signature proves only that the corresponding private key signed the receipt; it does not identify its human custodian, record an approval, establish a chain of trust, or create an immutable audit log. This remains a local simulation artifact, not an aircraft-fit, OEM, safety, or hardware approval. Physical output remains disabled.
+
 ## Offline scenario package
 
 Create a request file, for example:
@@ -81,5 +100,6 @@ The output path is created only if it does not already exist. The package and ea
 ## Workflows not available
 
 Role-based approval, operator accounts, audit sign-off, device discovery, bench prepare/commit, physical interlock checks, telemetry reconciliation, aircraft CMS control, and dispatch/crew workflows are not implemented. Scenario package import does not establish aircraft fit, operator approval, or hardware readiness. The current gateway has no hardware command route. Do not interpret any review report as operator approval, bench verification, or OEM acceptance.
+
 
 
