@@ -647,9 +647,9 @@ function Studio() {
   useEffect(() => {
     if (!playing) return;
     playStart.current = performance.now() - playbackTime.current * 1000;
-    let animation = 0;
     let lastVisualUpdate = 0;
-    const tick = (now: number) => {
+    const tick = () => {
+      const now = performance.now();
       const next = Math.min(scene.durationSeconds, (now - playStart.current) / 1000);
       playbackTime.current = next;
       // Bound React/Three.js work for large cabin meshes while retaining a smooth lighting crossfade.
@@ -661,12 +661,10 @@ function Studio() {
       if (next >= scene.durationSeconds) {
         if (aircraftMeshId) setEffectiveImmediately(interpolateScene(scene, next));
         setPlaying(false);
-        return;
       }
-      animation = requestAnimationFrame(tick);
     };
-    animation = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(animation);
+    const timer = window.setInterval(tick, 100);
+    return () => window.clearInterval(timer);
   }, [playing, scene, aircraftMeshId]);
   useEffect(() => () => stopFadeFrame(), []);
   useEffect(() => {
