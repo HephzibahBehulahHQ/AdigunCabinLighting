@@ -21,7 +21,7 @@ export const ZONE_INFO: Record<ZoneId, Pick<ZoneState, 'name' | 'detail'>> = {
   footwell: { name: 'Footwell', detail: 'Low-level aisle guidance' },
   reading: { name: 'Reading lights', detail: 'Individual simulated passenger task lights above modeled seat positions' },
   entry: { name: 'Entry & monuments', detail: 'Doorway and galley accents' },
-  monuments: { name: 'Monuments', detail: 'Cabin monument lighting zone · illustrative' },
+  monuments: { name: 'Monuments / service consoles', detail: 'Lighting for modeled galley monuments or VIP side consoles' },
   toilet: { name: 'Lavatory', detail: 'Lavatory lighting zone · illustrative' },
   handrail: { name: 'Handrail / bin edge', detail: 'Bin lower edge; VVIP profiles without bins use the modeled side-console edge' },
   trolley: { name: 'Trolley service area', detail: 'Service-area lighting zone · illustrative' },

@@ -1,0 +1,2064 @@
+{
+  "schema_version": "1.0",
+  "evidence": "Exact GLB node names read from the bundled mesh JSON chunks; generated simulated task fixtures are identified as simulated in each zone basis.",
+  "profile_count": 29,
+  "profiles": [
+    {
+      "id": "airbus-a380",
+      "mesh_path": "meshes/airbus-a380.glb",
+      "component_counts": {
+        "window_panes": 130,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 560,
+        "overhead_bins": 82,
+        "bin_handles": 82,
+        "galley_modules": 2,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "130 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "82 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "82 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "560 seat headrests anchor simulated task emitters"
+        },
+        {
+          "id": "monuments",
+          "name": "Service monuments / VIP consoles",
+          "basis": "2 named service-surface components"
+        },
+        {
+          "id": "spotlights",
+          "name": "Spotlights",
+          "basis": "2 service-surface bounds anchor simulated spots"
+        }
+      ]
+    },
+    {
+      "id": "gulfstream-g650er",
+      "mesh_path": "meshes/gulfstream-g650er.glb",
+      "component_counts": {
+        "window_panes": 36,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 10,
+        "overhead_bins": 0,
+        "bin_handles": 0,
+        "galley_modules": 2,
+        "vip_side_consoles": 2,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "36 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Upper-sidewall ceiling wash",
+          "basis": "No bins; uses the modelled upper-sidewall datum"
+        },
+        {
+          "id": "handrail",
+          "name": "VIP console edge",
+          "basis": "2 VIP side-console components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "10 seat headrests anchor simulated task emitters"
+        },
+        {
+          "id": "monuments",
+          "name": "Service monuments / VIP consoles",
+          "basis": "4 named service-surface components"
+        },
+        {
+          "id": "spotlights",
+          "name": "Spotlights",
+          "basis": "4 service-surface bounds anchor simulated spots"
+        }
+      ]
+    },
+    {
+      "id": "airbus-a220-100",
+      "mesh_path": "meshes/airbus-a220-100.glb",
+      "component_counts": {
+        "window_panes": 62,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 120,
+        "overhead_bins": 38,
+        "bin_handles": 38,
+        "galley_modules": 2,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "62 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "38 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "38 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "120 seat headrests anchor simulated task emitters"
+        },
+        {
+          "id": "monuments",
+          "name": "Service monuments / VIP consoles",
+          "basis": "2 named service-surface components"
+        },
+        {
+          "id": "spotlights",
+          "name": "Spotlights",
+          "basis": "2 service-surface bounds anchor simulated spots"
+        }
+      ]
+    },
+    {
+      "id": "airbus-a220-300",
+      "mesh_path": "meshes/airbus-a220-300.glb",
+      "component_counts": {
+        "window_panes": 72,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 145,
+        "overhead_bins": 46,
+        "bin_handles": 46,
+        "galley_modules": 2,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "72 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "46 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "46 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "145 seat headrests anchor simulated task emitters"
+        },
+        {
+          "id": "monuments",
+          "name": "Service monuments / VIP consoles",
+          "basis": "2 named service-surface components"
+        },
+        {
+          "id": "spotlights",
+          "name": "Spotlights",
+          "basis": "2 service-surface bounds anchor simulated spots"
+        }
+      ]
+    },
+    {
+      "id": "airbus-a320neo",
+      "mesh_path": "meshes/airbus-a320neo.glb",
+      "component_counts": {
+        "window_panes": 72,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 174,
+        "overhead_bins": 46,
+        "bin_handles": 46,
+        "galley_modules": 2,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "72 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "46 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "46 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "174 seat headrests anchor simulated task emitters"
+        },
+        {
+          "id": "monuments",
+          "name": "Service monuments / VIP consoles",
+          "basis": "2 named service-surface components"
+        },
+        {
+          "id": "spotlights",
+          "name": "Spotlights",
+          "basis": "2 service-surface bounds anchor simulated spots"
+        }
+      ]
+    },
+    {
+      "id": "airbus-a321neo",
+      "mesh_path": "meshes/airbus-a321neo.glb",
+      "component_counts": {
+        "window_panes": 90,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 222,
+        "overhead_bins": 56,
+        "bin_handles": 56,
+        "galley_modules": 2,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "90 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "56 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "56 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "222 seat headrests anchor simulated task emitters"
+        },
+        {
+          "id": "monuments",
+          "name": "Service monuments / VIP consoles",
+          "basis": "2 named service-surface components"
+        },
+        {
+          "id": "spotlights",
+          "name": "Spotlights",
+          "basis": "2 service-surface bounds anchor simulated spots"
+        }
+      ]
+    },
+    {
+      "id": "airbus-a330-800",
+      "mesh_path": "meshes/airbus-a330-800.glb",
+      "component_counts": {
+        "window_panes": 118,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 400,
+        "overhead_bins": 74,
+        "bin_handles": 74,
+        "galley_modules": 2,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "118 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "74 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "74 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "400 seat headrests anchor simulated task emitters"
+        },
+        {
+          "id": "monuments",
+          "name": "Service monuments / VIP consoles",
+          "basis": "2 named service-surface components"
+        },
+        {
+          "id": "spotlights",
+          "name": "Spotlights",
+          "basis": "2 service-surface bounds anchor simulated spots"
+        }
+      ]
+    },
+    {
+      "id": "airbus-a330-900",
+      "mesh_path": "meshes/airbus-a330-900.glb",
+      "component_counts": {
+        "window_panes": 132,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 456,
+        "overhead_bins": 84,
+        "bin_handles": 84,
+        "galley_modules": 2,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "132 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "84 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "84 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "456 seat headrests anchor simulated task emitters"
+        },
+        {
+          "id": "monuments",
+          "name": "Service monuments / VIP consoles",
+          "basis": "2 named service-surface components"
+        },
+        {
+          "id": "spotlights",
+          "name": "Spotlights",
+          "basis": "2 service-surface bounds anchor simulated spots"
+        }
+      ]
+    },
+    {
+      "id": "airbus-a350-900",
+      "mesh_path": "meshes/airbus-a350-900.glb",
+      "component_counts": {
+        "window_panes": 134,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 522,
+        "overhead_bins": 84,
+        "bin_handles": 84,
+        "galley_modules": 2,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "134 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "84 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "84 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "522 seat headrests anchor simulated task emitters"
+        },
+        {
+          "id": "monuments",
+          "name": "Service monuments / VIP consoles",
+          "basis": "2 named service-surface components"
+        },
+        {
+          "id": "spotlights",
+          "name": "Spotlights",
+          "basis": "2 service-surface bounds anchor simulated spots"
+        }
+      ]
+    },
+    {
+      "id": "airbus-a350-1000",
+      "mesh_path": "meshes/airbus-a350-1000.glb",
+      "component_counts": {
+        "window_panes": 152,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 594,
+        "overhead_bins": 96,
+        "bin_handles": 96,
+        "galley_modules": 2,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "152 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "96 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "96 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "594 seat headrests anchor simulated task emitters"
+        },
+        {
+          "id": "monuments",
+          "name": "Service monuments / VIP consoles",
+          "basis": "2 named service-surface components"
+        },
+        {
+          "id": "spotlights",
+          "name": "Spotlights",
+          "basis": "2 service-surface bounds anchor simulated spots"
+        }
+      ]
+    },
+    {
+      "id": "boeing-737-700",
+      "mesh_path": "meshes/boeing-737-700.glb",
+      "component_counts": {
+        "window_panes": 62,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 144,
+        "overhead_bins": 40,
+        "bin_handles": 40,
+        "galley_modules": 2,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "62 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "40 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "40 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "144 seat headrests anchor simulated task emitters"
+        },
+        {
+          "id": "monuments",
+          "name": "Service monuments / VIP consoles",
+          "basis": "2 named service-surface components"
+        },
+        {
+          "id": "spotlights",
+          "name": "Spotlights",
+          "basis": "2 service-surface bounds anchor simulated spots"
+        }
+      ]
+    },
+    {
+      "id": "boeing-737-800",
+      "mesh_path": "meshes/boeing-737-800.glb",
+      "component_counts": {
+        "window_panes": 74,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 180,
+        "overhead_bins": 46,
+        "bin_handles": 46,
+        "galley_modules": 2,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "74 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "46 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "46 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "180 seat headrests anchor simulated task emitters"
+        },
+        {
+          "id": "monuments",
+          "name": "Service monuments / VIP consoles",
+          "basis": "2 named service-surface components"
+        },
+        {
+          "id": "spotlights",
+          "name": "Spotlights",
+          "basis": "2 service-surface bounds anchor simulated spots"
+        }
+      ]
+    },
+    {
+      "id": "boeing-737-900",
+      "mesh_path": "meshes/boeing-737-900.glb",
+      "component_counts": {
+        "window_panes": 78,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 192,
+        "overhead_bins": 50,
+        "bin_handles": 50,
+        "galley_modules": 2,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "78 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "50 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "50 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "192 seat headrests anchor simulated task emitters"
+        },
+        {
+          "id": "monuments",
+          "name": "Service monuments / VIP consoles",
+          "basis": "2 named service-surface components"
+        },
+        {
+          "id": "spotlights",
+          "name": "Spotlights",
+          "basis": "2 service-surface bounds anchor simulated spots"
+        }
+      ]
+    },
+    {
+      "id": "boeing-737-max-7",
+      "mesh_path": "meshes/boeing-737-max-7.glb",
+      "component_counts": {
+        "window_panes": 66,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 156,
+        "overhead_bins": 42,
+        "bin_handles": 42,
+        "galley_modules": 2,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "66 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "42 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "42 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "156 seat headrests anchor simulated task emitters"
+        },
+        {
+          "id": "monuments",
+          "name": "Service monuments / VIP consoles",
+          "basis": "2 named service-surface components"
+        },
+        {
+          "id": "spotlights",
+          "name": "Spotlights",
+          "basis": "2 service-surface bounds anchor simulated spots"
+        }
+      ]
+    },
+    {
+      "id": "boeing-737-max-8",
+      "mesh_path": "meshes/boeing-737-max-8.glb",
+      "component_counts": {
+        "window_panes": 74,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 180,
+        "overhead_bins": 46,
+        "bin_handles": 46,
+        "galley_modules": 2,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "74 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "46 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "46 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "180 seat headrests anchor simulated task emitters"
+        },
+        {
+          "id": "monuments",
+          "name": "Service monuments / VIP consoles",
+          "basis": "2 named service-surface components"
+        },
+        {
+          "id": "spotlights",
+          "name": "Spotlights",
+          "basis": "2 service-surface bounds anchor simulated spots"
+        }
+      ]
+    },
+    {
+      "id": "boeing-737-max-9",
+      "mesh_path": "meshes/boeing-737-max-9.glb",
+      "component_counts": {
+        "window_panes": 78,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 192,
+        "overhead_bins": 50,
+        "bin_handles": 50,
+        "galley_modules": 2,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "78 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "50 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "50 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "192 seat headrests anchor simulated task emitters"
+        },
+        {
+          "id": "monuments",
+          "name": "Service monuments / VIP consoles",
+          "basis": "2 named service-surface components"
+        },
+        {
+          "id": "spotlights",
+          "name": "Spotlights",
+          "basis": "2 service-surface bounds anchor simulated spots"
+        }
+      ]
+    },
+    {
+      "id": "boeing-737-max-10",
+      "mesh_path": "meshes/boeing-737-max-10.glb",
+      "component_counts": {
+        "window_panes": 82,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 204,
+        "overhead_bins": 52,
+        "bin_handles": 52,
+        "galley_modules": 2,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "82 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "52 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "52 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "204 seat headrests anchor simulated task emitters"
+        },
+        {
+          "id": "monuments",
+          "name": "Service monuments / VIP consoles",
+          "basis": "2 named service-surface components"
+        },
+        {
+          "id": "spotlights",
+          "name": "Spotlights",
+          "basis": "2 service-surface bounds anchor simulated spots"
+        }
+      ]
+    },
+    {
+      "id": "boeing-777-200er",
+      "mesh_path": "meshes/boeing-777-200er.glb",
+      "component_counts": {
+        "window_panes": 126,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 540,
+        "overhead_bins": 80,
+        "bin_handles": 80,
+        "galley_modules": 2,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "126 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "80 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "80 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "540 seat headrests anchor simulated task emitters"
+        },
+        {
+          "id": "monuments",
+          "name": "Service monuments / VIP consoles",
+          "basis": "2 named service-surface components"
+        },
+        {
+          "id": "spotlights",
+          "name": "Spotlights",
+          "basis": "2 service-surface bounds anchor simulated spots"
+        }
+      ]
+    },
+    {
+      "id": "boeing-777-200lr",
+      "mesh_path": "meshes/boeing-777-200lr.glb",
+      "component_counts": {
+        "window_panes": 126,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 540,
+        "overhead_bins": 80,
+        "bin_handles": 80,
+        "galley_modules": 2,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "126 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "80 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "80 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "540 seat headrests anchor simulated task emitters"
+        },
+        {
+          "id": "monuments",
+          "name": "Service monuments / VIP consoles",
+          "basis": "2 named service-surface components"
+        },
+        {
+          "id": "spotlights",
+          "name": "Spotlights",
+          "basis": "2 service-surface bounds anchor simulated spots"
+        }
+      ]
+    },
+    {
+      "id": "boeing-777-300er",
+      "mesh_path": "meshes/boeing-777-300er.glb",
+      "component_counts": {
+        "window_panes": 146,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 640,
+        "overhead_bins": 92,
+        "bin_handles": 92,
+        "galley_modules": 2,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "146 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "92 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "92 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "640 seat headrests anchor simulated task emitters"
+        },
+        {
+          "id": "monuments",
+          "name": "Service monuments / VIP consoles",
+          "basis": "2 named service-surface components"
+        },
+        {
+          "id": "spotlights",
+          "name": "Spotlights",
+          "basis": "2 service-surface bounds anchor simulated spots"
+        }
+      ]
+    },
+    {
+      "id": "boeing-787-8",
+      "mesh_path": "meshes/boeing-787-8.glb",
+      "component_counts": {
+        "window_panes": 112,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 432,
+        "overhead_bins": 70,
+        "bin_handles": 70,
+        "galley_modules": 2,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "112 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "70 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "70 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "432 seat headrests anchor simulated task emitters"
+        },
+        {
+          "id": "monuments",
+          "name": "Service monuments / VIP consoles",
+          "basis": "2 named service-surface components"
+        },
+        {
+          "id": "spotlights",
+          "name": "Spotlights",
+          "basis": "2 service-surface bounds anchor simulated spots"
+        }
+      ]
+    },
+    {
+      "id": "boeing-787-9",
+      "mesh_path": "meshes/boeing-787-9.glb",
+      "component_counts": {
+        "window_panes": 124,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 477,
+        "overhead_bins": 78,
+        "bin_handles": 78,
+        "galley_modules": 2,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "124 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "78 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "78 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "477 seat headrests anchor simulated task emitters"
+        },
+        {
+          "id": "monuments",
+          "name": "Service monuments / VIP consoles",
+          "basis": "2 named service-surface components"
+        },
+        {
+          "id": "spotlights",
+          "name": "Spotlights",
+          "basis": "2 service-surface bounds anchor simulated spots"
+        }
+      ]
+    },
+    {
+      "id": "boeing-787-10",
+      "mesh_path": "meshes/boeing-787-10.glb",
+      "component_counts": {
+        "window_panes": 136,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 531,
+        "overhead_bins": 86,
+        "bin_handles": 86,
+        "galley_modules": 2,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "136 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "86 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "86 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "531 seat headrests anchor simulated task emitters"
+        },
+        {
+          "id": "monuments",
+          "name": "Service monuments / VIP consoles",
+          "basis": "2 named service-surface components"
+        },
+        {
+          "id": "spotlights",
+          "name": "Spotlights",
+          "basis": "2 service-surface bounds anchor simulated spots"
+        }
+      ]
+    },
+    {
+      "id": "emirates-777-300er-360",
+      "mesh_path": "airline-meshes/emirates-777-300er-360.glb",
+      "component_counts": {
+        "window_panes": 146,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 360,
+        "overhead_bins": 92,
+        "bin_handles": 92,
+        "galley_modules": 0,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "146 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "92 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "92 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "360 seat headrests anchor simulated task emitters"
+        }
+      ]
+    },
+    {
+      "id": "emirates-777-300er-328",
+      "mesh_path": "airline-meshes/emirates-777-300er-328.glb",
+      "component_counts": {
+        "window_panes": 146,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 328,
+        "overhead_bins": 92,
+        "bin_handles": 92,
+        "galley_modules": 0,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "146 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "92 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "92 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "328 seat headrests anchor simulated task emitters"
+        }
+      ]
+    },
+    {
+      "id": "emirates-777-300er-419",
+      "mesh_path": "airline-meshes/emirates-777-300er-419.glb",
+      "component_counts": {
+        "window_panes": 146,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 419,
+        "overhead_bins": 92,
+        "bin_handles": 92,
+        "galley_modules": 0,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "146 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "92 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "92 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "419 seat headrests anchor simulated task emitters"
+        }
+      ]
+    },
+    {
+      "id": "british-airways-777-300er-256",
+      "mesh_path": "airline-meshes/british-airways-777-300er-256.glb",
+      "component_counts": {
+        "window_panes": 154,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 256,
+        "overhead_bins": 98,
+        "bin_handles": 98,
+        "galley_modules": 0,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "154 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "98 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "98 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "256 seat headrests anchor simulated task emitters"
+        }
+      ]
+    },
+    {
+      "id": "qantaslink-a220-300-137",
+      "mesh_path": "airline-meshes/qantaslink-a220-300-137.glb",
+      "component_counts": {
+        "window_panes": 72,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 137,
+        "overhead_bins": 46,
+        "bin_handles": 46,
+        "galley_modules": 0,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "72 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "46 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "46 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "137 seat headrests anchor simulated task emitters"
+        }
+      ]
+    },
+    {
+      "id": "qantas-787-9-236",
+      "mesh_path": "airline-meshes/qantas-787-9-236.glb",
+      "component_counts": {
+        "window_panes": 126,
+        "ceiling_coves": 2,
+        "left_sidewall_lights": 1,
+        "right_sidewall_lights": 1,
+        "footwells": 2,
+        "seat_headrests": 236,
+        "overhead_bins": 80,
+        "bin_handles": 80,
+        "galley_modules": 0,
+        "vip_side_consoles": 0,
+        "entry_doors": 0,
+        "lavatories": 0,
+        "trolleys": 0,
+        "emergency_fixtures": 0,
+        "exit_signs": 0
+      },
+      "zones": [
+        {
+          "id": "windows",
+          "name": "Window daylight",
+          "basis": "126 named glass/glazing components"
+        },
+        {
+          "id": "ceiling",
+          "name": "Ceiling / bin wash",
+          "basis": "80 overhead-bin components"
+        },
+        {
+          "id": "handrail",
+          "name": "Handrail / bin edge",
+          "basis": "80 overhead-bin components"
+        },
+        {
+          "id": "ceiling_cove",
+          "name": "Central ceiling recess",
+          "basis": "2 named ceiling-cove components"
+        },
+        {
+          "id": "left_sidewall",
+          "name": "Left sidewall",
+          "basis": "1 left-sidewall fixture components"
+        },
+        {
+          "id": "right_sidewall",
+          "name": "Right sidewall",
+          "basis": "1 right-sidewall fixture components"
+        },
+        {
+          "id": "footwell",
+          "name": "Footwell",
+          "basis": "2 named footwell components"
+        },
+        {
+          "id": "reading",
+          "name": "Reading lights",
+          "basis": "236 seat headrests anchor simulated task emitters"
+        }
+      ]
+    }
+  ]
+}

@@ -163,6 +163,8 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
     renderer.domElement.setAttribute('aria-label', `Interactive 3D ${profile.label}. Authored simulation geometry; not an OEM or verified airline fit.`);
     renderer.domElement.tabIndex = 0;
     renderer.domElement.dataset.cabinProfile = profile.id;
+    renderer.domElement.dataset.supportedZoneIds = JSON.stringify(profile.zones.map((zone) => zone.id));
+    renderer.domElement.dataset.componentCounts = JSON.stringify(profile.componentCounts);
     if (profile.id === 'gulfstream-g650er') renderer.domElement.dataset.visibleWindows = '0';
     host.replaceChildren(renderer.domElement);
 
@@ -258,7 +260,7 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
           return;
         }
         if (!(object instanceof THREE.Mesh) || !object.visible) return;
-        const feature = featureZone(object.name);
+        const feature = featureZone(object.name) ?? (/galley module|monument|vip side console/i.test(object.name) ? 'monuments' : undefined);
         let list = Array.isArray(object.material) ? object.material : [object.material];
         if (feature === 'windows' && object.visible) {
           list = list.map((material) => material.name.toLowerCase().includes('window glass') ? material.clone() : material);
@@ -535,13 +537,18 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
         addPoint('spotlights', item.target.clone(), Math.max(1.2, size.x * .35), 2.2);
       });
 
-      // Escape-path guides remain independent of decorative scene tracks.
-      const pathX = Math.max(.05, size.x * .035);
-      const pathItems = [-1, 1].map((side) => ({ position: new THREE.Vector3(centerX + side * pathX, box.min.y + .045, box.getCenter(new THREE.Vector3()).z), size: new THREE.Vector3(.018, .018, cabinSpan * .92) }));
-      addFixtures('emergency', pathItems);
-      for (let index = 0; index < 10; index++) addPoint('emergency', new THREE.Vector3(centerX, box.min.y + .07, box.min.z + cabinSpan * (index + .5) / 10), Math.max(1.1, size.x * .25));
+      let emergencyFixtureCount = 0;
+      if (profile.zones.some((zone) => zone.id === 'emergency')) {
+        // Escape-path cues are created only when the selected GLB contains named emergency fixtures.
+        const pathX = Math.max(.05, size.x * .035);
+        const pathItems = [-1, 1].map((side) => ({ position: new THREE.Vector3(centerX + side * pathX, box.min.y + .045, box.getCenter(new THREE.Vector3()).z), size: new THREE.Vector3(.018, .018, cabinSpan * .92) }));
+        addFixtures('emergency', pathItems);
+        emergencyFixtureCount = pathItems.length;
+        for (let index = 0; index < 10; index++) addPoint('emergency', new THREE.Vector3(centerX, box.min.y + .07, box.min.z + cabinSpan * (index + .5) / 10), Math.max(1.1, size.x * .25));
+      }
 
-      // Exit cues are deliberately marked as estimated at the modeled cabin ends; the GLBs contain no exit stations.
+      let exitSignCount = 0;
+      if (profile.zones.some((zone) => zone.id === 'exit')) {
       const signItems = [box.min.z + Math.min(.42, cabinSpan * .025), box.max.z - Math.min(.42, cabinSpan * .025)].map((z, index) => ({
         position: new THREE.Vector3(centerX, box.min.y + size.y * .76, z), size: new THREE.Vector3(.30, .12, .025), rotation: new THREE.Euler(0, index ? Math.PI : 0, 0),
       }));
@@ -566,8 +573,10 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
       signMesh.instanceMatrix.needsUpdate = true; signMesh.computeBoundingSphere(); root.add(signMesh); selectable.push(signMesh);
       const signMaterials = zoneMaterials.get('exit') ?? new Set<THREE.Material>(); signMaterials.add(signMaterial); zoneMaterials.set('exit', signMaterials);
       signItems.forEach((item) => addPoint('exit', item.position.clone(), Math.max(.8, size.x * .20)));
+      exitSignCount = signItems.length;
+      }
 
-      renderer.domElement.dataset.simulatedFixtureCounts = JSON.stringify({ windows: panes.length, ceiling: ceilingItems.length, handrail: edgeItems.length, reading: readingItems.length, spotlights: workItems.length, emergency: pathItems.length, exit: signItems.length, placementBasis: binBounds.length ? 'overhead-bins' : consoleBounds.length ? 'vip-side-console-and-upper-sidewall' : 'upper-sidewall-fallback' });
+      renderer.domElement.dataset.simulatedFixtureCounts = JSON.stringify({ windows: panes.length, ceiling: ceilingItems.length, handrail: edgeItems.length, reading: readingItems.length, monuments: monumentBounds.length + consoleBounds.length, spotlights: workItems.length, emergency: emergencyFixtureCount, exit: exitSignCount, placementBasis: binBounds.length ? 'overhead-bins' : consoleBounds.length ? 'vip-side-console-and-upper-sidewall' : 'upper-sidewall-fallback' });
       renderer.domElement.dataset.simulatedLightCount = String([...modelLights.values()].flat().filter((light) => light.userData.simulatedRuntimeLight === true).length);
       fitCamera(cameraView);
       applyZoneLighting(zoneMaterials, modelLights, lighting.current.effective, lighting.current.intensity);
