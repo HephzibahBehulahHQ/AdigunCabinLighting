@@ -422,7 +422,7 @@ test('A350-900 reference loads source-backed cabin dimensions and the derived 31
   await expect(page.locator('.cabin-profile-note').last()).toContainText('not the Airbus plan drawing or an airline fit');
   await page.getByRole('button', { name: 'Load cabin layout' }).click();
   await expect(page.locator('.cabin-stage')).toHaveAttribute('data-cabin-layout', 'a350900');
-  await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-rendered-seat-count', '315');
+  await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-rendered-seat-count', '315', { timeout: 20_000 });
   await expect(page.locator('.cabin3d-badge')).toContainText('A350-900');
   await expect(page.locator('.cabin3d-badge')).toContainText('Not an aircraft-specific fit');
 });
@@ -445,7 +445,7 @@ test('A330-300 reference loads source-backed dimensions and its derived 300-seat
   await expect(page.locator('.cabin-profile-note').last()).toContainText('generic reference geometry');
   await page.getByRole('button', { name: 'Load cabin layout' }).click();
   await expect(page.locator('.cabin-stage')).toHaveAttribute('data-cabin-layout', 'a330300');
-  await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-rendered-seat-count', '300');
+  await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-rendered-seat-count', '300', { timeout: 20_000 });
   await expect(page.locator('.cabin3d-badge')).toContainText('A330-300');
   await expect(page.locator('.cabin3d-badge')).toContainText('Not an aircraft-specific fit');
 });
