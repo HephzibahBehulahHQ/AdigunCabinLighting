@@ -1,11 +1,8 @@
 import { startGateway } from '../dist-gateway/gateway/server.js';
 import { installGracefulShutdown } from '../dist-gateway/gateway/shutdown.js';
+import { loadGatewayToken } from '../dist-gateway/gateway/credentials.js';
 
-const token = process.env.ADIGUN_GATEWAY_TOKEN;
-if (!token) {
-  console.error('Set ADIGUN_GATEWAY_TOKEN to a randomly generated secret of at least 32 bytes.');
-  process.exit(1);
-}
+const token = await loadGatewayToken(process.env);
 const port = Number(process.env.ADIGUN_GATEWAY_PORT ?? 4510);
 const server = await startGateway(token, port);
 const address = server.address();
