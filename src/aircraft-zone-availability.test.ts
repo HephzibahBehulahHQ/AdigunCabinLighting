@@ -16,16 +16,18 @@ describe('aircraft mesh zone inventory', () => {
       for (const unsupported of ['entry', 'toilet', 'trolley', 'emergency', 'exit', 'cabin', 'sidewalls'] as const) {
         expect(profile.zones.some((zone) => zone.id === unsupported), `${profile.id}:${unsupported}`).toBe(false);
       }
-      expect(profile.componentCounts.left_sidewall_fixture_meshes, `${profile.id}:left-sidewall fixtures`).toBe(8);
-      expect(profile.componentCounts.right_sidewall_fixture_meshes, `${profile.id}:right-sidewall fixtures`).toBe(8);
+      expect(profile.componentCounts.left_sidewall_fixture_meshes, `${profile.id}:empty left-sidewall locators`).toBe(0);
+      expect(profile.componentCounts.right_sidewall_fixture_meshes, `${profile.id}:empty right-sidewall locators`).toBe(0);
+      expect(profile.componentCounts.left_sidewall_lights, `${profile.id}:modeled left-sidewall light source`).toBe(1);
+      expect(profile.componentCounts.right_sidewall_lights, `${profile.id}:modeled right-sidewall light source`).toBe(1);
       expect(profile.componentCounts.reading_fixtures, `${profile.id}:reading fixtures`).toBe(0);
       expect(profile.componentCounts.spotlight_fixtures, `${profile.id}:spotlight fixtures`).toBe(0);
       expect(profile.componentCounts.ceiling_panels, `${profile.id}:ceiling panels`).toBe(0);
       expect(profile.zones.map((zone) => zone.id), `${profile.id}:unmodeled light groups`).not.toContain('reading');
       expect(profile.zones.map((zone) => zone.id), `${profile.id}:unmodeled light groups`).not.toContain('spotlights');
       expect(profile.zones.map((zone) => zone.id), `${profile.id}:unmodeled ceiling shell`).not.toContain('ceiling');
-      expect(profile.zones.find((zone) => zone.id === 'left_sidewall')?.basis, `${profile.id}:left-sidewall evidence`).toContain('8 named left-sidewall fixture meshes');
-      expect(profile.zones.find((zone) => zone.id === 'right_sidewall')?.basis, `${profile.id}:right-sidewall evidence`).toContain('8 named right-sidewall fixture meshes');
+      expect(profile.zones.find((zone) => zone.id === 'left_sidewall')?.basis, `${profile.id}:left-sidewall evidence`).toContain('1 modeled left-sidewall light strip mesh');
+      expect(profile.zones.find((zone) => zone.id === 'right_sidewall')?.basis, `${profile.id}:right-sidewall evidence`).toContain('1 modeled right-sidewall light strip mesh');
     }
   });
 
