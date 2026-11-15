@@ -8,6 +8,8 @@ import { interpolateScene, preserveSafetyZones } from './scene-engine';
 import { CABIN_EXPORT_4K, canRenderExport } from './export-capabilities';
 import { inspectG650ERSeatClearance, isG650ERPublishedWindow, seatG650ERSeatAssemblies } from './aircraft-geometry';
 
+const MAX_DYNAMIC_LIGHTS_PER_ZONE = 1;
+
 type Props = {
   profile: CabinMeshProfile;
   zones: ZoneState[];
@@ -373,12 +375,12 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
         const registered = zoneMaterials.get(zone) ?? new Set<THREE.Material>(); registered.add(material); zoneMaterials.set(zone, registered);
       };
       const addPoint = (zone: ZoneId, position: THREE.Vector3, distance: number, decay = 2) => {
-        if ((modelLights.get(zone)?.length ?? 0) >= 2) return;
+        if ((modelLights.get(zone)?.length ?? 0) >= MAX_DYNAMIC_LIGHTS_PER_ZONE) return;
         const light = new THREE.PointLight('#ffffff', 0, distance, decay); light.position.copy(position); light.name = `Simulated ${zone} source`;
         scene.add(light); const list = modelLights.get(zone) ?? []; list.push(light); modelLights.set(zone, list);
       };
       const addSpot = (zone: ZoneId, position: THREE.Vector3, targetPosition: THREE.Vector3, distance: number, angle = Math.PI / 5) => {
-        if ((modelLights.get(zone)?.length ?? 0) >= 2) return;
+        if ((modelLights.get(zone)?.length ?? 0) >= MAX_DYNAMIC_LIGHTS_PER_ZONE) return;
         const light = new THREE.SpotLight('#ffffff', 0, distance, angle, .72, 2); light.position.copy(position); light.name = `Simulated ${zone} aimed source`;
         const target = new THREE.Object3D(); target.position.copy(targetPosition); scene.add(target); light.target = target; scene.add(light);
         const list = modelLights.get(zone) ?? []; list.push(light); modelLights.set(zone, list);
