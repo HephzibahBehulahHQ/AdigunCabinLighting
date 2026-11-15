@@ -16,6 +16,7 @@ describe('offline operator scene diff', () => {
 
   it('reports metadata and RGBW changes deterministically', () => {
     const baseline = copy(PRESETS.find((item) => item.id === 'rest'));
+    baseline.keyframes[0].targets.windows.w = 4;
     const proposed = copy(baseline);
     proposed.name = 'Rest update';
     proposed.keyframes[0].targets.ceiling.b = 19;

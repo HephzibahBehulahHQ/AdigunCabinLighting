@@ -31,9 +31,6 @@ describe('configurable reference cabin profile', () => {
   });
 
   it('accepts a selected layout with custom cabin dimensions', () => {
-  });
-
-  it('accepts a selected layout with custom cabin dimensions', () => {
     expect(validateCabinConfig({ layoutId: 'widebody', lengthMeters: 22.4, widthMeters: 5.1, seatRows: 18 })).toMatchObject({
       layoutId: 'widebody', lengthMeters: 22.4, widthMeters: 5.1, seatRows: 18,
     });

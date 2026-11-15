@@ -379,7 +379,7 @@ test('Change cabin switches the 3D reference geometry from the left rail', async
   await expect(page.getByLabel('Length (m)')).toHaveValue('27.6');
   await expect(page.getByLabel('Interior width (m)')).toHaveValue('5.75');
   await page.getByRole('button', { name: 'Load cabin layout' }).click();
-  await expect(page.locator('.cabin-stage')).toHaveAttribute('data-cabin-layout', 'widebody');
+  await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-cabin-layout', 'widebody');
   await expect(page.locator('.cabin3d-badge')).toContainText('Wide cabin');
 });
 

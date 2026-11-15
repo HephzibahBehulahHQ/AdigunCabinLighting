@@ -17,20 +17,23 @@ export interface ZoneFixtureRecord {
 }
 
 const REFERENCE_GEOMETRY: Record<ZoneId, string> = {
-  ceiling: 'procedural ceiling strip geometry',
-  windows: 'procedural window-surround strips and panes',
+  ceiling: 'authored simulation above-bin ceiling wash fixtures',
+  windows: 'authored simulation fixtures at modeled window panes',
   sidewalls: 'procedural sidewall wash strips',
   footwell: 'procedural low-level aisle strip',
-  reading: 'procedural seat-level point markers',
+  reading: 'authored simulation per-seat task fixture above modeled headrest bounds',
   entry: 'procedural entry-area strip geometry',
   monuments: 'procedural monument-area strip geometry',
   toilet: 'procedural lavatory-area strip geometry',
-  handrail: 'procedural handrail-area strip geometry',
+  handrail: 'authored simulation strip at the aisle-facing lower edge of each modeled bin',
   trolley: 'procedural service-area strip geometry',
   cabin: 'procedural general cabin wash geometry',
   ceiling_cove: 'authored simulation mesh material group: ceiling_cove',
   left_sidewall: 'authored simulation mesh material group: left_sidewall',
   right_sidewall: 'authored simulation mesh material group: right_sidewall',
+  spotlights: 'authored simulation spotlight at modeled galley or monument bounds',
+  emergency: 'authored simulation low-level aisle-edge escape-path guides',
+  exit: 'authored simulation estimated cabin-end cue; no exit station in supplied geometry',
 };
 
 /**

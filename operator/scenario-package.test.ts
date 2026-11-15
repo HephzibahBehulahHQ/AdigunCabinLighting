@@ -42,7 +42,7 @@ describe('offline scenario packages', () => {
     const scenario = createDefaultScenario('Review', 'regional', 'boarding', [PRESETS[0]]);
     expect(() => validateScenarioPackage({ ...scenario, scenes: [PRESETS[0], PRESETS[0]] })).toThrow(/IDs must be unique/);
     expect(() => validateScenarioPackage({ ...scenario, activeSceneId: 'missing' })).toThrow(/must match a scene/);
-    expect(() => validateScenarioPackage({ ...scenario, zones: scenario.zones.slice(1) })).toThrow(/exactly 14 cabin zones/);
+    expect(() => validateScenarioPackage({ ...scenario, zones: scenario.zones.slice(1) })).toThrow(/exactly 17 cabin zones/);
     const invalidZone = { ...scenario.zones[0], rgbw: { ...scenario.zones[0].rgbw, w: 101 } };
     expect(() => validateScenarioPackage({ ...scenario, zones: [invalidZone, ...scenario.zones.slice(1)] })).toThrow(/invalid W value/);
   });
