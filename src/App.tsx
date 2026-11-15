@@ -28,6 +28,14 @@ type LocalMoodAudioCue = { readonly objectUrl: string; readonly fileName: string
 type LocalMoodAudioDraft = { file: File | null; title: string; rightsReference: string };
 const MAX_LOCAL_MOOD_AUDIO_BYTES = 25 * 1024 * 1024;
 const copy = <T,>(value: T): T => structuredClone(value);
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url; anchor.download = filename; anchor.style.display = 'none';
+  document.body.append(anchor); anchor.click(); anchor.remove();
+  // Let the browser begin reading the blob before revoking its object URL.
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 const Cabin3D = lazy(() => import('./Cabin3D'));
 const CabinAsset3D = lazy(() => import('./CabinAsset3D'));
 
@@ -806,15 +814,13 @@ function Studio() {
   };
   const exportScene = () => {
     const payload = JSON.stringify(scene, null, 2);
-    const url = URL.createObjectURL(new Blob([payload], { type: 'application/json' }));
-    const anchor = document.createElement('a'); anchor.href = url; anchor.download = `${scene.id}.adigun-scene.json`; anchor.click(); URL.revokeObjectURL(url);
+    downloadBlob(new Blob([payload], { type: 'application/json' }), `${scene.id}.adigun-scene.json`);
     setNotice('Versioned scene file exported');
   };
   const exportPreflight = () => {
     const baseline = PRESETS.find((preset) => preset.id === scene.id);
     const report = createExportPreflightReport(scene, cabinConfig, baseline);
-    const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }));
-    const anchor = document.createElement('a'); anchor.href = url; anchor.download = `${scene.id}.engineering-preflight.json`; anchor.click(); URL.revokeObjectURL(url);
+    downloadBlob(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }), `${scene.id}.engineering-preflight.json`);
     const coverage = `${report.fixtureCoverage.documentedZoneCount}/${report.fixtureCoverage.checkedZoneCount} fixture zones documented`;
     const comparison = report.sceneComparison.changes
       ? `${report.sceneComparison.changes.summary.changedTargets} target changes · ${report.sceneComparison.changes.easingChanges} easing changes vs ${report.sceneComparison.baselineId}`
@@ -827,7 +833,7 @@ function Studio() {
         const startedAt = performance.now();
         const png = await cabinCaptureRef.current?.();
         if (!png) throw new Error('The 3D renderer is not ready for capture.');
-        const downloadUrl = URL.createObjectURL(png); const anchor = document.createElement('a'); anchor.href = downloadUrl; anchor.download = 'adigun-configurable-reference-cabin-3840x2160.png'; anchor.click(); URL.revokeObjectURL(downloadUrl);
+        downloadBlob(png, 'adigun-configurable-reference-cabin-3840x2160.png');
         const elapsedMs = Math.round(performance.now() - startedAt);
         const surfaceMiB = estimateRgbaSurfaceMiB(CABIN_EXPORT_4K.width, CABIN_EXPORT_4K.height);
         setNotice(`3D 4K: ${elapsedMs} ms; ≥${surfaceMiB.toFixed(1)} MiB per RGBA surface (peak unknown).`);
@@ -848,7 +854,7 @@ function Studio() {
       const scale = Math.min(canvas.width / image.width, canvas.height / image.height); context.drawImage(image, (canvas.width - image.width * scale) / 2, (canvas.height - image.height * scale) / 2, image.width * scale, image.height * scale);
       URL.revokeObjectURL(url);
       const png = await new Promise<Blob>((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('4K PNG encoding failed')), 'image/png'));
-      const downloadUrl = URL.createObjectURL(png); const anchor = document.createElement('a'); anchor.href = downloadUrl; anchor.download = `adigun-zone-map-${width}x${height}.png`; anchor.click(); URL.revokeObjectURL(downloadUrl);
+      downloadBlob(png, `adigun-zone-map-${width}x${height}.png`);
       setNotice(`${width} × ${height} 2D zone map exported`);
     } catch (error) { setNotice(error instanceof Error ? error.message : '4K cabin export failed'); }
   };
