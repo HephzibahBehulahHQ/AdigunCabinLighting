@@ -365,6 +365,8 @@ test('Zone Inspector follows the selected aircraft GLB component inventory', asy
   await expect(picker.locator('option[value="toilet"]')).toHaveCount(0);
   await expect(picker.locator('option[value="trolley"]')).toHaveCount(0);
   await expect(picker.locator('option[value="monuments"]')).toHaveCount(1);
+  await expect(picker.locator('option[value="ceiling"]')).toHaveCount(0);
+  await expect(picker.locator('option[value="ceiling_cove"]')).toHaveCount(1);
   await picker.selectOption('monuments');
   await expect(page.getByRole('heading', { name: 'Service monuments / VIP consoles' })).toBeVisible();
 
