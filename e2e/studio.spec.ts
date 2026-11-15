@@ -364,9 +364,9 @@ test('Zone Inspector follows the selected aircraft GLB component inventory', asy
   const picker = page.locator('#zone-picker');
   await expect(picker.locator('option[value="toilet"]')).toHaveCount(0);
   await expect(picker.locator('option[value="trolley"]')).toHaveCount(0);
-  await expect(picker.locator('option[value="spotlights"]')).toHaveCount(1);
-  await picker.selectOption('spotlights');
-  await expect(page.getByRole('heading', { name: 'Spotlights' })).toBeVisible();
+  await expect(picker.locator('option[value="monuments"]')).toHaveCount(1);
+  await picker.selectOption('monuments');
+  await expect(page.getByRole('heading', { name: 'Service monuments / VIP consoles' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Change cabin' }).click();
   await page.getByLabel('Aircraft or airline 3D model').selectOption('emirates-777-300er-328');
@@ -375,9 +375,10 @@ test('Zone Inspector follows the selected aircraft GLB component inventory', asy
   await expect(picker.locator('option[value="reading"]')).toHaveCount(1);
   await expect(picker.locator('option[value="monuments"]')).toHaveCount(0);
   await expect(picker.locator('option[value="spotlights"]')).toHaveCount(0);
+  await expect(picker.locator('option[value="reading"]')).toHaveCount(0);
   await expect(picker.locator('option[value="emergency"]')).toHaveCount(0);
   await expect(picker.locator('option[value="exit"]')).toHaveCount(0);
-  await expect.poll(() => picker.inputValue()).not.toBe('spotlights');
+  await expect.poll(() => picker.inputValue()).not.toBe('monuments');
   await expect(page.locator('.inspector-head h2')).toHaveText(await picker.locator('option:checked').innerText());
 });
 
@@ -638,6 +639,7 @@ test('Studio menus open without moving the canvas and close with Escape', async 
   await page.keyboard.press('Escape');
   await expect(page.getByRole('menuitem', { name: /Export scene JSON/ })).toBeHidden();
 });
+
 
 
 
