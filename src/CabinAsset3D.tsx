@@ -248,7 +248,6 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
       const readingFixtureBounds: THREE.Box3[] = [];
       const spotlightFixtureBounds: THREE.Box3[] = [];
       const coveBounds: THREE.Box3[] = [];
-      let hasAuthoredCeiling = false;
       let visibleG650WindowGlass = 0;
       if (profile.id === 'gulfstream-g650er') seatG650ERSeatAssemblies(gltf.scene);
       gltf.scene.traverse((object) => {
@@ -276,7 +275,6 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
           if (!bounds.isEmpty()) windowBounds.push(bounds);
         }
         const normalizedName = object.name.replace(/_/g, ' ').toLowerCase();
-        if (object instanceof THREE.Mesh && /(?:cabin )?ceiling (?:panel|shell|lining)/.test(normalizedName)) hasAuthoredCeiling = true;
         if (feature === 'left_sidewall' || feature === 'right_sidewall') {
           const bounds = new THREE.Box3().setFromObject(object); if (!bounds.isEmpty()) sidewallFixtureBounds[feature].push(bounds);
         }
@@ -416,35 +414,6 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
       }
       for (const bounds of readingFixtureBounds) addPoint('reading', bounds.getCenter(new THREE.Vector3()), Math.max(1, size.x * .28));
       for (const bounds of spotlightFixtureBounds) addPoint('spotlights', bounds.getCenter(new THREE.Vector3()), Math.max(1, size.x * .35));
-      const roofHalfWidth = size.x * .49;
-      const roofEdgeDrop = Math.max(.16, size.y * .14);
-      const roofY = (x: number) => box.max.y - .035 - roofEdgeDrop * Math.min(1, ((x - centerX) / roofHalfWidth) ** 2);
-      // The VVIP mesh has no ceiling shell. Add a curved, model-relative lining
-      // surface so light groups illuminate a cabin surface instead of empty sky.
-      const roofGeometry = new THREE.BufferGeometry();
-      const roofColumns = 12; const roofRows = 40;
-      const roofVertices: number[] = []; const roofIndices: number[] = [];
-      for (let row = 0; row <= roofRows; row++) {
-        const z = box.min.z + .08 + (cabinSpan - .16) * row / roofRows;
-        for (let column = 0; column <= roofColumns; column++) {
-          const x = centerX - roofHalfWidth + roofHalfWidth * 2 * column / roofColumns;
-          roofVertices.push(x, roofY(x), z);
-        }
-      }
-      for (let row = 0; row < roofRows; row++) for (let column = 0; column < roofColumns; column++) {
-        const a = row * (roofColumns + 1) + column; const b = a + 1; const c = a + roofColumns + 1; const d = c + 1;
-        roofIndices.push(a, b, c, b, d, c);
-      }
-      roofGeometry.setAttribute('position', new THREE.Float32BufferAttribute(roofVertices, 3));
-      roofGeometry.setIndex(roofIndices); roofGeometry.computeVertexNormals();
-      const roofMaterial = new THREE.MeshStandardMaterial({ color: '#e2d5bd', emissive: '#c9b998', emissiveIntensity: .32, roughness: .84, metalness: .015, side: THREE.DoubleSide });
-      if (!hasAuthoredCeiling) {
-        const roof = new THREE.Mesh(roofGeometry, roofMaterial);
-        roof.name = 'Estimated curved ceiling lining · dimension-based'; roof.castShadow = false; roof.receiveShadow = true;
-        root.add(roof);
-      } else {
-        roofGeometry.dispose(); roofMaterial.dispose();
-      }
       const panes = windowBounds.map((bounds) => {
         const center = bounds.getCenter(new THREE.Vector3()); const inward = center.x < centerX ? 1 : -1;
         return { bounds, position: center.add(new THREE.Vector3(inward * Math.max(.12, size.x * .045), 0, 0)), inward };
@@ -477,20 +446,6 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
       });
       addFixtures('handrail', edgeItems);
       edgeItems.filter((_, index) => index % Math.max(1, Math.ceil(edgeItems.length / 18)) === 0).forEach((item) => addPoint('handrail', item.position.clone(), Math.max(1.2, size.x * .42)));
-
-      // Ceiling wash strips sit just above the overhead-bin tops and aim upward.
-      const ceilingItems = profile.zones.some((zone) => zone.id === 'ceiling') ? binBounds.map((bounds) => {
-        const center = bounds.getCenter(new THREE.Vector3()); const extent = bounds.getSize(new THREE.Vector3());
-        return { position: new THREE.Vector3(center.x, bounds.max.y + .022, center.z), size: new THREE.Vector3(Math.max(.12, extent.x * .62), .012, Math.max(.18, extent.z * .78)) };
-      }) : [];
-      addFixtures('ceiling', ceilingItems);
-      ceilingItems.filter((_, index) => index % Math.max(1, Math.ceil(ceilingItems.length / 12)) === 0).forEach((item) => {
-        const surfaceY = roofY(item.position.x);
-        const source = item.position.clone();
-        source.y = Math.min(source.y, surfaceY - .055);
-        const target = new THREE.Vector3(item.position.x, surfaceY - .006, item.position.z);
-        addSpot('ceiling', source, target, Math.max(1.5, size.x * .52), Math.PI / 4);
-      });
 
       // Central cove is a linear, ceiling-mounted source, independent from the bin-top wash.
       for (const bounds of coveBounds) addPoint('ceiling_cove', bounds.getCenter(new THREE.Vector3()), Math.max(1.2, size.x * .45));
@@ -534,7 +489,7 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
       exitSignCount = signItems.length;
       }
 
-      renderer.domElement.dataset.simulatedFixtureCounts = JSON.stringify({ windows: panes.length, ceiling: ceilingItems.length, handrail: edgeItems.length, leftSidewall: sidewallFixtureBounds.left_sidewall.length, rightSidewall: sidewallFixtureBounds.right_sidewall.length, cove: coveBounds.length, reading: readingFixtureBounds.length, monuments: monumentBounds.length + consoleBounds.length, spotlights: spotlightFixtureBounds.length, emergency: emergencyFixtureCount, exit: exitSignCount, placementBasis: binBounds.length ? 'overhead-bin-mesh-bounds' : consoleBounds.length ? 'vip-side-console-mesh-bounds' : 'named-component-bounds' });
+      renderer.domElement.dataset.simulatedFixtureCounts = JSON.stringify({ windows: panes.length, handrail: edgeItems.length, leftSidewall: sidewallFixtureBounds.left_sidewall.length, rightSidewall: sidewallFixtureBounds.right_sidewall.length, cove: coveBounds.length, reading: readingFixtureBounds.length, monuments: monumentBounds.length + consoleBounds.length, spotlights: spotlightFixtureBounds.length, emergency: emergencyFixtureCount, exit: exitSignCount, placementBasis: binBounds.length ? 'overhead-bin-mesh-bounds' : consoleBounds.length ? 'vip-side-console-mesh-bounds' : 'named-component-bounds' });
       renderer.domElement.dataset.simulatedLightCount = String([...modelLights.values()].flat().filter((light) => light.userData.simulatedRuntimeLight === true).length);
       fitCamera(cameraView);
       applyZoneLighting(zoneMaterials, modelLights, lighting.current.effective, lighting.current.intensity);
