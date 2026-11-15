@@ -7,7 +7,7 @@ import {
   Headphones, Megaphone, Move3D, Volume2, Waves, X,
 } from 'lucide-react';
 import {
-  interpolateRGBW, interpolateScene, makeDefaultZones, makeZones, normalizeRGBW, PRESETS, toHex, validateSceneFile,
+  interpolateRGBW, interpolateScene, makeDefaultZones, makeZones, normalizeRGBW, PRESETS, preserveSafetyZones, toHex, validateSceneFile,
   ZONE_IDS, ZONE_INFO, type RGBW, type SceneFile, type ZoneId, type ZoneState,
 } from './scene-engine';
 import { composePreviewRGB } from './lighting-preview';
@@ -84,6 +84,7 @@ function CabinDrawing({ zones, selected, onSelect, compact = false, config = DEF
     monuments: { x: 805, y: 365 }, toilet: { x: 825, y: 242 }, handrail: { x: 490, y: 389 },
     trolley: { x: 757, y: 332 }, cabin: { x: 490, y: 254 }, ceiling_cove: { x: 490, y: 165 },
     left_sidewall: { x: 220, y: 295 }, right_sidewall: { x: 760, y: 295 },
+    spotlights: { x: 490, y: 218 }, emergency: { x: 490, y: 431 }, exit: { x: 490, y: 130 },
   };
   const onKey = (event: React.KeyboardEvent<SVGGElement>, id: ZoneId) => {
     if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect?.(id); }
@@ -402,6 +403,8 @@ function Studio() {
   const speechUtterance = useRef<SpeechSynthesisUtterance | null>(null);
   const speechTimer = useRef<number | null>(null);
   const effectiveRef = useRef(effectiveRGBW);
+  const zoneValuesRef = useRef(Object.fromEntries(zones.map((zone) => [zone.id, zone.rgbw])) as Record<ZoneId, RGBW>);
+  zoneValuesRef.current = Object.fromEntries(zones.map((zone) => [zone.id, zone.rgbw])) as Record<ZoneId, RGBW>;
   const fadeTransitions = useRef<Partial<Record<ZoneId, { from: RGBW; to: RGBW; started: number; durationMs: number }>>>({});
   const fadeFrame = useRef<number | null>(null);
   const scene = scenes.find((item) => item.id === activeSceneId) ?? scenes[0] ?? PRESETS[0];
@@ -656,10 +659,10 @@ function Studio() {
       if (now - lastVisualUpdate >= 100 || next >= scene.durationSeconds) {
         lastVisualUpdate = now;
         setTime(next);
-        if (!aircraftMeshId) setEffectiveImmediately(interpolateScene(scene, next));
+        if (!aircraftMeshId) setEffectiveImmediately(preserveSafetyZones(interpolateScene(scene, next), zoneValuesRef.current));
       }
       if (next >= scene.durationSeconds) {
-        if (aircraftMeshId) setEffectiveImmediately(interpolateScene(scene, next));
+        if (aircraftMeshId) setEffectiveImmediately(preserveSafetyZones(interpolateScene(scene, next), zoneValuesRef.current));
         setPlaying(false);
         return;
       }
@@ -685,17 +688,19 @@ function Studio() {
   const setRGBW = (channel: keyof RGBW, value: number) => {
     snapshot(); setRedo([]);
     const rgbw = { ...currentZone.rgbw, [channel]: Math.max(0, Math.min(100, value)) };
-    setZones((previous) => previous.map((zone) => zone.id === selected ? { ...zone, rgbw } : zone));
-    fadeZoneTo(selected, rgbw, currentZone.fadeSeconds);
+    const editedIds: ZoneId[] = selected === 'sidewalls' ? ['sidewalls', 'left_sidewall', 'right_sidewall'] : [selected];
+    setZones((previous) => previous.map((zone) => editedIds.includes(zone.id) ? { ...zone, rgbw } : zone));
+    editedIds.forEach((id) => fadeZoneTo(id, rgbw, zones.find((zone) => zone.id === id)?.fadeSeconds ?? currentZone.fadeSeconds));
     setPlaying(false);
   };
   const setZoneColor = (rgbw: RGBW) => {
     snapshot(); setRedo([]);
-    setZones((previous) => previous.map((zone) => zone.id === selected ? { ...zone, rgbw } : zone));
-    fadeZoneTo(selected, rgbw, currentZone.fadeSeconds); setPlaying(false);
+    const editedIds: ZoneId[] = selected === 'sidewalls' ? ['sidewalls', 'left_sidewall', 'right_sidewall'] : [selected];
+    setZones((previous) => previous.map((zone) => editedIds.includes(zone.id) ? { ...zone, rgbw } : zone));
+    editedIds.forEach((id) => fadeZoneTo(id, rgbw, zones.find((zone) => zone.id === id)?.fadeSeconds ?? currentZone.fadeSeconds)); setPlaying(false);
   };
   const applySceneAt = (nextTime: number, nextScene = scene) => {
-    const targets = interpolateScene(nextScene, nextTime);
+    const targets = preserveSafetyZones(interpolateScene(nextScene, nextTime), zoneValuesRef.current);
     setEffectiveImmediately(targets);
     playbackTime.current = nextTime;
     const audio = localMoodAudioRef.current;
@@ -706,7 +711,7 @@ function Studio() {
     const next = scenes.find((item) => item.id === id);
     if (!next) return;
     setPlaying(false); setActiveSceneId(id); applySceneAt(0, next);
-    setZones((previous) => previous.map((zone) => ({ ...zone, rgbw: next.keyframes[0].targets[zone.id] })));
+    setZones((previous) => previous.map((zone) => ({ ...zone, rgbw: ['emergency', 'exit'].includes(zone.id) ? zone.rgbw : next.keyframes[0].targets[zone.id] })));
     setNotice(next.name + ' loaded into simulator');
   };
   const changeFade = (value: number) => {
@@ -1013,4 +1018,5 @@ export default function App() {
   const isStudio = window.location.pathname.replace(/\/$/, '') === '/studio';
   return isStudio ? <Studio /> : <Landing />;
 }
+
 
