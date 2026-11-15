@@ -94,6 +94,11 @@
 .cabin-stage{height:auto;min-height:0;flex:1;margin:7px 0;position:relative}
 .camera-angle-select{position:absolute;z-index:5;top:9px;right:9px;height:27px;max-width:120px;padding:0 22px 0 8px;border:1px solid #3a5369;border-radius:5px;background:#0b1724eF;color:#c6d7e6;font:600 9px 'IBM Plex Mono',monospace;box-shadow:0 3px 14px #0006;cursor:pointer}
 .camera-angle-select:focus-visible{outline:2px solid #22d3ee;outline-offset:2px}
+.cabin-asset-renderer{position:absolute;inset:0;overflow:hidden;background:#07111d}
+.cabin-asset-renderer .cabin-webgl-canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+.cabin-asset-renderer .cabin-webgl-canvas:active{cursor:grabbing}
+.cabin-asset-attribution{position:absolute;left:10px;bottom:8px;max-width:calc(100% - 20px);padding:4px 7px;border:1px solid #405b70;border-radius:3px;background:#081522d9;color:#9eb7c9;font:8px/1.3 'IBM Plex Mono',monospace;pointer-events:none}
+.cabin-asset-error{position:absolute;z-index:4;inset:auto 12px 36px;padding:9px 11px;border:1px solid #b87752;border-radius:4px;background:#291a17ed;color:#ffd6c6;font-size:10px}
 .studio-shell .cabin-drawing{position:absolute;width:96%;height:92%;inset:4% 2%}
 .cabin-legend{flex:none;gap:10px;font-size:8px}
 .timeline-panel,.scene-library{min-width:0;padding:9px 12px}

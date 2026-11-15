@@ -265,13 +265,18 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
       handrail: { position: [0, .86, 0], strip: [.025, .025, config.lengthMeters * .82] },
       trolley: { position: [0, 1.15, config.lengthMeters * .37], strip: [.7, .04, .08] },
       cabin: { position: [0, 1.45, 0], strip: [.025, .025, config.lengthMeters * .7] },
+    ceiling_cove: { position: [0, config.ceilingHeightMeters - .24, 0], strip: [.055, .035, config.lengthMeters * .86] },
+    left_sidewall: { position: [-config.widthMeters / 2 + .23, config.ceilingHeightMeters * .36, 0], strip: [.035, .03, config.lengthMeters * .84] },
+    right_sidewall: { position: [config.widthMeters / 2 - .23, config.ceilingHeightMeters * .36, 0], strip: [.035, .03, config.lengthMeters * .84] },
     };
     for (const [id, spec] of Object.entries(fixtureSpecs) as [ZoneId, typeof fixtureSpecs[ZoneId]][]) {
       const members: THREE.MeshStandardMaterial[] = [];
       const sourceMaterial = new THREE.MeshStandardMaterial({ color: '#111b25', emissive: '#000000', emissiveIntensity: .4, roughness: .35 }); members.push(sourceMaterial);
-      if (id === 'windows' || id === 'sidewalls' || id === 'ceiling') {
-        const x = id === 'ceiling' ? config.widthMeters * .23 : config.widthMeters / 2 - .28;
+      if (id === 'windows' || id === 'sidewalls' || id === 'ceiling' || id === 'ceiling_cove') {
+        const x = id === 'ceiling' || id === 'ceiling_cove' ? config.widthMeters * .23 : config.widthMeters / 2 - .28;
         for (const side of [-1, 1]) addBox(scene, spec.strip, [side * x, spec.position[1], 0], sourceMaterial, id, false);
+      } else if (id === 'left_sidewall' || id === 'right_sidewall') {
+        addBox(scene, spec.strip, spec.position, sourceMaterial, id, false);
       } else {
         const fixtures = spec.count ?? 1;
         for (let i = 0; i < fixtures; i++) {
@@ -280,10 +285,12 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
           mesh.userData.zoneId = id;
         }
       }
-      const fixturePositions: [number, number, number][] = ['windows', 'sidewalls'].includes(id)
+      const fixturePositions: [number, number, number][] = ['windows', 'sidewalls', 'ceiling_cove'].includes(id)
         ? [-1, 1].map((side) => [side * (config.widthMeters / 2 - .32), spec.position[1], 0] as [number, number, number])
-        : id === 'ceiling'
+        : ['ceiling', 'ceiling_cove'].includes(id)
           ? [-1, 1].map((side) => [side * (config.widthMeters * .23), config.ceilingHeightMeters - .3, 0] as [number, number, number])
+          : id === 'left_sidewall' || id === 'right_sidewall'
+            ? [spec.position]
           : [spec.position];
       const zoneLights = fixturePositions.map((position) => {
         const light = new THREE.PointLight('#ffffff', 0, id === 'cabin' ? config.lengthMeters * .9 : config.lengthMeters * .38, 2);

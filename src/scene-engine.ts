@@ -1,6 +1,6 @@
 export type RGBW = { r: number; g: number; b: number; w: number };
 export type SceneEasing = 'linear' | 'smoothstep' | 'cubicInOut';
-export type ZoneId = 'ceiling' | 'windows' | 'sidewalls' | 'footwell' | 'reading' | 'entry' | 'monuments' | 'toilet' | 'handrail' | 'trolley' | 'cabin';
+export type ZoneId = 'ceiling' | 'windows' | 'sidewalls' | 'footwell' | 'reading' | 'entry' | 'monuments' | 'toilet' | 'handrail' | 'trolley' | 'cabin' | 'ceiling_cove' | 'left_sidewall' | 'right_sidewall';
 export type ZoneState = { id: ZoneId; name: string; detail: string; rgbw: RGBW; fadeSeconds: number };
 export type SceneKeyframe = { atSeconds: number; targets: Record<ZoneId, RGBW>; easing?: SceneEasing };
 export type SceneFile = {
@@ -11,7 +11,7 @@ export type SceneFile = {
   keyframes: SceneKeyframe[];
 };
 
-export const ZONE_IDS: ZoneId[] = ['ceiling', 'windows', 'sidewalls', 'footwell', 'reading', 'entry', 'monuments', 'toilet', 'handrail', 'trolley', 'cabin'];
+export const ZONE_IDS: ZoneId[] = ['ceiling', 'windows', 'sidewalls', 'footwell', 'reading', 'entry', 'monuments', 'toilet', 'handrail', 'trolley', 'cabin', 'ceiling_cove', 'left_sidewall', 'right_sidewall'];
 const LEGACY_ZONE_IDS: ZoneId[] = ['ceiling', 'windows', 'sidewalls', 'footwell', 'reading', 'entry'];
 export const ZONE_INFO: Record<ZoneId, Pick<ZoneState, 'name' | 'detail'>> = {
   ceiling: { name: 'Ceiling cove', detail: 'Continuous indirect wash' },
@@ -25,6 +25,9 @@ export const ZONE_INFO: Record<ZoneId, Pick<ZoneState, 'name' | 'detail'>> = {
   handrail: { name: 'Handrail', detail: 'Handrail accent zone · illustrative' },
   trolley: { name: 'Trolley service area', detail: 'Service-area lighting zone · illustrative' },
   cabin: { name: 'Cabin ambient', detail: 'Overall cabin ambient lighting · illustrative' },
+  ceiling_cove: { name: 'Ceiling Cove', detail: 'Independent RGBW control for the cabin ceiling cove · simulation geometry' },
+  left_sidewall: { name: 'Left Sidewall', detail: 'Independent RGBW control for the left cabin sidewall · simulation geometry' },
+  right_sidewall: { name: 'Right Sidewall', detail: 'Independent RGBW control for the right cabin sidewall · simulation geometry' },
 };
 
 export const ZERO: RGBW = { r: 0, g: 0, b: 0, w: 0 };
@@ -46,7 +49,7 @@ export function interpolateRGBW(from: RGBW, to: RGBW, progress: number, easing: 
 }
 
 const targets = (color: RGBW, overrides: Partial<Record<ZoneId, RGBW>> = {}): Record<ZoneId, RGBW> =>
-  Object.fromEntries(ZONE_IDS.map((id) => [id, overrides[id] ?? color])) as Record<ZoneId, RGBW>;
+  Object.fromEntries(ZONE_IDS.map((id) => [id, overrides[id] ?? (id === 'left_sidewall' || id === 'right_sidewall' ? overrides.sidewalls : id === 'ceiling_cove' ? overrides.ceiling : undefined) ?? color])) as Record<ZoneId, RGBW>;
 
 export const PRESETS: SceneFile[] = [
   { schemaVersion: 1, id: 'boarding', name: 'Boarding', durationSeconds: 45, keyframes: [
@@ -162,6 +165,8 @@ export function validateSceneFile(value: unknown): SceneFile {
     const normalizedTargets = { ...frame.targets } as Record<ZoneId, RGBW>;
     for (const id of ZONE_IDS) {
       const target = normalizedTargets[id];
+      const inherited = id === 'left_sidewall' || id === 'right_sidewall' ? normalizedTargets.sidewalls : id === 'ceiling_cove' ? normalizedTargets.ceiling : undefined;
+      if (!target && inherited) { normalizedTargets[id] = { ...inherited }; continue; }
       if (!target && !LEGACY_ZONE_IDS.includes(id)) { normalizedTargets[id] = { ...ZERO }; continue; }
       if (!target || !['r', 'g', 'b', 'w'].every((key) => Number.isFinite(target[key as keyof RGBW]) && target[key as keyof RGBW] >= 0 && target[key as keyof RGBW] <= 100)) {
         throw new Error(`Invalid RGBW target for ${id}.`);

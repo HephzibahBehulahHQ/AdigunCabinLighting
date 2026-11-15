@@ -512,6 +512,71 @@ test('Studio fits one viewport with docked panels at all required desktop sizes'
   }
 });
 
+test('airline cabin meshes load in the locked Studio and respond to controls', async ({ page }) => {
+  test.setTimeout(180_000);
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/studio');
+  const fixedPanels = ['.studio-topbar', '.studio-rail', '#cabin-view', '#timeline', '#scene-library', '#zone-inspector'];
+  const before = await Promise.all(fixedPanels.map((selector) => page.locator(selector).boundingBox()));
+
+  await page.getByRole('button', { name: 'Change cabin' }).click();
+  const modelPicker = page.getByLabel('Aircraft or airline 3D model');
+  await expect(modelPicker.locator('option')).toHaveCount(30);
+  await modelPicker.selectOption('emirates-777-300er-328');
+  await expect(page.locator('.cabin-profile-note').first()).toContainText('authored reconstruction');
+  await page.getByRole('button', { name: 'Load cabin layout' }).click();
+  await expect(page.locator('.cabin-stage')).toHaveAttribute('data-aircraft-mesh-id', 'emirates-777-300er-328');
+  await expect(page.locator('.cabin-asset-renderer')).toHaveCount(1);
+  const canvas = page.locator('.cabin-asset-renderer canvas');
+  await expect(canvas).toHaveAttribute('aria-label', /Emirates/);
+  await expect(canvas).toBeVisible();
+  await expect(page.locator('.cabin-asset-error')).toHaveCount(0);
+  const initialImage = await page.screenshot({ path: 'artifacts/screenshots/airline-emirates-328-3d.png' });
+
+  await page.getByLabel('3D camera angle').selectOption('window-row');
+  await page.mouse.move(720, 420);
+  await page.mouse.down();
+  await page.mouse.move(802, 456, { steps: 4 });
+  await page.mouse.up();
+  await page.locator('.cabin-stage').hover();
+  await page.mouse.wheel(0, -140);
+  const rotatedImage = await page.screenshot({ path: 'artifacts/screenshots/airline-emirates-328-camera-moved.png' });
+  expect(rotatedImage.equals(initialImage)).toBe(false);
+
+  await page.locator('#zone-picker').selectOption('left_sidewall');
+  await page.getByRole('spinbutton', { name: 'R percent' }).fill('88');
+  await page.getByRole('spinbutton', { name: 'R percent' }).press('Enter');
+  await expect(page.getByRole('heading', { name: 'Left Sidewall' })).toBeVisible();
+  const intensity = page.getByRole('slider', { name: 'MASTER INTENSITY' });
+  const intensityBefore = Number(await intensity.inputValue());
+  await intensity.press('ArrowUp');
+  await expect.poll(async () => Number(await intensity.inputValue())).toBeGreaterThan(intensityBefore);
+  await page.getByRole('button', { name: 'Change cabin' }).click();
+  await page.getByLabel('Aircraft or airline 3D model').selectOption('qantaslink-a220-300-137');
+  await page.getByRole('button', { name: 'Load cabin layout' }).click();
+  await expect(page.locator('.cabin-stage')).toHaveAttribute('data-aircraft-mesh-id', 'qantaslink-a220-300-137');
+  await expect(page.locator('.cabin-asset-renderer canvas')).toHaveAttribute('aria-label', /QantasLink/);
+  await page.getByRole('button', { name: 'Mood music' }).click();
+  await page.getByRole('button', { name: 'Play preview' }).click();
+  await expect(page.getByRole('button', { name: 'Pause preview' })).toBeVisible();
+  const timeline = page.getByRole('slider', { name: 'Scene timeline position' });
+  await expect.poll(async () => Number(await timeline.inputValue()), { timeout: 10_000 }).toBeGreaterThan(0);
+  await page.getByRole('button', { name: 'Pause preview' }).evaluate((button: HTMLButtonElement) => button.click());
+  await expect(page.getByRole('button', { name: 'Play preview' })).toBeVisible();
+  await page.screenshot({ path: 'artifacts/screenshots/airline-qantaslink-a220-3d-transition.png' });
+
+  const after = await Promise.all(fixedPanels.map((selector) => page.locator(selector).boundingBox()));
+  for (let index = 0; index < fixedPanels.length; index++) {
+    expect(after[index], `${fixedPanels[index]} disappeared after mesh selection`).not.toBeNull();
+    for (const edge of ['x', 'y', 'width', 'height'] as const) {
+      expect(after[index]![edge], `${fixedPanels[index]} ${edge} moved after mesh selection`).toBeCloseTo(before[index]![edge], 0);
+    }
+  }
+  expect(errors).toEqual([]);
+});
+
 test('3D camera presets change angle inside the existing cabin viewer without moving its docked panel', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/studio');
