@@ -29,31 +29,31 @@ If a token is exposed, stop the process immediately, discard that shell, generat
 
 ## Optional Linux systemd service
 
-The repository includes \`deploy/systemd/adigun-cabin-gateway.service\` for a local Linux simulator host. It requires systemd 247 or newer for \`LoadCredential\`. This is a supervised local service template, not a hosted deployment or an aircraft/hardware interface. The service binds to \`127.0.0.1\`, returns simulation data only, and has no physical output path.
+The repository includes `deploy/systemd/adigun-cabin-gateway.service` for a local Linux simulator host. It requires systemd 247 or newer for `LoadCredential`. This is a supervised local service template, not a hosted deployment or an aircraft/hardware interface. The service binds to `127.0.0.1`, returns simulation data only, and has no physical output path.
 
 Build the gateway in a trusted checkout, then install the compiled runtime files at the paths used by the unit:
 
-\`\`\`sh
+```sh
 npm ci
 npm run build:gateway
 sudo install -d -m 0755 /opt/adigun-cabin-lighting/gateway /opt/adigun-cabin-lighting/dist-gateway
 sudo cp -R dist-gateway/. /opt/adigun-cabin-lighting/dist-gateway/
 sudo install -m 0644 gateway/start.mjs /opt/adigun-cabin-lighting/gateway/start.mjs
 sudo install -m 0644 package.json /opt/adigun-cabin-lighting/package.json
-\`\`\`
+```
 
-If Node.js is not at \`/usr/bin/node\`, edit \`ExecStart\` in the unit to the absolute path reported by \`command -v node\`. Create a root-only credential file without printing its contents, install the unit, then start it:
+If Node.js is not at `/usr/bin/node`, edit `ExecStart` in the unit to the absolute path reported by `command -v node`. Create a root-only credential file without printing its contents, install the unit, then start it:
 
-\`\`\`sh
+```sh
 sudo install -d -o root -g root -m 0700 /etc/adigun-cabin-lighting
 sudo sh -c "umask 077; openssl rand -base64 32 | tr -d '\n' > /etc/adigun-cabin-lighting/gateway-token"
 sudo install -m 0644 deploy/systemd/adigun-cabin-gateway.service /etc/systemd/system/adigun-cabin-gateway.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now adigun-cabin-gateway.service
 sudo systemctl status --no-pager adigun-cabin-gateway.service
-\`\`\`
+```
 
-Systemd exposes the token through its private credential directory; \`gateway/start.mjs\` reads it without copying the secret into the service command line or logs. The unit uses a transient service identity, restart limits, a 25-second stop timeout for the gateway's 20-second graceful drain, and filesystem/kernel restrictions. Review the unit against the host's local systemd policy before enabling it. To stop it, run \`sudo systemctl disable --now adigun-cabin-gateway.service\`; to rotate its token, replace the root-only source credential and restart the service. Do not put a token in \`Environment=\`, \`EnvironmentFile=\`, or process arguments.
+Systemd exposes the token through its private credential directory; `gateway/start.mjs` reads it without copying the secret into the service command line or logs. The unit uses a transient service identity, restart limits, a 25-second stop timeout for the gateway's 20-second graceful drain, and filesystem/kernel restrictions. Review the unit against the host's local systemd policy before enabling it. To stop it, run `sudo systemctl disable --now adigun-cabin-gateway.service`; to rotate its token, replace the root-only source credential and restart the service. Do not put a token in `Environment=`, `EnvironmentFile=`, or process arguments.
 
 ## Operational limits
 
