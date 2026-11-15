@@ -554,7 +554,6 @@ test('airline cabin meshes load in the locked Studio and respond to controls', a
 
   await page.locator('#zone-picker').selectOption('left_sidewall');
   await page.getByRole('spinbutton', { name: 'R percent' }).fill('88');
-  await page.getByRole('spinbutton', { name: 'R percent' }).press('Enter');
   await expect(page.getByRole('heading', { name: 'Left Sidewall' })).toBeVisible();
   const intensity = page.getByRole('slider', { name: 'MASTER INTENSITY' });
   const intensityBefore = Number(await intensity.inputValue());
