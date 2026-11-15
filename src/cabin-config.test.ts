@@ -7,11 +7,20 @@ describe('configurable reference cabin profile', () => {
   });
 
   it('provides distinct layouts and cabin dimensions for each reference profile', () => {
-    expect(Object.keys(CABIN_PROFILES)).toHaveLength(6);
+    expect(Object.keys(CABIN_PROFILES)).toHaveLength(7);
     expect(CABIN_LAYOUTS.widebody.groups).toEqual([3, 3, 3]);
     expect(CABIN_LAYOUTS.premium.groups).toEqual([1, 2, 1]);
     expect(CABIN_PROFILES.regional.widthMeters).toBeLessThan(CABIN_PROFILES.widebody.widthMeters);
     expect(CABIN_PROFILES.regional.lengthMeters).toBeLessThan(CABIN_PROFILES.widebody.lengthMeters);
+  });
+
+  it('adds the owner-image VVIP suite as a two-seat reference profile', () => {
+    expect(CABIN_LAYOUTS.ownerVvip.groups).toEqual([1, 1]);
+    expect(CABIN_PROFILES.ownerVvip).toMatchObject({
+      layoutId: 'ownerVvip', seatRows: 7, seatPitchMeters: 1.52, windowCountPerSide: 11,
+    });
+    expect(CABIN_LAYOUTS.ownerVvip.geometryNote).toContain('visually inferred');
+    expect(validateCabinConfig({ layoutId: 'ownerVvip' })).toEqual(CABIN_PROFILES.ownerVvip);
   });
 
   it('accepts a selected layout with custom cabin dimensions', () => {
