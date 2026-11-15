@@ -4,7 +4,7 @@ export const STUDIO_COPY = {
   en: {
     workspace: 'WORKSPACE', project: 'PROJECT', system: 'SYSTEM',
     cabinOverview: 'Cabin overview', zoneMapping: 'Zone mapping', choreography: 'Choreography', sceneLibrary: 'Scene library',
-    saveScene: 'Save scene', saveProject: 'Save project', openProject: 'Open project', newProject: 'New project', newScene: 'New scene', changeCabin: 'Change cabin', resetCamera: 'Reset camera',
+    saveScene: 'Save scene', saveProject: 'Save project', openProject: 'Open project', newProject: 'Create new project', newScene: 'Create new scene', changeCabin: 'Change cabin', resetCamera: 'Reset cabin camera view',
     hardwareDiagnostics: 'Hardware diagnostics', notAvailable: 'NOT AVAILABLE', adigunBot: 'Adigun BOT', notEnabled: 'NOT ENABLED',
     cabinDigitalTwin: 'Cabin digital twin', cabinViewControls: 'Cabin view controls', cabinView: 'Cabin view', highQuality4K: 'High quality 4K capture mode',
     cabinLayout: 'Cabin layout', loadCabinLayout: 'Load cabin layout', activeZone: 'Active zone', doubleClickFixture: 'Double-click a 3D fixture to select its zone',
@@ -64,3 +64,4 @@ export function saveAppLocale(locale: AppLocale): void {
 export function studioText(locale: AppLocale, key: StudioCopyKey): string {
   return STUDIO_COPY[locale][key] ?? STUDIO_COPY.en[key];
 }
+
