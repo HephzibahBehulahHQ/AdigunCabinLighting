@@ -253,7 +253,7 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
     }
 
     // Independent illustrative zone fixtures and software light sources.
-    const fixtureSpecs: Record<ZoneId, { position: [number, number, number]; strip: [number, number, number]; count?: number }> = {
+    const fixtureSpecs: Partial<Record<ZoneId, { position: [number, number, number]; strip: [number, number, number]; count?: number }>> = {
       ceiling: { position: [0, config.ceilingHeightMeters - .18, 0], strip: [.07, .035, config.lengthMeters * .86] },
       windows: { position: [0, config.ceilingHeightMeters * .54, 0], strip: [.035, .025, config.lengthMeters * .84] },
       sidewalls: { position: [0, config.ceilingHeightMeters * .35, 0], strip: [.05, .03, config.lengthMeters * .84] },
@@ -268,8 +268,11 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
     ceiling_cove: { position: [0, config.ceilingHeightMeters - .24, 0], strip: [.055, .035, config.lengthMeters * .86] },
     left_sidewall: { position: [-config.widthMeters / 2 + .23, config.ceilingHeightMeters * .36, 0], strip: [.035, .03, config.lengthMeters * .84] },
     right_sidewall: { position: [config.widthMeters / 2 - .23, config.ceilingHeightMeters * .36, 0], strip: [.035, .03, config.lengthMeters * .84] },
+    spotlights: { position: [0, config.ceilingHeightMeters - .12, -config.lengthMeters * .38], strip: [.11, .045, .08], count: 3 },
+    emergency: { position: [0, .045, 0], strip: [.025, .018, config.lengthMeters * .88] },
+    exit: { position: [0, config.ceilingHeightMeters * .76, 0], strip: [.28, .10, .025], count: 2 },
     };
-    for (const [id, spec] of Object.entries(fixtureSpecs) as [ZoneId, typeof fixtureSpecs[ZoneId]][]) {
+    for (const [id, spec] of Object.entries(fixtureSpecs) as [ZoneId, NonNullable<typeof fixtureSpecs[ZoneId]>][]) {
       const members: THREE.MeshStandardMaterial[] = [];
       const sourceMaterial = new THREE.MeshStandardMaterial({ color: '#111b25', emissive: '#000000', emissiveIntensity: .4, roughness: .35 }); members.push(sourceMaterial);
       if (id === 'windows' || id === 'sidewalls' || id === 'ceiling' || id === 'ceiling_cove') {
@@ -491,4 +494,5 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
     <span className="visually-hidden" aria-live="polite">{help}</span>
   </div>;
 }
+
 
