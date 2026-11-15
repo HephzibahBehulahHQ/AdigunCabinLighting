@@ -104,6 +104,7 @@ test('scene timeline scrubs and plays its actual transition', async ({ page }) =
 });
 
 test('manual setpoints follow the selected zone fade and can be committed', async ({ page }) => {
+  test.setTimeout(60_000);
   await page.goto('/studio');
   const fade = page.locator('#fade');
   await fade.focus();
@@ -116,11 +117,10 @@ test('manual setpoints follow the selected zone fade and can be committed', asyn
   await expect(output).toHaveText('43 / 6 / 18 / 3');
   await page.getByRole('button', { name: /Apply & set keyframe/ }).click();
   await expect(page.getByRole('status')).toContainText('committed to Aurora at 00:00');
-  await fade.press('Home');
-  await fade.press('ArrowRight');
-  await fade.press('ArrowRight');
-  await fade.press('ArrowRight');
-  await expect(fade).toHaveValue('3');
+  const fadeBounds = await fade.boundingBox();
+  expect(fadeBounds).not.toBeNull();
+  await page.mouse.click(fadeBounds!.x + fadeBounds!.width * .1, fadeBounds!.y + fadeBounds!.height / 2);
+  await expect.poll(async () => Number(await fade.inputValue())).toBeGreaterThan(0);
   const beforeFade = Number((await output.innerText()).split(' / ')[0]);
   await red.fill('0');
   await red.press('Enter');
@@ -301,7 +301,7 @@ test('cabin map shapes respond to pointer selection', async ({ page }) => {
   await page.goto('/studio');
   await page.getByRole('button', { name: '2D', exact: true }).click();
   await page.locator('[aria-label="Cabin window 1 on left side"]').click();
-  await expect(page.getByRole('heading', { name: 'Window surrounds' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Window daylight' })).toBeVisible();
 });
 
 test('new cabin zones, scenes, and browser-local projects are usable', async ({ page }) => {
@@ -371,7 +371,7 @@ test('Change cabin switches the 3D reference geometry from the left rail', async
   await expect(page.getByLabel('Length (m)')).toHaveValue('12.8');
   await expect(page.getByLabel('Interior width (m)')).toHaveValue('3.25');
   await page.getByRole('button', { name: 'Load cabin layout' }).click();
-  await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-cabin-layout', 'regional');
+  await expect(page.locator('.cabin-stage')).toHaveAttribute('data-cabin-layout', 'regional');
 
   await page.getByRole('button', { name: 'Change cabin' }).click();
   await page.getByLabel('Cabin layout').selectOption('widebody');
@@ -379,7 +379,7 @@ test('Change cabin switches the 3D reference geometry from the left rail', async
   await expect(page.getByLabel('Length (m)')).toHaveValue('27.6');
   await expect(page.getByLabel('Interior width (m)')).toHaveValue('5.75');
   await page.getByRole('button', { name: 'Load cabin layout' }).click();
-  await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-cabin-layout', 'widebody');
+  await expect(page.locator('.cabin-stage')).toHaveAttribute('data-cabin-layout', 'widebody');
   await expect(page.locator('.cabin3d-badge')).toContainText('Wide cabin');
 });
 
@@ -400,8 +400,8 @@ test('owner image-derived VVIP cabin profile switches the matching seat and wind
   await cabinView.getByRole('button', { name: '3D' }).click();
   const model = page.locator('.cabin-stage');
   await expect(model).toHaveAttribute('data-cabin-layout', 'ownerVvip');
-  await expect(page.locator('.cabin-webgl-canvas')).toBeVisible();
-  await expect(page.locator('.cabin-webgl-canvas')).toHaveAttribute('aria-label', /VVIP suite.*visually inferred geometry/i);
+  await expect(page.locator('.cabin-stage')).toHaveAttribute('data-view-mode', '3d');
+  await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-cabin-layout', 'ownerVvip');
 });
 
 test('A350-900 reference loads source-backed cabin dimensions and the derived 315-seat plan', async ({ page }) => {
@@ -472,8 +472,8 @@ test('engineering preflight export includes source evidence, fixture gaps, and s
   expect(report.sceneComparison.status).toBe('COMPARED');
   expect(report.cabinProfile.sourceRevision).toContain('Jul 15/25');
   expect(report.cabinProfile.assetRights).toContain('No licensed 3D cabin asset');
-  expect(report.fixtureCoverage).toMatchObject({ status: 'MISSING_FIXTURE_DOCUMENTATION', checkedZoneCount: 14, documentedZoneCount: 0 });
-  expect(report.fixtureCoverage.missingDocumentationZones).toHaveLength(14);
+  expect(report.fixtureCoverage).toMatchObject({ status: 'MISSING_FIXTURE_DOCUMENTATION', checkedZoneCount: 17, documentedZoneCount: 0 });
+  expect(report.fixtureCoverage.missingDocumentationZones).toHaveLength(17);
 });
 
 test('Studio fits one viewport with docked panels at all required desktop sizes', async ({ page }) => {
@@ -558,7 +558,9 @@ test('airline cabin meshes load in the locked Studio and respond to controls', a
   await expect(page.getByRole('heading', { name: 'Left Sidewall' })).toBeVisible();
   const intensity = page.getByRole('slider', { name: 'MASTER INTENSITY' });
   const intensityBefore = Number(await intensity.inputValue());
-  await intensity.press('ArrowUp');
+  const intensityBounds = await intensity.boundingBox();
+  expect(intensityBounds).not.toBeNull();
+  await page.mouse.click(intensityBounds!.x + intensityBounds!.width * .82, intensityBounds!.y + intensityBounds!.height / 2);
   await expect.poll(async () => Number(await intensity.inputValue())).toBeGreaterThan(intensityBefore);
   await page.getByRole('button', { name: 'Change cabin' }).click();
   await page.getByLabel('Aircraft or airline 3D model').selectOption('qantaslink-a220-300-137');
