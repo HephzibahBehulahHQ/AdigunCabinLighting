@@ -73,9 +73,9 @@ test('selected landing language carries into core Studio panels without adding c
 test('zone RGBW edits persist and undo works', async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto('/studio');
-  const red = page.getByRole('spinbutton', { name: 'R percent' });
-  await expect(red).toHaveValue('2');
   await page.locator('#zone-picker').selectOption('windows');
+  const red = page.getByRole('spinbutton', { name: 'R percent' });
+  await expect(red).toHaveValue('14');
   await page.getByRole('spinbutton', { name: 'R percent' }).fill('50');
   await page.getByRole('spinbutton', { name: 'R percent' }).press('Enter');
   await expect(page.getByRole('spinbutton', { name: 'R percent' })).toHaveValue('50');
@@ -106,6 +106,7 @@ test('scene timeline scrubs and plays its actual transition', async ({ page }) =
 test('manual setpoints follow the selected zone fade and can be committed', async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto('/studio');
+  await page.locator('#zone-picker').selectOption('windows');
   const fade = page.locator('#fade');
   await fade.focus();
   await fade.press('Home');
@@ -114,7 +115,7 @@ test('manual setpoints follow the selected zone fade and can be committed', asyn
   await red.fill('60');
   await red.press('Enter');
   const output = page.locator('.inspector-summary code');
-  await expect(output).toHaveText('43 / 6 / 18 / 3');
+  await expect(output).toHaveText('43 / 2 / 17 / 2');
   await page.getByRole('button', { name: /Apply & set keyframe/ }).click();
   await expect(page.getByRole('status')).toContainText('committed to Aurora at 00:00');
   const fadeBounds = await fade.boundingBox();
@@ -364,20 +365,23 @@ test('Zone Inspector follows the selected aircraft GLB component inventory', asy
   const picker = page.locator('#zone-picker');
   await expect(picker.locator('option[value="toilet"]')).toHaveCount(0);
   await expect(picker.locator('option[value="trolley"]')).toHaveCount(0);
-  await expect(picker.locator('option[value="spotlights"]')).toHaveCount(1);
-  await picker.selectOption('spotlights');
-  await expect(page.getByRole('heading', { name: 'Spotlights' })).toBeVisible();
+  await expect(picker.locator('option[value="monuments"]')).toHaveCount(1);
+  await expect(picker.locator('option[value="ceiling"]')).toHaveCount(0);
+  await expect(picker.locator('option[value="ceiling_cove"]')).toHaveCount(1);
+  await picker.selectOption('monuments');
+  await expect(page.getByRole('heading', { name: 'Service monuments / VIP consoles' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Change cabin' }).click();
   await page.getByLabel('Aircraft or airline 3D model').selectOption('emirates-777-300er-328');
   await page.getByRole('button', { name: 'Load cabin layout' }).click();
   await expect(page.locator('.cabin-webgl-canvas')).toHaveAttribute('data-cabin-profile', 'emirates-777-300er-328');
-  await expect(picker.locator('option[value="reading"]')).toHaveCount(1);
+  await expect(picker.locator('option[value="reading"]')).toHaveCount(0);
   await expect(picker.locator('option[value="monuments"]')).toHaveCount(0);
   await expect(picker.locator('option[value="spotlights"]')).toHaveCount(0);
+  await expect(picker.locator('option[value="reading"]')).toHaveCount(0);
   await expect(picker.locator('option[value="emergency"]')).toHaveCount(0);
   await expect(picker.locator('option[value="exit"]')).toHaveCount(0);
-  await expect.poll(() => picker.inputValue()).not.toBe('spotlights');
+  await expect.poll(() => picker.inputValue()).not.toBe('monuments');
   await expect(page.locator('.inspector-head h2')).toHaveText(await picker.locator('option:checked').innerText());
 });
 
@@ -638,6 +642,7 @@ test('Studio menus open without moving the canvas and close with Escape', async 
   await page.keyboard.press('Escape');
   await expect(page.getByRole('menuitem', { name: /Export scene JSON/ })).toBeHidden();
 });
+
 
 
 

@@ -9,11 +9,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 COMPONENT_PATTERNS = {
     "window_panes": r"^Window (?:glass|glazing)\b",
+    "ceiling_panels": r"^(?:Cabin )?Ceiling (?:panel|shell|lining)\b",
     "ceiling_coves": r"^Ceiling cove\b",
     "left_sidewall_lights": r"^Sidewall light -1$",
     "right_sidewall_lights": r"^Sidewall light 1$",
+    "left_sidewall_fixture_meshes": r"^left sidewall fixture \d+$",
+    "right_sidewall_fixture_meshes": r"^right sidewall fixture \d+$",
     "footwells": r"^Footwell (?:-1|1)$",
     "seat_headrests": r"\bseat\b.*\bheadrest\b",
+    "reading_fixtures": r"^(?:Reading light|Reading lamp|Passenger service panel reading light)\b",
+    "spotlight_fixtures": r"^(?:Spotlight|Spot light|Downlight)\b",
     "overhead_bins": r"^Overhead luggage bin\b",
     "bin_handles": r"^Bin door handle\b",
     "galley_modules": r"^Galley module$",
@@ -26,7 +31,7 @@ COMPONENT_PATTERNS = {
 }
 
 
-def read_node_names(path: Path) -> list[str]:
+def read_node_records(path: Path) -> list[dict]:
     data = path.read_bytes()
     if data[:4] != b"glTF":
         raise ValueError(f"Not a GLB file: {path}")
@@ -35,15 +40,29 @@ def read_node_names(path: Path) -> list[str]:
     if chunk_type != b"JSON":
         raise ValueError(f"First GLB chunk is not JSON: {path}")
     document = json.loads(data[20 : 20 + chunk_length])
-    return [node["name"].replace("_", " ") for node in document.get("nodes", []) if node.get("name")]
+    return [node for node in document.get("nodes", []) if node.get("name")]
+
+
+def read_node_names(path: Path) -> list[str]:
+    return [node["name"].replace("_", " ") for node in read_node_records(path)]
 
 
 def profile_record(profile_id: str, mesh_path: str) -> dict:
-    names = read_node_names(ROOT / mesh_path)
+    nodes = read_node_records(ROOT / mesh_path)
+    names = [node["name"].replace("_", " ") for node in nodes]
     counts = {
         key: sum(bool(re.search(pattern, name, re.IGNORECASE)) for name in names)
         for key, pattern in COMPONENT_PATTERNS.items()
     }
+    # Empty transform nodes named "fixture" are locators, not modeled emitters.
+    for key, pattern in (
+        ("left_sidewall_fixture_meshes", COMPONENT_PATTERNS["left_sidewall_fixture_meshes"]),
+        ("right_sidewall_fixture_meshes", COMPONENT_PATTERNS["right_sidewall_fixture_meshes"]),
+    ):
+        counts[key] = sum(
+            "mesh" in node and bool(re.search(pattern, node["name"].replace("_", " "), re.IGNORECASE))
+            for node in nodes
+        )
     zones = []
 
     def add(zone_id: str, name: str, basis: str) -> None:
@@ -51,26 +70,29 @@ def profile_record(profile_id: str, mesh_path: str) -> dict:
 
     if counts["window_panes"]:
         add("windows", "Window daylight", f'{counts["window_panes"]} named glass/glazing components')
+    if counts["ceiling_panels"]:
+        add("ceiling", "Ceiling wash", f'{counts["ceiling_panels"]} named ceiling panel/shell components')
     if counts["overhead_bins"]:
-        add("ceiling", "Ceiling / bin wash", f'{counts["overhead_bins"]} overhead-bin components')
         add("handrail", "Handrail / bin edge", f'{counts["overhead_bins"]} overhead-bin components')
     elif counts["vip_side_consoles"]:
-        add("ceiling", "Upper-sidewall ceiling wash", "No bins; uses the modelled upper-sidewall datum")
         add("handrail", "VIP console edge", f'{counts["vip_side_consoles"]} VIP side-console components')
     if counts["ceiling_coves"]:
         add("ceiling_cove", "Central ceiling recess", f'{counts["ceiling_coves"]} named ceiling-cove components')
-    if counts["left_sidewall_lights"]:
-        add("left_sidewall", "Left sidewall", f'{counts["left_sidewall_lights"]} left-sidewall fixture components')
-    if counts["right_sidewall_lights"]:
-        add("right_sidewall", "Right sidewall", f'{counts["right_sidewall_lights"]} right-sidewall fixture components')
+    left_fixture_count = counts["left_sidewall_fixture_meshes"]
+    right_fixture_count = counts["right_sidewall_fixture_meshes"]
+    if left_fixture_count or counts["left_sidewall_lights"]:
+        add("left_sidewall", "Left sidewall", f'{left_fixture_count} named fixture meshes; {counts["left_sidewall_lights"]} modeled left-sidewall light strip mesh')
+    if right_fixture_count or counts["right_sidewall_lights"]:
+        add("right_sidewall", "Right sidewall", f'{right_fixture_count} named fixture meshes; {counts["right_sidewall_lights"]} modeled right-sidewall light strip mesh')
     if counts["footwells"]:
         add("footwell", "Footwell", f'{counts["footwells"]} named footwell components')
-    if counts["seat_headrests"]:
-        add("reading", "Reading lights", f'{counts["seat_headrests"]} seat headrests anchor simulated task emitters')
+    if counts["reading_fixtures"]:
+        add("reading", "Reading lights", f'{counts["reading_fixtures"]} named reading-light fixtures')
     monument_count = counts["galley_modules"] + counts["vip_side_consoles"]
     if monument_count:
         add("monuments", "Service monuments / VIP consoles", f'{monument_count} named service-surface components')
-        add("spotlights", "Spotlights", f'{monument_count} service-surface bounds anchor simulated spots')
+    if counts["spotlight_fixtures"]:
+        add("spotlights", "Spotlights", f'{counts["spotlight_fixtures"]} named spotlight fixtures')
     for key, zone_id, label in (
         ("entry_doors", "entry", "Entry"),
         ("lavatories", "toilet", "Lavatory"),
@@ -110,3 +132,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
