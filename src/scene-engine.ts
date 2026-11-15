@@ -1,6 +1,6 @@
 export type RGBW = { r: number; g: number; b: number; w: number };
 export type SceneEasing = 'linear' | 'smoothstep' | 'cubicInOut';
-export type ZoneId = 'ceiling' | 'windows' | 'sidewalls' | 'footwell' | 'reading' | 'entry' | 'monuments' | 'toilet' | 'handrail' | 'trolley' | 'cabin' | 'ceiling_cove' | 'left_sidewall' | 'right_sidewall';
+export type ZoneId = 'ceiling' | 'windows' | 'sidewalls' | 'footwell' | 'reading' | 'entry' | 'monuments' | 'toilet' | 'handrail' | 'trolley' | 'cabin' | 'ceiling_cove' | 'left_sidewall' | 'right_sidewall' | 'spotlights' | 'emergency' | 'exit';
 export type ZoneState = { id: ZoneId; name: string; detail: string; rgbw: RGBW; fadeSeconds: number };
 export type SceneKeyframe = { atSeconds: number; targets: Record<ZoneId, RGBW>; easing?: SceneEasing };
 export type SceneFile = {
@@ -11,23 +11,27 @@ export type SceneFile = {
   keyframes: SceneKeyframe[];
 };
 
-export const ZONE_IDS: ZoneId[] = ['ceiling', 'windows', 'sidewalls', 'footwell', 'reading', 'entry', 'monuments', 'toilet', 'handrail', 'trolley', 'cabin', 'ceiling_cove', 'left_sidewall', 'right_sidewall'];
+export const ZONE_IDS: ZoneId[] = ['ceiling', 'windows', 'sidewalls', 'footwell', 'reading', 'entry', 'monuments', 'toilet', 'handrail', 'trolley', 'cabin', 'ceiling_cove', 'left_sidewall', 'right_sidewall', 'spotlights', 'emergency', 'exit'];
+export const SAFETY_ZONE_IDS: ZoneId[] = ['emergency', 'exit'];
 const LEGACY_ZONE_IDS: ZoneId[] = ['ceiling', 'windows', 'sidewalls', 'footwell', 'reading', 'entry'];
 export const ZONE_INFO: Record<ZoneId, Pick<ZoneState, 'name' | 'detail'>> = {
-  ceiling: { name: 'Ceiling cove', detail: 'Continuous indirect wash' },
-  windows: { name: 'Window surrounds', detail: 'Left + right reveals' },
+  ceiling: { name: 'Ceiling / bin wash', detail: 'Above-bin wash; VVIP profiles without modeled bins use upper-sidewall ceiling wash' },
+  windows: { name: 'Window daylight', detail: 'Simulated light sources at the cabin side of each modeled window pane' },
   sidewalls: { name: 'Sidewall accents', detail: 'Lower cabin wash' },
   footwell: { name: 'Footwell', detail: 'Low-level aisle guidance' },
-  reading: { name: 'Reading lights', detail: 'Seat-level task light' },
+  reading: { name: 'Reading lights', detail: 'Individual simulated passenger task lights above modeled seat positions' },
   entry: { name: 'Entry & monuments', detail: 'Doorway and galley accents' },
   monuments: { name: 'Monuments', detail: 'Cabin monument lighting zone · illustrative' },
   toilet: { name: 'Lavatory', detail: 'Lavatory lighting zone · illustrative' },
-  handrail: { name: 'Handrail', detail: 'Handrail accent zone · illustrative' },
+  handrail: { name: 'Handrail / bin edge', detail: 'Bin lower edge; VVIP profiles without bins use the modeled side-console edge' },
   trolley: { name: 'Trolley service area', detail: 'Service-area lighting zone · illustrative' },
   cabin: { name: 'Cabin ambient', detail: 'Overall cabin ambient lighting · illustrative' },
-  ceiling_cove: { name: 'Ceiling Cove', detail: 'Independent RGBW control for the cabin ceiling cove · simulation geometry' },
+  ceiling_cove: { name: 'Central ceiling recess', detail: 'Simulated linear cove in the cabin centerline; authored geometry, not an aircraft fixture fit' },
   left_sidewall: { name: 'Left Sidewall', detail: 'Independent RGBW control for the left cabin sidewall · simulation geometry' },
   right_sidewall: { name: 'Right Sidewall', detail: 'Independent RGBW control for the right cabin sidewall · simulation geometry' },
+  spotlights: { name: 'Spotlights', detail: 'Focused simulated fixtures at modeled cabin service and monument positions' },
+  emergency: { name: 'Emergency / escape path', detail: 'Separate safety-lighting simulation; independent of mood scenes and not a certified egress layout' },
+  exit: { name: 'Exit signs', detail: 'Estimated end-of-cabin cues; actual aircraft exit stations are not included in the supplied mesh' },
 };
 
 export const ZERO: RGBW = { r: 0, g: 0, b: 0, w: 0 };
@@ -48,8 +52,29 @@ export function interpolateRGBW(from: RGBW, to: RGBW, progress: number, easing: 
   });
 }
 
-const targets = (color: RGBW, overrides: Partial<Record<ZoneId, RGBW>> = {}): Record<ZoneId, RGBW> =>
-  Object.fromEntries(ZONE_IDS.map((id) => [id, overrides[id] ?? (id === 'left_sidewall' || id === 'right_sidewall' ? overrides.sidewalls : id === 'ceiling_cove' ? overrides.ceiling : undefined) ?? color])) as Record<ZoneId, RGBW>;
+const scaled = (value: RGBW, factor: number): RGBW => ({ r: value.r * factor, g: value.g * factor, b: value.b * factor, w: value.w * factor });
+const targets = (color: RGBW, overrides: Partial<Record<ZoneId, RGBW>> = {}): Record<ZoneId, RGBW> => {
+  const ceiling = overrides.ceiling ?? color;
+  const sidewalls = overrides.sidewalls ?? scaled(ceiling, .52);
+  const handrail = overrides.handrail ?? scaled(sidewalls, .56);
+  return Object.fromEntries(ZONE_IDS.map((id) => {
+    const value = overrides[id]
+      ?? (id === 'left_sidewall' || id === 'right_sidewall' ? sidewalls : undefined)
+      ?? (id === 'ceiling_cove' ? ceiling : undefined)
+      ?? (id === 'sidewalls' ? sidewalls : undefined)
+      ?? (id === 'handrail' ? handrail : undefined)
+      ?? (id === 'cabin' ? scaled(ceiling, .3) : undefined)
+      ?? (id === 'footwell' ? scaled(ceiling, .24) : undefined)
+      ?? (id === 'reading' ? color : undefined)
+      ?? (id === 'ceiling' ? ceiling : undefined)
+      ?? ZERO;
+    return [id, { ...value }];
+  })) as Record<ZoneId, RGBW>;
+};
+
+export function preserveSafetyZones<T extends Record<ZoneId, RGBW>>(sceneValues: T, independentValues: Partial<Record<ZoneId, RGBW>>): T {
+  return { ...sceneValues, ...Object.fromEntries(SAFETY_ZONE_IDS.map((id) => [id, { ...(independentValues[id] ?? sceneValues[id]) }])) };
+}
 
 export const PRESETS: SceneFile[] = [
   { schemaVersion: 1, id: 'boarding', name: 'Boarding', durationSeconds: 45, keyframes: [
@@ -124,7 +149,8 @@ export function makeZones(): ZoneState[] {
 
 export function makeDefaultZones(): ZoneState[] {
   const initial = PRESETS.find((scene) => scene.id === 'aurora')!.keyframes[0].targets;
-  return makeZones().map((zone) => ({ ...zone, rgbw: { ...initial[zone.id] } }));
+  const independentSafety: Partial<Record<ZoneId, RGBW>> = { exit: { r: 0, g: 48, b: 12, w: 28 } };
+  return makeZones().map((zone) => ({ ...zone, rgbw: { ...(independentSafety[zone.id] ?? initial[zone.id]) } }));
 }
 
 export function interpolateScene(scene: SceneFile, timeSeconds: number): Record<ZoneId, RGBW> {
@@ -182,3 +208,4 @@ export function toHex({ r, g, b }: RGBW): string {
   const channel = (value: number) => Math.round(clampChannel(value) * 2.55).toString(16).padStart(2, '0');
   return `#${channel(r)}${channel(g)}${channel(b)}`;
 }
+
