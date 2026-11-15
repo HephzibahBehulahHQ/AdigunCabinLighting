@@ -8,6 +8,7 @@
       "mesh_path": "meshes/airbus-a380.glb",
       "component_counts": {
         "window_panes": 130,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -32,11 +33,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "130 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "82 overhead-bin components"
         },
         {
           "id": "handrail",
@@ -75,6 +71,7 @@
       "mesh_path": "meshes/gulfstream-g650er.glb",
       "component_counts": {
         "window_panes": 36,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -137,6 +134,7 @@
       "mesh_path": "meshes/airbus-a220-100.glb",
       "component_counts": {
         "window_panes": 62,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -161,11 +159,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "62 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "38 overhead-bin components"
         },
         {
           "id": "handrail",
@@ -204,6 +197,7 @@
       "mesh_path": "meshes/airbus-a220-300.glb",
       "component_counts": {
         "window_panes": 72,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -228,11 +222,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "72 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "46 overhead-bin components"
         },
         {
           "id": "handrail",
@@ -271,6 +260,7 @@
       "mesh_path": "meshes/airbus-a320neo.glb",
       "component_counts": {
         "window_panes": 72,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -295,11 +285,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "72 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "46 overhead-bin components"
         },
         {
           "id": "handrail",
@@ -338,6 +323,7 @@
       "mesh_path": "meshes/airbus-a321neo.glb",
       "component_counts": {
         "window_panes": 90,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -362,11 +348,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "90 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "56 overhead-bin components"
         },
         {
           "id": "handrail",
@@ -405,6 +386,7 @@
       "mesh_path": "meshes/airbus-a330-800.glb",
       "component_counts": {
         "window_panes": 118,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -429,11 +411,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "118 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "74 overhead-bin components"
         },
         {
           "id": "handrail",
@@ -472,6 +449,7 @@
       "mesh_path": "meshes/airbus-a330-900.glb",
       "component_counts": {
         "window_panes": 132,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -496,11 +474,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "132 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "84 overhead-bin components"
         },
         {
           "id": "handrail",
@@ -539,6 +512,7 @@
       "mesh_path": "meshes/airbus-a350-900.glb",
       "component_counts": {
         "window_panes": 134,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -563,11 +537,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "134 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "84 overhead-bin components"
         },
         {
           "id": "handrail",
@@ -606,6 +575,7 @@
       "mesh_path": "meshes/airbus-a350-1000.glb",
       "component_counts": {
         "window_panes": 152,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -630,11 +600,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "152 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "96 overhead-bin components"
         },
         {
           "id": "handrail",
@@ -673,6 +638,7 @@
       "mesh_path": "meshes/boeing-737-700.glb",
       "component_counts": {
         "window_panes": 62,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -697,11 +663,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "62 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "40 overhead-bin components"
         },
         {
           "id": "handrail",
@@ -740,6 +701,7 @@
       "mesh_path": "meshes/boeing-737-800.glb",
       "component_counts": {
         "window_panes": 74,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -764,11 +726,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "74 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "46 overhead-bin components"
         },
         {
           "id": "handrail",
@@ -807,6 +764,7 @@
       "mesh_path": "meshes/boeing-737-900.glb",
       "component_counts": {
         "window_panes": 78,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -831,11 +789,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "78 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "50 overhead-bin components"
         },
         {
           "id": "handrail",
@@ -874,6 +827,7 @@
       "mesh_path": "meshes/boeing-737-max-7.glb",
       "component_counts": {
         "window_panes": 66,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -898,11 +852,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "66 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "42 overhead-bin components"
         },
         {
           "id": "handrail",
@@ -941,6 +890,7 @@
       "mesh_path": "meshes/boeing-737-max-8.glb",
       "component_counts": {
         "window_panes": 74,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -965,11 +915,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "74 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "46 overhead-bin components"
         },
         {
           "id": "handrail",
@@ -1008,6 +953,7 @@
       "mesh_path": "meshes/boeing-737-max-9.glb",
       "component_counts": {
         "window_panes": 78,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -1032,11 +978,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "78 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "50 overhead-bin components"
         },
         {
           "id": "handrail",
@@ -1075,6 +1016,7 @@
       "mesh_path": "meshes/boeing-737-max-10.glb",
       "component_counts": {
         "window_panes": 82,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -1099,11 +1041,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "82 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "52 overhead-bin components"
         },
         {
           "id": "handrail",
@@ -1142,6 +1079,7 @@
       "mesh_path": "meshes/boeing-777-200er.glb",
       "component_counts": {
         "window_panes": 126,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -1166,11 +1104,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "126 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "80 overhead-bin components"
         },
         {
           "id": "handrail",
@@ -1209,6 +1142,7 @@
       "mesh_path": "meshes/boeing-777-200lr.glb",
       "component_counts": {
         "window_panes": 126,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -1233,11 +1167,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "126 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "80 overhead-bin components"
         },
         {
           "id": "handrail",
@@ -1276,6 +1205,7 @@
       "mesh_path": "meshes/boeing-777-300er.glb",
       "component_counts": {
         "window_panes": 146,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -1300,11 +1230,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "146 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "92 overhead-bin components"
         },
         {
           "id": "handrail",
@@ -1343,6 +1268,7 @@
       "mesh_path": "meshes/boeing-787-8.glb",
       "component_counts": {
         "window_panes": 112,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -1367,11 +1293,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "112 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "70 overhead-bin components"
         },
         {
           "id": "handrail",
@@ -1410,6 +1331,7 @@
       "mesh_path": "meshes/boeing-787-9.glb",
       "component_counts": {
         "window_panes": 124,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -1434,11 +1356,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "124 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "78 overhead-bin components"
         },
         {
           "id": "handrail",
@@ -1477,6 +1394,7 @@
       "mesh_path": "meshes/boeing-787-10.glb",
       "component_counts": {
         "window_panes": 136,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -1501,11 +1419,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "136 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "86 overhead-bin components"
         },
         {
           "id": "handrail",
@@ -1544,6 +1457,7 @@
       "mesh_path": "airline-meshes/emirates-777-300er-360.glb",
       "component_counts": {
         "window_panes": 146,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -1568,11 +1482,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "146 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "92 overhead-bin components"
         },
         {
           "id": "handrail",
@@ -1606,6 +1515,7 @@
       "mesh_path": "airline-meshes/emirates-777-300er-328.glb",
       "component_counts": {
         "window_panes": 146,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -1630,11 +1540,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "146 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "92 overhead-bin components"
         },
         {
           "id": "handrail",
@@ -1668,6 +1573,7 @@
       "mesh_path": "airline-meshes/emirates-777-300er-419.glb",
       "component_counts": {
         "window_panes": 146,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -1692,11 +1598,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "146 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "92 overhead-bin components"
         },
         {
           "id": "handrail",
@@ -1730,6 +1631,7 @@
       "mesh_path": "airline-meshes/british-airways-777-300er-256.glb",
       "component_counts": {
         "window_panes": 154,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -1754,11 +1656,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "154 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "98 overhead-bin components"
         },
         {
           "id": "handrail",
@@ -1792,6 +1689,7 @@
       "mesh_path": "airline-meshes/qantaslink-a220-300-137.glb",
       "component_counts": {
         "window_panes": 72,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -1816,11 +1714,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "72 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "46 overhead-bin components"
         },
         {
           "id": "handrail",
@@ -1854,6 +1747,7 @@
       "mesh_path": "airline-meshes/qantas-787-9-236.glb",
       "component_counts": {
         "window_panes": 126,
+        "ceiling_panels": 0,
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
@@ -1878,11 +1772,6 @@
           "id": "windows",
           "name": "Window daylight",
           "basis": "126 named glass/glazing components"
-        },
-        {
-          "id": "ceiling",
-          "name": "Ceiling / bin wash",
-          "basis": "80 overhead-bin components"
         },
         {
           "id": "handrail",
