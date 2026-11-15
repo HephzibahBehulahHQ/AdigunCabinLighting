@@ -12,8 +12,12 @@ COMPONENT_PATTERNS = {
     "ceiling_coves": r"^Ceiling cove\b",
     "left_sidewall_lights": r"^Sidewall light -1$",
     "right_sidewall_lights": r"^Sidewall light 1$",
+    "left_sidewall_fixture_meshes": r"^left sidewall fixture \d+$",
+    "right_sidewall_fixture_meshes": r"^right sidewall fixture \d+$",
     "footwells": r"^Footwell (?:-1|1)$",
     "seat_headrests": r"\bseat\b.*\bheadrest\b",
+    "reading_fixtures": r"^(?:Reading light|Reading lamp|Passenger service panel reading light)\b",
+    "spotlight_fixtures": r"^(?:Spotlight|Spot light|Downlight)\b",
     "overhead_bins": r"^Overhead luggage bin\b",
     "bin_handles": r"^Bin door handle\b",
     "galley_modules": r"^Galley module$",
@@ -55,22 +59,24 @@ def profile_record(profile_id: str, mesh_path: str) -> dict:
         add("ceiling", "Ceiling / bin wash", f'{counts["overhead_bins"]} overhead-bin components')
         add("handrail", "Handrail / bin edge", f'{counts["overhead_bins"]} overhead-bin components')
     elif counts["vip_side_consoles"]:
-        add("ceiling", "Upper-sidewall ceiling wash", "No bins; uses the modelled upper-sidewall datum")
         add("handrail", "VIP console edge", f'{counts["vip_side_consoles"]} VIP side-console components')
     if counts["ceiling_coves"]:
         add("ceiling_cove", "Central ceiling recess", f'{counts["ceiling_coves"]} named ceiling-cove components')
-    if counts["left_sidewall_lights"]:
-        add("left_sidewall", "Left sidewall", f'{counts["left_sidewall_lights"]} left-sidewall fixture components')
-    if counts["right_sidewall_lights"]:
-        add("right_sidewall", "Right sidewall", f'{counts["right_sidewall_lights"]} right-sidewall fixture components')
+    left_fixture_count = counts["left_sidewall_fixture_meshes"]
+    right_fixture_count = counts["right_sidewall_fixture_meshes"]
+    if left_fixture_count or counts["left_sidewall_lights"]:
+        add("left_sidewall", "Left sidewall", f'{left_fixture_count} named left-sidewall fixture meshes; {counts["left_sidewall_lights"]} named sidewall light strips')
+    if right_fixture_count or counts["right_sidewall_lights"]:
+        add("right_sidewall", "Right sidewall", f'{right_fixture_count} named right-sidewall fixture meshes; {counts["right_sidewall_lights"]} named sidewall light strips')
     if counts["footwells"]:
         add("footwell", "Footwell", f'{counts["footwells"]} named footwell components')
-    if counts["seat_headrests"]:
-        add("reading", "Reading lights", f'{counts["seat_headrests"]} seat headrests anchor simulated task emitters')
+    if counts["reading_fixtures"]:
+        add("reading", "Reading lights", f'{counts["reading_fixtures"]} named reading-light fixtures')
     monument_count = counts["galley_modules"] + counts["vip_side_consoles"]
     if monument_count:
         add("monuments", "Service monuments / VIP consoles", f'{monument_count} named service-surface components')
-        add("spotlights", "Spotlights", f'{monument_count} service-surface bounds anchor simulated spots')
+    if counts["spotlight_fixtures"]:
+        add("spotlights", "Spotlights", f'{counts["spotlight_fixtures"]} named spotlight fixtures')
     for key, zone_id, label in (
         ("entry_doors", "entry", "Entry"),
         ("lavatories", "toilet", "Lavatory"),
@@ -110,3 +116,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
