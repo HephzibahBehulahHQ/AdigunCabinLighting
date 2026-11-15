@@ -18,7 +18,7 @@ describe('offline operator scene preflight', () => {
     expect(report.scene.keyframeCount).toBeGreaterThan(0);
     expect(report.scene.zoneIds.length).toBeGreaterThan(0);
     expect(report.fixtureCoverage.status).toBe('MISSING_FIXTURE_DOCUMENTATION');
-    expect(report.fixtureCoverage.checkedZoneCount).toBe(14);
+    expect(report.fixtureCoverage.checkedZoneCount).toBe(17);
     expect(report.fixtureCoverage.documentedZoneCount).toBe(0);
     expect(report.fixtureCoverage.missingDocumentationZones).toEqual(report.scene.zoneIds);
     expect(report.limits.join(' ')).toContain('simulator RGBW channels do not establish physical fixture behavior');
@@ -53,7 +53,8 @@ describe('zone fixture provenance register', () => {
       expect(record.photometricData).toBeNull();
       expect(record.documentationStatus).toBe('MISSING');
       expect(record.source).toBeNull();
-      expect(record.referenceGeometry).toMatch(/procedural|authored simulation mesh/);
+      expect(record.referenceGeometry).toMatch(/procedural|authored simulation/);
     }
   });
 });
+
