@@ -385,7 +385,7 @@ test('owner image-derived VVIP cabin profile switches the matching seat and wind
   await page.getByRole('button', { name: 'Change cabin' }).click();
   await page.getByLabel('Cabin layout').selectOption('ownerVvip');
   await expect(page.locator('.cabin-profile-summary')).toContainText('Two private seats per row');
-  await expect(page.locator('.cabin-profile-note')).toContainText('visually inferred');
+  await expect(page.locator('.cabin-profile-note').last()).toContainText('visually inferred');
   await page.getByRole('button', { name: 'Load cabin layout' }).click();
   const map = page.locator('.cabin-drawing');
   await expect(map).toHaveAttribute('data-layout-id', 'ownerVvip');
@@ -410,10 +410,10 @@ test('A350-900 reference loads source-backed cabin dimensions and the derived 31
   await expect(page.getByLabel('Max cabin width (m)')).toHaveValue('5.71');
   await expect(page.getByLabel('Cabin length (m)')).toBeDisabled();
   await expect(page.getByLabel('Seat rows')).toBeDisabled();
-  await expect(page.locator('.cabin-profile-note')).toContainText('row distribution are derived');
-  await expect(page.locator('.cabin-profile-note a')).toHaveAttribute('href', /AC_A350_20250715\.pdf$/);
-  await expect(page.locator('.cabin-profile-note')).toContainText('Rev 15 · Jul 15/25');
-  await expect(page.locator('.cabin-profile-note')).toContainText('No licensed 3D cabin asset is included');
+  await expect(page.locator('.cabin-profile-note').last()).toContainText('row distribution are derived');
+  await expect(page.locator('.cabin-profile-note').last().locator('a')).toHaveAttribute('href', /AC_A350_20250715\.pdf$/);
+  await expect(page.locator('.cabin-profile-note').last()).toContainText('Rev 15 · Jul 15/25');
+  await expect(page.locator('.cabin-profile-note').last()).toContainText('No licensed 3D cabin asset is included');
   await page.getByRole('button', { name: 'Load cabin layout' }).click();
   await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-cabin-layout', 'a350900');
   await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-rendered-seat-count', '315');
@@ -432,10 +432,10 @@ test('A330-300 reference loads source-backed dimensions and its derived 300-seat
   await expect(page.getByLabel('Max cabin width (m)')).toHaveValue('5.26');
   await expect(page.getByLabel('Cabin length (m)')).toBeDisabled();
   await expect(page.getByLabel('Seat rows')).toBeDisabled();
-  await expect(page.locator('.cabin-profile-note')).toContainText('derived for display');
-  await expect(page.locator('.cabin-profile-note a')).toHaveAttribute('href', /AC_A330_20251201\.pdf$/);
-  await expect(page.locator('.cabin-profile-note')).toContainText('Rev Dec 01/25');
-  await expect(page.locator('.cabin-profile-note')).toContainText('No licensed 3D cabin asset is included');
+  await expect(page.locator('.cabin-profile-note').last()).toContainText('derived for display');
+  await expect(page.locator('.cabin-profile-note').last().locator('a')).toHaveAttribute('href', /AC_A330_20251201\.pdf$/);
+  await expect(page.locator('.cabin-profile-note').last()).toContainText('Rev Dec 01/25');
+  await expect(page.locator('.cabin-profile-note').last()).toContainText('No licensed 3D cabin asset is included');
   await page.getByRole('button', { name: 'Load cabin layout' }).click();
   await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-cabin-layout', 'a330300');
   await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-rendered-seat-count', '300');
@@ -465,8 +465,8 @@ test('engineering preflight export includes source evidence, fixture gaps, and s
   expect(report.sceneComparison.status).toBe('COMPARED');
   expect(report.cabinProfile.sourceRevision).toContain('Jul 15/25');
   expect(report.cabinProfile.assetRights).toContain('No licensed 3D cabin asset');
-  expect(report.fixtureCoverage).toMatchObject({ status: 'MISSING_FIXTURE_DOCUMENTATION', checkedZoneCount: 11, documentedZoneCount: 0 });
-  expect(report.fixtureCoverage.missingDocumentationZones).toHaveLength(11);
+  expect(report.fixtureCoverage).toMatchObject({ status: 'MISSING_FIXTURE_DOCUMENTATION', checkedZoneCount: 14, documentedZoneCount: 0 });
+  expect(report.fixtureCoverage.missingDocumentationZones).toHaveLength(14);
 });
 
 test('Studio fits one viewport with docked panels at all required desktop sizes', async ({ page }) => {
@@ -604,5 +604,6 @@ test('Studio menus open without moving the canvas and close with Escape', async 
   await page.keyboard.press('Escape');
   await expect(page.getByRole('menuitem', { name: /Export scene JSON/ })).toBeHidden();
 });
+
 
 
