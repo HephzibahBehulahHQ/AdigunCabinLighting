@@ -19,6 +19,7 @@ import { CABIN_GUIDED_TOUR, CABIN_WELCOME_ANNOUNCEMENT, getMoodInstrumentLabel, 
 import { cabinAudioAssetKey, deleteCabinAudioAsset, readCabinAudioAsset, saveCabinAudioAsset, type StoredCabinAudioAsset } from './audio-asset-store';
 import { readAppLocale, saveAppLocale, studioText, type AppLocale, type StudioCopyKey } from './studio-localization';
 import { AIRCRAFT_DIMENSION_PROFILES, AIRLINE_MESH_PROFILES, DEFAULT_CABIN_MESH_ID, getCabinMeshProfile } from './aircraft-assets';
+import cabinReferenceImage from './assets/vvip-cabin-reference.jpg';
 
 const STORAGE_KEY = 'adigun-cabin-studio:v1';
 const PROJECT_INDEX_KEY = 'adigun-cabin-projects:v1';
@@ -76,10 +77,35 @@ function cabinGlows(zones: ZoneState[]) {
   return Object.fromEntries(zones.map((zone) => [zone.id, toHex({ ...composePreviewRGB(zone.rgbw), w: 0 })])) as Record<ZoneId, string>;
 }
 
-function CabinDrawing({ zones, selected, onSelect, compact = false, config = DEFAULT_CABIN_CONFIG }: {
-  zones: ZoneState[]; selected: ZoneId; onSelect?: (id: ZoneId) => void; compact?: boolean; config?: CabinConfig;
+function CabinReferenceView({ zones, selected, onSelect, compact, layoutId }: {
+  zones: ZoneState[]; selected: ZoneId; onSelect?: (id: ZoneId) => void; compact: boolean; layoutId: CabinLayoutId;
+}) {
+  const available = new Set(zones.map((zone) => zone.id));
+  const spots: { id: ZoneId; label: string; x: number; y: number; w: number; h: number }[] = [
+    { id: 'windows', label: 'Cabin window 1 on left side', x: 18, y: 0, w: 300, h: 125 },
+    { id: 'windows', label: 'Cabin window 1 on right side', x: 967, y: 0, w: 300, h: 125 },
+    { id: 'ceiling_cove', label: ZONE_INFO.ceiling_cove.name, x: 553, y: 66, w: 138, h: 33 },
+    { id: 'left_sidewall', label: ZONE_INFO.left_sidewall.name, x: 117, y: 161, w: 149, h: 34 },
+    { id: 'right_sidewall', label: ZONE_INFO.right_sidewall.name, x: 1037, y: 203, w: 158, h: 35 },
+    { id: 'footwell', label: ZONE_INFO.footwell.name, x: 553, y: 380, w: 127, h: 35 },
+  ];
+  return <div className={`cabin-drawing cabin-reference-view ${compact ? 'compact' : ''}`} data-layout-id={layoutId} data-selected-zone={selected} role={compact ? undefined : 'group'} aria-label={compact ? undefined : 'Interactive VVIP cabin reference view'}>
+    <img src={cabinReferenceImage} alt={compact ? 'VVIP cabin reference with ceiling cove, sidewall and footwell lighting' : ''} draggable={false} />
+    {!compact && <svg viewBox="0 0 1285 443" role="group" aria-label="Cabin lighting zone selection overlay">
+      {spots.filter((spot) => available.has(spot.id)).map((spot, index) => <g key={`${spot.id}-${index}`} role="button" tabIndex={0} aria-label={spot.label} aria-pressed={selected === spot.id}
+        onClick={() => onSelect?.(spot.id)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect?.(spot.id); } }}>
+        <title>{spot.label} · select to edit</title>
+        <rect className={selected === spot.id ? 'reference-zone-selected' : 'reference-zone-target'} x={spot.x} y={spot.y} width={spot.w} height={spot.h} rx="16" />
+      </g>)}
+    </svg>}
+  </div>;
+}
+
+function CabinDrawing({ zones, selected, onSelect, compact = false, config = DEFAULT_CABIN_CONFIG, referenceImage = true }: {
+  zones: ZoneState[]; selected: ZoneId; onSelect?: (id: ZoneId) => void; compact?: boolean; config?: CabinConfig; referenceImage?: boolean;
 }) {
   const glows = cabinGlows(zones);
+  if (referenceImage) return <CabinReferenceView zones={zones} selected={selected} onSelect={onSelect} compact={compact} layoutId={config.layoutId} />;
   const layout = CABIN_LAYOUTS[config.layoutId];
   const rowTemplates = 'seatPlan' in layout
     ? layout.seatPlan.flatMap((section) => Array.from({ length: section.rows }, () => section.groups))
