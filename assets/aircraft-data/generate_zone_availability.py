@@ -31,7 +31,7 @@ COMPONENT_PATTERNS = {
 }
 
 
-def read_node_names(path: Path) -> list[str]:
+def read_node_records(path: Path) -> list[dict]:
     data = path.read_bytes()
     if data[:4] != b"glTF":
         raise ValueError(f"Not a GLB file: {path}")
@@ -40,15 +40,29 @@ def read_node_names(path: Path) -> list[str]:
     if chunk_type != b"JSON":
         raise ValueError(f"First GLB chunk is not JSON: {path}")
     document = json.loads(data[20 : 20 + chunk_length])
-    return [node["name"].replace("_", " ") for node in document.get("nodes", []) if node.get("name")]
+    return [node for node in document.get("nodes", []) if node.get("name")]
+
+
+def read_node_names(path: Path) -> list[str]:
+    return [node["name"].replace("_", " ") for node in read_node_records(path)]
 
 
 def profile_record(profile_id: str, mesh_path: str) -> dict:
-    names = read_node_names(ROOT / mesh_path)
+    nodes = read_node_records(ROOT / mesh_path)
+    names = [node["name"].replace("_", " ") for node in nodes]
     counts = {
         key: sum(bool(re.search(pattern, name, re.IGNORECASE)) for name in names)
         for key, pattern in COMPONENT_PATTERNS.items()
     }
+    # Empty transform nodes named "fixture" are locators, not modeled emitters.
+    for key, pattern in (
+        ("left_sidewall_fixture_meshes", COMPONENT_PATTERNS["left_sidewall_fixture_meshes"]),
+        ("right_sidewall_fixture_meshes", COMPONENT_PATTERNS["right_sidewall_fixture_meshes"]),
+    ):
+        counts[key] = sum(
+            "mesh" in node and bool(re.search(pattern, node["name"].replace("_", " "), re.IGNORECASE))
+            for node in nodes
+        )
     zones = []
 
     def add(zone_id: str, name: str, basis: str) -> None:
@@ -67,9 +81,9 @@ def profile_record(profile_id: str, mesh_path: str) -> dict:
     left_fixture_count = counts["left_sidewall_fixture_meshes"]
     right_fixture_count = counts["right_sidewall_fixture_meshes"]
     if left_fixture_count or counts["left_sidewall_lights"]:
-        add("left_sidewall", "Left sidewall", f'{left_fixture_count} named left-sidewall fixture meshes; {counts["left_sidewall_lights"]} named sidewall light strips')
+        add("left_sidewall", "Left sidewall", f'{left_fixture_count} named fixture meshes; {counts["left_sidewall_lights"]} modeled left-sidewall light strip mesh')
     if right_fixture_count or counts["right_sidewall_lights"]:
-        add("right_sidewall", "Right sidewall", f'{right_fixture_count} named right-sidewall fixture meshes; {counts["right_sidewall_lights"]} named sidewall light strips')
+        add("right_sidewall", "Right sidewall", f'{right_fixture_count} named fixture meshes; {counts["right_sidewall_lights"]} modeled right-sidewall light strip mesh')
     if counts["footwells"]:
         add("footwell", "Footwell", f'{counts["footwells"]} named footwell components')
     if counts["reading_fixtures"]:
