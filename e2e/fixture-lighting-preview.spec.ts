@@ -68,6 +68,7 @@ test('model-tied cabin fixture groups and combined moods render in the existing 
   const counts = await canvas.evaluate((element) => JSON.parse(element.dataset.simulatedFixtureCounts ?? '{}') as Record<string, number | string>);
   expect(counts.windows).toBe(16);
   expect(await canvas.getAttribute('data-visible-windows')).toBe('16');
+  expect(await canvas.getAttribute('data-excluded-window-glass-count')).toBe('20');
   expect(counts.reading).toBeGreaterThan(0);
   expect(counts.handrail).toBeGreaterThan(0);
   expect(counts.spotlights).toBeGreaterThanOrEqual(10);
@@ -139,7 +140,9 @@ test('window daylight uses passive tinted glazing and a separate source', async 
   await expect(page.getByRole('heading', { name: 'Cabin digital twin' })).toBeVisible();
   await expect.poll(async () => canvas.getAttribute('data-simulated-fixture-counts'), { timeout: 30_000 }).not.toBeNull();
   const counts = await canvas.evaluate((element) => JSON.parse(element.dataset.simulatedFixtureCounts ?? '{}') as Record<string, number>);
-  expect(counts.windows).toBeGreaterThan(0);
+  expect(counts.windows).toBe(16);
+  expect(await canvas.getAttribute('data-visible-windows')).toBe('16');
+  expect(await canvas.getAttribute('data-excluded-window-glass-count')).toBe('20');
   await mkdir('artifacts/lighting-fixtures', { recursive: true });
   await page.locator('#cabin-view').screenshot({ path: 'artifacts/lighting-fixtures/window-daylight-reviewed.png' });
 });
