@@ -1,0 +1,131 @@
+{
+  "schema_version": "1.0",
+  "profiles": [
+    {
+      "id": "emirates-777-300er-360",
+      "airline": "Emirates",
+      "aircraft_id": "boeing-777-300er",
+      "class_seat_counts": {
+        "first": 8,
+        "business": 42,
+        "economy": 310
+      },
+      "total_seats": 360,
+      "source_url": "https://c.ekstatic.net/ecl/aircraft-interior/seating/b777-three-class-extended-range-seating-chart-v4.svg",
+      "seat_position_basis": "Seat identities, class and relative seat positions extracted from the official SVG; scale into meters is authored, because the SVG is not measured CAD.",
+      "width_m": 5.86,
+      "length_m": 56.16,
+      "height_m": 2.45,
+      "mesh_path": "airline-meshes/emirates-777-300er-360.glb",
+      "source_checked_on": "2026-11-15",
+      "mode": "SIMULATION",
+      "geometry_accuracy": "authored reconstruction, not measured OEM CAD",
+      "layout_json": "airlines/emirates-777-300er-360.json"
+    },
+    {
+      "id": "emirates-777-300er-328",
+      "airline": "Emirates",
+      "aircraft_id": "boeing-777-300er",
+      "class_seat_counts": {
+        "first": 8,
+        "business": 40,
+        "premium_economy": 24,
+        "economy": 256
+      },
+      "total_seats": 328,
+      "source_url": "https://c.ekstatic.net/ecl/aircraft-interior/seating/b777-four-class-ultra-long-range-seating-chart-v4.svg",
+      "seat_position_basis": "Seat identities, class and relative seat positions extracted from the official SVG; scale into meters is authored, because the SVG is not measured CAD.",
+      "width_m": 5.86,
+      "length_m": 56.16,
+      "height_m": 2.45,
+      "mesh_path": "airline-meshes/emirates-777-300er-328.glb",
+      "source_checked_on": "2026-11-15",
+      "mode": "SIMULATION",
+      "geometry_accuracy": "authored reconstruction, not measured OEM CAD",
+      "layout_json": "airlines/emirates-777-300er-328.json"
+    },
+    {
+      "id": "emirates-777-300er-419",
+      "airline": "Emirates",
+      "aircraft_id": "boeing-777-300er",
+      "class_seat_counts": {
+        "business": 33,
+        "economy": 386
+      },
+      "total_seats": 419,
+      "source_url": "https://c.ekstatic.net/ecl/aircraft-interior/seating/b777-two-class-extended-range-seating-chart-v4.svg",
+      "seat_position_basis": "Seat identities, class and relative seat positions extracted from the official SVG; scale into meters is authored, because the SVG is not measured CAD.",
+      "width_m": 5.86,
+      "length_m": 56.16,
+      "height_m": 2.45,
+      "mesh_path": "airline-meshes/emirates-777-300er-419.glb",
+      "source_checked_on": "2026-11-15",
+      "mode": "SIMULATION",
+      "geometry_accuracy": "authored reconstruction, not measured OEM CAD",
+      "layout_json": "airlines/emirates-777-300er-419.json"
+    },
+    {
+      "id": "british-airways-777-300er-256",
+      "airline": "British Airways",
+      "aircraft_id": "boeing-777-300er",
+      "total_seats": 256,
+      "class_seat_counts": {
+        "first": 8,
+        "business": 76,
+        "premium_economy": 40,
+        "economy": 132
+      },
+      "source_url": "https://ba.scene7.com/is/image/ba/boeing-777-300-full-seatmap?fmt=png-alpha",
+      "seat_position_basis": "Seat IDs and row membership transcribed from the official map. Metric seat positions, module dimensions and fitted cabin envelope are authored; not OEM CAD.",
+      "width_m": 5.86,
+      "length_m": 59,
+      "height_m": 2.45,
+      "mesh_path": "airline-meshes/british-airways-777-300er-256.glb",
+      "source_checked_on": "2026-11-15",
+      "mode": "SIMULATION",
+      "geometry_accuracy": "authored reconstruction, not measured OEM CAD",
+      "layout_json": "airlines/british-airways-777-300er-256.json"
+    },
+    {
+      "id": "qantaslink-a220-300-137",
+      "airline": "QantasLink",
+      "aircraft_id": "airbus-a220-300",
+      "total_seats": 137,
+      "class_seat_counts": {
+        "business": 10,
+        "economy": 127
+      },
+      "source_url": "https://www.qantas.com/en-au/onboard/fleet/a220",
+      "seat_position_basis": "Published class counts, abreast patterns and economy/premium pitch; partial rows, exact seat IDs, metric positions and custom geometry are authored. SIM IDs are not airline seat numbers.",
+      "width_m": 3.28,
+      "length_m": 27.5,
+      "height_m": 2.12,
+      "mesh_path": "airline-meshes/qantaslink-a220-300-137.glb",
+      "source_checked_on": "2026-11-15",
+      "mode": "SIMULATION",
+      "geometry_accuracy": "authored reconstruction, not measured OEM CAD",
+      "layout_json": "airlines/qantaslink-a220-300-137.json"
+    },
+    {
+      "id": "qantas-787-9-236",
+      "airline": "Qantas",
+      "aircraft_id": "boeing-787-9",
+      "total_seats": 236,
+      "class_seat_counts": {
+        "business": 42,
+        "premium_economy": 28,
+        "economy": 166
+      },
+      "source_url": "https://www.qantas.com/en-au/onboard/fleet/787",
+      "seat_position_basis": "Published class counts, abreast patterns and economy/premium pitch; partial rows, exact seat IDs, metric positions and custom geometry are authored. SIM IDs are not airline seat numbers.",
+      "width_m": 5.49,
+      "length_m": 48,
+      "height_m": 2.45,
+      "mesh_path": "airline-meshes/qantas-787-9-236.glb",
+      "source_checked_on": "2026-11-15",
+      "mode": "SIMULATION",
+      "geometry_accuracy": "authored reconstruction, not measured OEM CAD",
+      "layout_json": "airlines/qantas-787-9-236.json"
+    }
+  ]
+}
