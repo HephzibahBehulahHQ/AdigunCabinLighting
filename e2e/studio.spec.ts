@@ -365,8 +365,8 @@ test('Zone Inspector follows the selected aircraft GLB component inventory', asy
   await expect(picker.locator('option[value="toilet"]')).toHaveCount(0);
   await expect(picker.locator('option[value="trolley"]')).toHaveCount(0);
   await expect(picker.locator('option[value="spotlights"]')).toHaveCount(1);
-  await picker.selectOption('handrail');
-  await expect(page.getByRole('heading', { name: 'VIP console edge' })).toBeVisible();
+  await picker.selectOption('spotlights');
+  await expect(page.getByRole('heading', { name: 'Spotlights' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Change cabin' }).click();
   await page.getByLabel('Aircraft or airline 3D model').selectOption('emirates-777-300er-328');
@@ -377,6 +377,8 @@ test('Zone Inspector follows the selected aircraft GLB component inventory', asy
   await expect(picker.locator('option[value="spotlights"]')).toHaveCount(0);
   await expect(picker.locator('option[value="emergency"]')).toHaveCount(0);
   await expect(picker.locator('option[value="exit"]')).toHaveCount(0);
+  await expect.poll(() => picker.inputValue()).not.toBe('spotlights');
+  await expect(page.locator('.inspector-head h2')).toHaveText(await picker.locator('option:checked').innerText());
 });
 
 test('Change cabin switches the 3D reference geometry from the left rail', async ({ page }) => {
