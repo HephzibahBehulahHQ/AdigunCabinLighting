@@ -55,6 +55,16 @@ function applyZoneLighting(materials: Map<ZoneId, Set<THREE.Material>>, lights: 
     const color = previewColor(rgbw);
     const level = previewLightLevel(rgbw, intensity);
     for (const material of materials.get(id) ?? []) {
+      if (material.userData.simulatedFixture === true) {
+        if ('color' in material) (material as THREE.MeshBasicMaterial).color.copy(level === 0 ? new THREE.Color('#07111d') : color);
+        material.opacity = level === 0 ? 0 : Math.min(1, .68 + level * .32);
+        if ('emissive' in material) {
+          const emitter = material as THREE.MeshStandardMaterial;
+          emitter.emissive.copy(color);
+          emitter.emissiveIntensity = level === 0 ? 0 : .8 + level * 1.4;
+        }
+        continue;
+      }
       if ('emissive' in material) {
         const emissiveMaterial = material as THREE.MeshStandardMaterial;
         const modeledEmitter = id === 'ceiling_cove' || id === 'left_sidewall' || id === 'right_sidewall' || id === 'footwell';
@@ -70,7 +80,11 @@ function applyZoneLighting(materials: Map<ZoneId, Set<THREE.Material>>, lights: 
         }
         // GLB light-channel meshes carry illustrative base colors. Darken those
         // actual emitters at zero so an inactive strip cannot glow as a mood.
-        if (modeledEmitter) emissiveMaterial.color.copy(level === 0 ? new THREE.Color('#101821') : color);
+        if (modeledEmitter) {
+          emissiveMaterial.color.copy(level === 0 ? new THREE.Color('#101821') : color);
+          emissiveMaterial.transparent = true;
+          emissiveMaterial.opacity = level === 0 ? 0 : 1;
+        }
         emissiveMaterial.emissive.copy(color);
         emissiveMaterial.emissiveIntensity = level === 0 ? 0 : .08 + level * .72;
       }
@@ -217,6 +231,7 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
       scene.fog = new THREE.Fog('#07111d', size.z * .95, size.z * 2.5);
       const repeatedParts: THREE.Mesh[] = [];
       const windowBounds: THREE.Box3[] = [];
+      let excludedWindowGlassCount = 0;
       const seatBounds: THREE.Box3[] = [];
       const binBounds: THREE.Box3[] = [];
       const consoleBounds: THREE.Box3[] = [];
@@ -228,7 +243,10 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
         if (profile.id === 'gulfstream-g650er') {
           const windowVisible = isG650ERPublishedWindow(object.name);
           if (windowVisible !== null) object.visible = windowVisible;
-          if (windowVisible && /^Window (?:glass|glazing) /i.test(object.name.replace(/_/g, ' '))) visibleG650WindowGlass++;
+          if (object instanceof THREE.Mesh && /^Cabin wall bay /i.test(object.name.replace(/_/g, ' '))) object.visible = false;
+          const isPane = /^Window (?:glass|glazing) /i.test(object.name.replace(/_/g, ' '));
+          if (isPane && windowVisible) visibleG650WindowGlass++;
+          if (isPane && windowVisible === false) excludedWindowGlassCount++;
         }
         if (object instanceof THREE.Light) {
           const lightZone = object.name.includes('left_sidewall') ? 'left_sidewall' : object.name.includes('right_sidewall') ? 'right_sidewall' : undefined;
@@ -291,8 +309,43 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
         object.castShadow = false;
         object.receiveShadow = false;
       });
+      if (profile.id === 'gulfstream-g650er' && windowBounds.length) {
+        // Replace disconnected authored bay faces with continuous inner wall
+        // panels and cut oval openings from the 16 retained glass bounds.
+        const panelMaterial = new THREE.MeshStandardMaterial({ color: '#e2d5bd', emissive: '#211a12', emissiveIntensity: .12, roughness: .84, metalness: .01, side: THREE.DoubleSide });
+        const cabinCenterX = box.getCenter(new THREE.Vector3()).x;
+        for (const side of [-1, 1]) {
+          const sideWindows = windowBounds.filter((bounds) => (bounds.getCenter(new THREE.Vector3()).x - cabinCenterX) * side > 0);
+          if (!sideWindows.length) continue;
+          const frameXs = sideWindows.map((bounds) => bounds.getCenter(new THREE.Vector3()).x);
+          const inward = side < 0 ? 1 : -1;
+          const x = frameXs.reduce((sum, value) => sum + value, 0) / frameXs.length + inward * .025;
+          const outer = new THREE.Shape();
+          outer.moveTo(box.min.z + .06, box.min.y + size.y * .16);
+          outer.lineTo(box.max.z - .06, box.min.y + size.y * .16);
+          outer.lineTo(box.max.z - .06, box.max.y - size.y * .075);
+          outer.lineTo(box.min.z + .06, box.max.y - size.y * .075);
+          outer.closePath();
+          for (const bounds of sideWindows) {
+            const center = bounds.getCenter(new THREE.Vector3());
+            const extent = bounds.getSize(new THREE.Vector3());
+            const opening = new THREE.Path();
+            opening.absellipse(center.z, center.y, Math.max(.04, extent.z * .58), Math.max(.04, extent.y * .58), 0, Math.PI * 2, false, 0);
+            outer.holes.push(opening);
+          }
+          const wallGeometry = new THREE.ShapeGeometry(outer, 24);
+          wallGeometry.rotateY(-Math.PI / 2);
+          wallGeometry.translate(x, 0, 0);
+          const wall = new THREE.Mesh(wallGeometry, panelMaterial);
+          wall.name = `Estimated continuous sidewall with ${sideWindows.length} window openings`;
+          wall.userData.zoneId = side < 0 ? 'left_sidewall' : 'right_sidewall';
+          wall.castShadow = false; wall.receiveShadow = false;
+          root.add(wall);
+        }
+      }
       if (profile.id === 'gulfstream-g650er') {
         renderer.domElement.dataset.visibleWindows = String(visibleG650WindowGlass);
+        renderer.domElement.dataset.excludedWindowGlassCount = String(excludedWindowGlassCount);
         const seatAudit = inspectG650ERSeatClearance(gltf.scene);
         renderer.domElement.dataset.renderedSeats = String(seatAudit.seatCount);
         renderer.domElement.dataset.seatOverlaps = String(seatAudit.overlapCount);
@@ -303,7 +356,8 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
       const fixtureGeometry = new THREE.BoxGeometry(1, 1, 1);
       const addFixtures = (zone: ZoneId, items: { position: THREE.Vector3; size: THREE.Vector3; rotation?: THREE.Euler }[]) => {
         if (!items.length) return;
-        const material = new THREE.MeshStandardMaterial({ color: '#07111d', emissive: '#000000', emissiveIntensity: 0, roughness: .38, metalness: .16 });
+        const material = new THREE.MeshBasicMaterial({ color: '#07111d', transparent: true, opacity: 0, depthWrite: false, toneMapped: false });
+        material.userData.simulatedFixture = true;
         const mesh = new THREE.InstancedMesh(fixtureGeometry, material, items.length);
         mesh.name = `Simulated ${zone} fixture group · ${items.length}`;
         mesh.userData.zoneId = zone;
@@ -431,8 +485,8 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
         const center = bounds.getCenter(new THREE.Vector3());
         const aisleFaceX = center.x < centerX ? bounds.max.x : bounds.min.x;
         return {
-          position: new THREE.Vector3(center.x, Math.min(roofY(center.x) - .12, bounds.max.y + .25), center.z),
-          size: new THREE.Vector3(.045, .022, .045),
+          position: new THREE.Vector3(aisleFaceX, roofY(aisleFaceX) - .07, center.z),
+          size: new THREE.Vector3(.20, .06, .20),
           target: new THREE.Vector3(aisleFaceX, Math.min(bounds.max.y - .04, bounds.min.y + .68), center.z),
         };
       });
@@ -446,8 +500,8 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
         for (let index = 0; index < 4; index++) {
           const z = bounds.min.z + extent.z * (index + .5) / 4;
           workItems.push({
-            position: new THREE.Vector3(center.x, Math.min(roofY(center.x) - .12, bounds.max.y + .34), z),
-            size: new THREE.Vector3(.045, .022, .045),
+            position: new THREE.Vector3(aisleFaceX, roofY(aisleFaceX) - .07, z),
+            size: new THREE.Vector3(.20, .06, .20),
             target: new THREE.Vector3(aisleFaceX, bounds.max.y - .012, z),
           });
         }
@@ -478,6 +532,7 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
       }
       const signTexture = new THREE.CanvasTexture(signCanvas); signTexture.colorSpace = THREE.SRGBColorSpace;
       const signMaterial = new THREE.MeshStandardMaterial({ color: '#ffffff', map: signTexture, emissive: '#000000', emissiveMap: signTexture, emissiveIntensity: 0, roughness: .4, metalness: .05 });
+      signMaterial.transparent = true; signMaterial.opacity = 0; signMaterial.depthWrite = false; signMaterial.userData.simulatedFixture = true;
       const signMesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, .375), signMaterial, signItems.length);
       signMesh.name = `Estimated simulated EXIT signs · ${signItems.length}`; signMesh.userData.zoneId = 'exit';
       const signTransform = new THREE.Object3D();
