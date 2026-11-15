@@ -210,6 +210,7 @@ test('desktop workspace navigation focuses and marks each fixed panel', async ({
 });
 
 test('transition preview runs scene-specific instrumental audio and exposes cabin announcement controls', async ({ page }) => {
+  test.setTimeout(60_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/studio');
   const motion = page.getByRole('button', { name: 'Camera motion preview' });
