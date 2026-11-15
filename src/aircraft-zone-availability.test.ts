@@ -20,8 +20,10 @@ describe('aircraft mesh zone inventory', () => {
       expect(profile.componentCounts.right_sidewall_fixture_meshes, `${profile.id}:right-sidewall fixtures`).toBe(8);
       expect(profile.componentCounts.reading_fixtures, `${profile.id}:reading fixtures`).toBe(0);
       expect(profile.componentCounts.spotlight_fixtures, `${profile.id}:spotlight fixtures`).toBe(0);
+      expect(profile.componentCounts.ceiling_panels, `${profile.id}:ceiling panels`).toBe(0);
       expect(profile.zones.map((zone) => zone.id), `${profile.id}:unmodeled light groups`).not.toContain('reading');
       expect(profile.zones.map((zone) => zone.id), `${profile.id}:unmodeled light groups`).not.toContain('spotlights');
+      expect(profile.zones.map((zone) => zone.id), `${profile.id}:unmodeled ceiling shell`).not.toContain('ceiling');
       expect(profile.zones.find((zone) => zone.id === 'left_sidewall')?.basis, `${profile.id}:left-sidewall evidence`).toContain('8 named left-sidewall fixture meshes');
       expect(profile.zones.find((zone) => zone.id === 'right_sidewall')?.basis, `${profile.id}:right-sidewall evidence`).toContain('8 named right-sidewall fixture meshes');
     }
