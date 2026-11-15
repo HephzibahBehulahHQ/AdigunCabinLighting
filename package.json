@@ -19,6 +19,8 @@
     "operator:validate-scene": "npm run build:gateway && node scripts/validate-scene.mjs",
     "operator:diff-scenes": "npm run build:gateway && node scripts/diff-scenes.mjs",
     "operator:receipt-scene": "npm run build:gateway && node scripts/receipt-scene.mjs",
+    "operator:sign-scene": "npm run build:gateway && node scripts/sign-scene-receipt.mjs",
+    "operator:verify-scene-receipt": "npm run build:gateway && node scripts/verify-scene-receipt.mjs",
     "operator:pack-scenario": "npm run build:gateway && node scripts/pack-scenario.mjs",
     "operator:review-scenario": "npm run build:gateway && node scripts/review-scenario.mjs",
     "lint": "eslint ."
@@ -46,4 +48,5 @@
     "vitest": "^5.1.0"
   }
 }
+
 
