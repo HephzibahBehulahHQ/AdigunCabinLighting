@@ -506,7 +506,23 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
           });
         }
       }
-      addFixtures('spotlights', workItems.map(({ position, size: fixtureSize }) => ({ position, size: fixtureSize })));
+      const spotlightLensMaterial = new THREE.MeshBasicMaterial({ color: '#07111d', transparent: true, opacity: 0, depthWrite: false, toneMapped: false });
+      spotlightLensMaterial.userData.simulatedFixture = true;
+      const spotlightLensGeometry = new THREE.CylinderGeometry(.035, .035, .014, 20);
+      const spotlightLenses = new THREE.InstancedMesh(spotlightLensGeometry, spotlightLensMaterial, workItems.length);
+      spotlightLenses.name = `Simulated recessed spotlight lenses · ${workItems.length}`;
+      spotlightLenses.userData.zoneId = 'spotlights';
+      const lensTransform = new THREE.Object3D();
+      workItems.forEach((item, index) => {
+        lensTransform.position.copy(item.position);
+        lensTransform.updateMatrix();
+        spotlightLenses.setMatrixAt(index, lensTransform.matrix);
+      });
+      spotlightLenses.instanceMatrix.needsUpdate = true;
+      spotlightLenses.computeBoundingSphere();
+      root.add(spotlightLenses); selectable.push(spotlightLenses);
+      const spotlightMaterials = zoneMaterials.get('spotlights') ?? new Set<THREE.Material>();
+      spotlightMaterials.add(spotlightLensMaterial); zoneMaterials.set('spotlights', spotlightMaterials);
       workItems.forEach((item) => {
         addSpot('spotlights', item.position.clone(), item.target, Math.max(1.2, size.x * .7), Math.PI / 7);
         addPoint('spotlights', item.target.clone(), Math.max(1.2, size.x * .35), 2.2);
