@@ -21,6 +21,6 @@ describe('systemd gateway service template', () => {
     ]) {
       expect(service).toContain(directive);
     }
-    expect(service).not.toMatch(/0\\.0\\.0\\.0|::0/);
+    expect(service).not.toMatch(/0\.0\.0\.0|::0/);
   });
 });
