@@ -382,7 +382,7 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
     current.draw();
   }, [highQuality, previewActive]);
 
-  return <div className="cabin-asset-renderer" ref={hostRef} data-selected-zone={selected}>
+  return <div className="cabin-asset-renderer" ref={hostRef} data-selected-zone={selected} data-camera-view={cameraView}>
     {error && <div className="cabin-asset-error" role="alert">{error}</div>}
     <span className="cabin-asset-attribution">{profile.label} · SIMULATION GEOMETRY</span>
   </div>;

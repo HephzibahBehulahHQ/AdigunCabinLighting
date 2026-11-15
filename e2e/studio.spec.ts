@@ -307,7 +307,8 @@ test('cabin map shapes respond to pointer selection', async ({ page }) => {
 test('new cabin zones, scenes, and browser-local projects are usable', async ({ page }) => {
   test.setTimeout(90_000);
   await page.goto('/studio');
-  await expect(page.getByRole('img', { name: /^Interactive 3D .* cabin reference;/i })).toBeVisible();
+  await expect(page.locator('.cabin-webgl-canvas')).toHaveAttribute('data-cabin-profile', 'gulfstream-g650er');
+  await expect(page.locator('.cabin-webgl-canvas')).toBeVisible();
   const renderSize = await page.locator('canvas.cabin-webgl-canvas').evaluate((canvas: HTMLCanvasElement) => ({ width: canvas.width, height: canvas.height }));
   expect(renderSize.width).toBeGreaterThan(0);
   expect(renderSize.height).toBeGreaterThan(0);
@@ -407,6 +408,7 @@ test('A350-900 reference loads source-backed cabin dimensions and the derived 31
   await page.goto('/studio');
   await page.getByRole('button', { name: 'Change cabin' }).click();
   await page.getByLabel('Cabin layout').selectOption('a350900');
+  await expect(page.getByLabel('Aircraft or airline 3D model')).toHaveValue('');
   await expect(page.locator('.cabin-profile-summary')).toContainText('315 passengers');
   await expect(page.locator('.cabin-profile-summary')).toContainText('48 business');
   await expect(page.locator('.cabin-profile-summary')).toContainText('267 economy');
@@ -417,7 +419,7 @@ test('A350-900 reference loads source-backed cabin dimensions and the derived 31
   await expect(page.locator('.cabin-profile-note').last()).toContainText('row distribution are derived');
   await expect(page.locator('.cabin-profile-note').last().locator('a')).toHaveAttribute('href', /AC_A350_20250715\.pdf$/);
   await expect(page.locator('.cabin-profile-note').last()).toContainText('Rev 15 · Jul 15/25');
-  await expect(page.locator('.cabin-profile-note').last()).toContainText('No licensed 3D cabin asset is included');
+  await expect(page.locator('.cabin-profile-note').last()).toContainText('not the Airbus plan drawing or an airline fit');
   await page.getByRole('button', { name: 'Load cabin layout' }).click();
   await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-cabin-layout', 'a350900');
   await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-rendered-seat-count', '315');
@@ -429,6 +431,7 @@ test('A330-300 reference loads source-backed dimensions and its derived 300-seat
   await page.goto('/studio');
   await page.getByRole('button', { name: 'Change cabin' }).click();
   await page.getByLabel('Cabin layout').selectOption('a330300');
+  await expect(page.getByLabel('Aircraft or airline 3D model')).toHaveValue('');
   await expect(page.locator('.cabin-profile-summary')).toContainText('300 passengers');
   await expect(page.locator('.cabin-profile-summary')).toContainText('36 business');
   await expect(page.locator('.cabin-profile-summary')).toContainText('264 economy');
@@ -439,7 +442,7 @@ test('A330-300 reference loads source-backed dimensions and its derived 300-seat
   await expect(page.locator('.cabin-profile-note').last()).toContainText('derived for display');
   await expect(page.locator('.cabin-profile-note').last().locator('a')).toHaveAttribute('href', /AC_A330_20251201\.pdf$/);
   await expect(page.locator('.cabin-profile-note').last()).toContainText('Rev Dec 01/25');
-  await expect(page.locator('.cabin-profile-note').last()).toContainText('No licensed 3D cabin asset is included');
+  await expect(page.locator('.cabin-profile-note').last()).toContainText('generic reference geometry');
   await page.getByRole('button', { name: 'Load cabin layout' }).click();
   await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-cabin-layout', 'a330300');
   await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-rendered-seat-count', '300');
@@ -587,7 +590,7 @@ test('3D camera presets change angle inside the existing cabin viewer without mo
   const stage = page.locator('.cabin-stage');
   const before = await stage.boundingBox();
   await page.getByLabel('3D camera angle').selectOption('aft');
-  await expect(page.locator('.cabin3d-canvas')).toHaveAttribute('data-camera-view', 'aft');
+  await expect(page.locator('.cabin-asset-renderer')).toHaveAttribute('data-camera-view', 'aft');
   const aft = await stage.boundingBox();
   expect(aft?.x).toBeCloseTo(before?.x ?? 0, 1);
   expect(aft?.y).toBeCloseTo(before?.y ?? 0, 1);
@@ -595,7 +598,7 @@ test('3D camera presets change angle inside the existing cabin viewer without mo
   expect(aft?.height).toBeCloseTo(before?.height ?? 0, 1);
   await page.getByLabel('Reset cabin camera view').click();
   await page.getByLabel('3D camera angle').selectOption('window-row');
-  await expect(page.locator('.cabin3d-canvas')).toHaveAttribute('data-camera-view', 'window-row');
+  await expect(page.locator('.cabin-asset-renderer')).toHaveAttribute('data-camera-view', 'window-row');
 });
 
 test('Studio menus open without moving the canvas and close with Escape', async ({ page }) => {
