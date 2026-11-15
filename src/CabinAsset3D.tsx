@@ -315,10 +315,16 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
     const current = runtime.current;
     if (!previewActive || !current) return;
     let animation = 0;
+    let lastLightUpdate = 0;
     const animate = (now: number) => {
       const elapsed = Math.max(0, (now - previewStartedAt) / 1000);
-      current.applyLighting(interpolateScene(activeScene, Math.min(previewDuration, elapsed)));
-      current.draw();
+      // Update animated material groups at the renderer's 12.5 fps draw cadence.
+      // Recomputing every mapped material on every RAF starved playback on software WebGL.
+      if (now - lastLightUpdate >= 80 || elapsed >= previewDuration) {
+        lastLightUpdate = now;
+        current.applyLighting(interpolateScene(activeScene, Math.min(previewDuration, elapsed)));
+        current.draw();
+      }
       if (elapsed < previewDuration) animation = requestAnimationFrame(animate);
     };
     animation = requestAnimationFrame(animate);
