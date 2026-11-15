@@ -13,3 +13,11 @@ Run `python assets/aircraft-data/validate_data.py` from the repository root to c
 ## Mesh generation and verification
 
 `node assets/aircraft-data/build_models.js` regenerates all 23 GLBs without third-party dependencies. `python assets/aircraft-data/validate_meshes.py` checks GLB structure, accessor bounds, triangle indices, and node references. Visual fidelity and app integration require renderer review; neither is claimed by the binary checks.
+
+## Airline-specific meshes
+
+Six separate models and their complete seat-placement JSON are indexed by `airline-mesh-catalog.json`: Emirates 777-300ER layouts extracted from three official SVG charts (360, 328, 419 actual seat symbols); British Airways 777-300ER 256 seats (rows and seat IDs transcribed from its official chart); Qantas 787-9 236 seats; QantasLink A220-300 137 seats. The two Qantas meshes reproduce published class counts and abreast patterns, but partial rows and exact seat identities remain authored SIM slots. They must not be advertised as exact seat-map reconstructions.
+
+The chart-specific Emirates counts differ from older fleet-summary capacity options; the two datasets describe different published references and are not silently reconciled. SVG seat positions are relative diagram coordinates; metric scaling is authored. These meshes are not verified OEM component shapes or an exact recreation of the owner's photograph.
+
+`node assets/aircraft-data/build_airline_models.js` reproduces the airline GLBs. `python assets/aircraft-data/validate_airline_geometry.py` checks aggregate seat AABBs against other seats and component AABBs against the modeled curved upper sidewalls and lower lining. The saved report records zero conflicts in those checks for all six models. This does not prove absence of every triangle intersection, photorealism, exact aircraft fit, or egress compliance. Visual review in the actual renderer is still required.
