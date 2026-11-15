@@ -12,8 +12,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 560,
         "reading_fixtures": 0,
@@ -47,12 +47,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -75,8 +75,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 10,
         "reading_fixtures": 0,
@@ -110,12 +110,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -138,8 +138,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 120,
         "reading_fixtures": 0,
@@ -173,12 +173,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -201,8 +201,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 145,
         "reading_fixtures": 0,
@@ -236,12 +236,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -264,8 +264,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 174,
         "reading_fixtures": 0,
@@ -299,12 +299,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -327,8 +327,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 222,
         "reading_fixtures": 0,
@@ -362,12 +362,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -390,8 +390,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 400,
         "reading_fixtures": 0,
@@ -425,12 +425,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -453,8 +453,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 456,
         "reading_fixtures": 0,
@@ -488,12 +488,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -516,8 +516,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 522,
         "reading_fixtures": 0,
@@ -551,12 +551,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -579,8 +579,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 594,
         "reading_fixtures": 0,
@@ -614,12 +614,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -642,8 +642,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 144,
         "reading_fixtures": 0,
@@ -677,12 +677,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -705,8 +705,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 180,
         "reading_fixtures": 0,
@@ -740,12 +740,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -768,8 +768,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 192,
         "reading_fixtures": 0,
@@ -803,12 +803,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -831,8 +831,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 156,
         "reading_fixtures": 0,
@@ -866,12 +866,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -894,8 +894,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 180,
         "reading_fixtures": 0,
@@ -929,12 +929,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -957,8 +957,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 192,
         "reading_fixtures": 0,
@@ -992,12 +992,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -1020,8 +1020,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 204,
         "reading_fixtures": 0,
@@ -1055,12 +1055,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -1083,8 +1083,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 540,
         "reading_fixtures": 0,
@@ -1118,12 +1118,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -1146,8 +1146,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 540,
         "reading_fixtures": 0,
@@ -1181,12 +1181,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -1209,8 +1209,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 640,
         "reading_fixtures": 0,
@@ -1244,12 +1244,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -1272,8 +1272,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 432,
         "reading_fixtures": 0,
@@ -1307,12 +1307,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -1335,8 +1335,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 477,
         "reading_fixtures": 0,
@@ -1370,12 +1370,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -1398,8 +1398,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 531,
         "reading_fixtures": 0,
@@ -1433,12 +1433,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -1461,8 +1461,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 360,
         "reading_fixtures": 0,
@@ -1496,12 +1496,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -1519,8 +1519,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 328,
         "reading_fixtures": 0,
@@ -1554,12 +1554,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -1577,8 +1577,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 419,
         "reading_fixtures": 0,
@@ -1612,12 +1612,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -1635,8 +1635,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 256,
         "reading_fixtures": 0,
@@ -1670,12 +1670,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -1693,8 +1693,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 137,
         "reading_fixtures": 0,
@@ -1728,12 +1728,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -1751,8 +1751,8 @@
         "ceiling_coves": 2,
         "left_sidewall_lights": 1,
         "right_sidewall_lights": 1,
-        "left_sidewall_fixture_meshes": 8,
-        "right_sidewall_fixture_meshes": 8,
+        "left_sidewall_fixture_meshes": 0,
+        "right_sidewall_fixture_meshes": 0,
         "footwells": 2,
         "seat_headrests": 236,
         "reading_fixtures": 0,
@@ -1786,12 +1786,12 @@
         {
           "id": "left_sidewall",
           "name": "Left sidewall",
-          "basis": "8 named left-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled left-sidewall light strip mesh"
         },
         {
           "id": "right_sidewall",
           "name": "Right sidewall",
-          "basis": "8 named right-sidewall fixture meshes; 1 named sidewall light strips"
+          "basis": "0 named fixture meshes; 1 modeled right-sidewall light strip mesh"
         },
         {
           "id": "footwell",
@@ -1802,4 +1802,3 @@
     }
   ]
 }
-
