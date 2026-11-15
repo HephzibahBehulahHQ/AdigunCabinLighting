@@ -682,7 +682,7 @@ function Studio() {
   useEffect(() => () => stopFadeFrame(), []);
   useEffect(() => {
     if (!notice) return;
-    const timeout = window.setTimeout(() => setNotice(''), 2600);
+    const timeout = window.setTimeout(() => setNotice(''), 6000);
     return () => window.clearTimeout(timeout);
   }, [notice]);
   useEffect(() => {
