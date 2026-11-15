@@ -7,7 +7,7 @@ describe('configurable reference cabin profile', () => {
   });
 
   it('provides distinct layouts and cabin dimensions for each reference profile', () => {
-    expect(Object.keys(CABIN_PROFILES)).toHaveLength(7);
+    expect(Object.keys(CABIN_PROFILES)).toHaveLength(8);
     expect(CABIN_LAYOUTS.widebody.groups).toEqual([3, 3, 3]);
     expect(CABIN_LAYOUTS.premium.groups).toEqual([1, 2, 1]);
     expect(CABIN_PROFILES.regional.widthMeters).toBeLessThan(CABIN_PROFILES.widebody.widthMeters);
@@ -21,6 +21,16 @@ describe('configurable reference cabin profile', () => {
     });
     expect(CABIN_LAYOUTS.ownerVvip.geometryNote).toContain('visually inferred');
     expect(validateCabinConfig({ layoutId: 'ownerVvip' })).toEqual(CABIN_PROFILES.ownerVvip);
+  });
+
+  it('uses the sourced G650ER envelope for the default VVIP reference plan', () => {
+    expect(DEFAULT_CABIN_CONFIG).toMatchObject({ layoutId: 'g650erVvip', lengthMeters: 14.27, widthMeters: 2.49, ceilingHeightMeters: 1.91, seatRows: 5, windowCountPerSide: 8 });
+    expect(CABIN_LAYOUTS.g650erVvip.seatCount).toBe(10);
+    expect(CABIN_LAYOUTS.g650erVvip.geometryNote).toContain('authored estimates');
+    expect(validateCabinConfig({ layoutId: 'g650erVvip' }).widthMeters).toBe(2.49);
+  });
+
+  it('accepts a selected layout with custom cabin dimensions', () => {
   });
 
   it('accepts a selected layout with custom cabin dimensions', () => {

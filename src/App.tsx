@@ -18,16 +18,18 @@ import { MAX_SCENARIO_PACKAGE_BYTES, validateScenarioPackage } from '../operator
 import { CABIN_GUIDED_TOUR, CABIN_WELCOME_ANNOUNCEMENT, getMoodInstrumentLabel, getMoodScore, playWelcomeChime, scheduleMoodMusic, type MoodMusicHandle } from './cabin-audio';
 import { cabinAudioAssetKey, deleteCabinAudioAsset, readCabinAudioAsset, saveCabinAudioAsset, type StoredCabinAudioAsset } from './audio-asset-store';
 import { readAppLocale, saveAppLocale, studioText, type AppLocale, type StudioCopyKey } from './studio-localization';
+import { AIRCRAFT_DIMENSION_PROFILES, AIRLINE_MESH_PROFILES, DEFAULT_CABIN_MESH_ID, getCabinMeshProfile } from './aircraft-assets';
 
 const STORAGE_KEY = 'adigun-cabin-studio:v1';
 const PROJECT_INDEX_KEY = 'adigun-cabin-projects:v1';
 const ACTIVE_PROJECT_KEY = 'adigun-cabin-active-project:v1';
-type SavedState = { zones: ZoneState[]; scenes: SceneFile[]; intensity: number; activeSceneId: string; selectedZoneId: ZoneId; projectName?: string; cabinConfig?: CabinConfig };
+type SavedState = { zones: ZoneState[]; scenes: SceneFile[]; intensity: number; activeSceneId: string; selectedZoneId: ZoneId; projectName?: string; cabinConfig?: CabinConfig; aircraftMeshId?: string | null };
 type LocalMoodAudioCue = { readonly objectUrl: string; readonly fileName: string; readonly title: string; readonly rightsReference: string };
 type LocalMoodAudioDraft = { file: File | null; title: string; rightsReference: string };
 const MAX_LOCAL_MOOD_AUDIO_BYTES = 25 * 1024 * 1024;
 const copy = <T,>(value: T): T => structuredClone(value);
 const Cabin3D = lazy(() => import('./Cabin3D'));
+const CabinAsset3D = lazy(() => import('./CabinAsset3D'));
 
 function readSaved(projectId = 'default'): Partial<SavedState> {
   try {
@@ -35,6 +37,17 @@ function readSaved(projectId = 'default'): Partial<SavedState> {
     const parsed = JSON.parse(source ?? '{}') as Partial<SavedState>;
     return parsed && typeof parsed === 'object' ? parsed : {};
   } catch { return {}; }
+}
+
+function migrateZones(saved?: readonly ZoneState[]): ZoneState[] {
+  if (!saved) return makeDefaultZones();
+  return makeZones().map((base) => {
+    const previous = saved.find((zone) => zone.id === base.id);
+    if (previous) return { ...base, ...previous, rgbw: normalizeRGBW(previous.rgbw) };
+    const legacyId: ZoneId | undefined = base.id === 'ceiling_cove' ? 'ceiling' : base.id === 'left_sidewall' || base.id === 'right_sidewall' ? 'sidewalls' : undefined;
+    const legacy = legacyId ? saved.find((zone) => zone.id === legacyId) : undefined;
+    return legacy ? { ...base, rgbw: normalizeRGBW(legacy.rgbw), fadeSeconds: legacy.fadeSeconds } : base;
+  });
 }
 
 type ProjectEntry = { id: string; name: string; updatedAt: string };
@@ -69,7 +82,8 @@ function CabinDrawing({ zones, selected, onSelect, compact = false, config = DEF
     ceiling: { x: 490, y: 147 }, windows: { x: 490, y: 190 }, sidewalls: { x: 222, y: 310 },
     footwell: { x: 490, y: 411 }, reading: { x: 655, y: 331 }, entry: { x: 193, y: 359 },
     monuments: { x: 805, y: 365 }, toilet: { x: 825, y: 242 }, handrail: { x: 490, y: 389 },
-    trolley: { x: 757, y: 332 }, cabin: { x: 490, y: 254 },
+    trolley: { x: 757, y: 332 }, cabin: { x: 490, y: 254 }, ceiling_cove: { x: 490, y: 165 },
+    left_sidewall: { x: 220, y: 295 }, right_sidewall: { x: 760, y: 295 },
   };
   const onKey = (event: React.KeyboardEvent<SVGGElement>, id: ZoneId) => {
     if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect?.(id); }
@@ -97,9 +111,9 @@ function CabinDrawing({ zones, selected, onSelect, compact = false, config = DEF
       <path d="M230 354 C285 301 695 301 750 354 L706 397 L274 397 Z" fill="url(#floor)" stroke="#34475b" />
       <path d="M241 358 L739 358" stroke="#51677e" strokeWidth="1" strokeDasharray="5 8" />
       {/* ceiling coves */}
-      {group('ceiling', 'CEILING COVE', <>
-        <path d="M240 285 C276 144 365 108 490 99 C615 108 704 144 740 285" fill="none" stroke={glows.ceiling} strokeWidth="15" opacity=".24" filter="url(#softglow)" />
-        <path d="M240 285 C276 144 365 108 490 99 C615 108 704 144 740 285" fill="none" stroke={glows.ceiling} strokeWidth="5" opacity=".95" />
+      {group('ceiling_cove', 'CEILING COVE', <>
+        <path d="M240 285 C276 144 365 108 490 99 C615 108 704 144 740 285" fill="none" stroke={glows.ceiling_cove} strokeWidth="15" opacity=".24" filter="url(#softglow)" />
+        <path d="M240 285 C276 144 365 108 490 99 C615 108 704 144 740 285" fill="none" stroke={glows.ceiling_cove} strokeWidth="5" opacity=".95" />
       </>, 'ceiling-zone')}
       {/* windows */}
       {group('windows', 'WINDOW REVEALS', <>
@@ -143,6 +157,14 @@ function CabinDrawing({ zones, selected, onSelect, compact = false, config = DEF
         <path d="M182 331 C216 250 230 193 253 170" fill="none" stroke={glows.sidewalls} strokeWidth="5" />
         <path d="M798 331 C764 250 750 193 727 170" fill="none" stroke={glows.sidewalls} strokeWidth="15" opacity=".25" filter="url(#softglow)" />
         <path d="M798 331 C764 250 750 193 727 170" fill="none" stroke={glows.sidewalls} strokeWidth="5" />
+      </>, 'sidewalls-zone')}
+      {group('left_sidewall', 'LEFT SIDEWALL', <>
+        <path d="M182 331 C216 250 230 193 253 170" fill="none" stroke={glows.left_sidewall} strokeWidth="16" opacity=".32" filter="url(#softglow)" />
+        <path d="M182 331 C216 250 230 193 253 170" fill="none" stroke={glows.left_sidewall} strokeWidth="5" />
+      </>, 'sidewalls-zone')}
+      {group('right_sidewall', 'RIGHT SIDEWALL', <>
+        <path d="M798 331 C764 250 750 193 727 170" fill="none" stroke={glows.right_sidewall} strokeWidth="16" opacity=".32" filter="url(#softglow)" />
+        <path d="M798 331 C764 250 750 193 727 170" fill="none" stroke={glows.right_sidewall} strokeWidth="5" />
       </>, 'sidewalls-zone')}
       {/* aisle footwell */}
       {group('footwell', 'FOOTWELL', <>
@@ -323,12 +345,7 @@ function Studio() {
   const stored = useMemo(() => readSaved(projectId), [projectId]);
   const [zones, setZones] = useState<ZoneState[]>(() => {
     const saved = stored.zones;
-    if (!Array.isArray(saved)) return makeDefaultZones();
-    const migrated = makeZones().map((base) => {
-      const previous = saved.find((zone) => zone.id === base.id);
-      return previous ? { ...base, ...previous, rgbw: normalizeRGBW(previous.rgbw) } : base;
-    });
-    return migrated.length === ZONE_IDS.length ? migrated : makeDefaultZones();
+    return migrateZones(Array.isArray(saved) ? saved : undefined);
   });
   const [scenes, setScenes] = useState<SceneFile[]>(() => {
     try {
@@ -344,7 +361,11 @@ function Studio() {
   const [projectName, setProjectName] = useState(() => typeof stored.projectName === 'string' && stored.projectName.trim() ? stored.projectName : 'Cabin 01');
   const [cabinConfig, setCabinConfig] = useState<CabinConfig>(() => validateCabinConfig(stored.cabinConfig ?? {}));
   const [cabinDraft, setCabinDraft] = useState<CabinConfig>(() => validateCabinConfig(stored.cabinConfig ?? {}));
+  const [aircraftMeshId, setAircraftMeshId] = useState<string | null>(() => Object.hasOwn(stored, 'aircraftMeshId') ? getCabinMeshProfile(stored.aircraftMeshId)?.id ?? null : DEFAULT_CABIN_MESH_ID);
+  const [aircraftMeshDraftId, setAircraftMeshDraftId] = useState<string | null>(() => Object.hasOwn(stored, 'aircraftMeshId') ? getCabinMeshProfile(stored.aircraftMeshId)?.id ?? null : DEFAULT_CABIN_MESH_ID);
+  const selectedMeshProfile = getCabinMeshProfile(aircraftMeshId);
   const [time, setTime] = useState(0);
+  const [previewStartedAt, setPreviewStartedAt] = useState(0);
   const [effectiveRGBW, setEffectiveRGBW] = useState<Record<ZoneId, RGBW>>(() => Object.fromEntries(zones.map((zone) => [zone.id, { ...zone.rgbw }])) as Record<ZoneId, RGBW>);
   const [playing, setPlaying] = useState(false);
   const [motionPreview, setMotionPreview] = useState(false);
@@ -408,6 +429,7 @@ function Studio() {
   const startTransitionPreview = () => {
     const startAt = time >= scene.durationSeconds ? 0 : time;
     playbackTime.current = startAt;
+    setPreviewStartedAt(performance.now() - startAt * 1000);
     if (time >= scene.durationSeconds) applySceneAt(0);
     if (audioCues && !currentMoodAudio) {
       if (!window.AudioContext) setNotice('Instrumental preview is not supported in this browser.');
@@ -615,28 +637,37 @@ function Studio() {
 
   useEffect(() => {
     const persist = () => {
-      try { writeProject(projectId, projectName, { zones, scenes, intensity, activeSceneId, selectedZoneId: selected, projectName, cabinConfig }); }
+      try { writeProject(projectId, projectName, { zones, scenes, intensity, activeSceneId, selectedZoneId: selected, projectName, cabinConfig, aircraftMeshId }); }
       catch { setNotice('Browser storage is unavailable. Export scenes to save a local copy.'); }
     };
     const timer = window.setTimeout(persist, 300);
     window.addEventListener('pagehide', persist);
     return () => { window.clearTimeout(timer); window.removeEventListener('pagehide', persist); };
-  }, [zones, scenes, intensity, activeSceneId, selected, projectName, projectId, cabinConfig]);
+  }, [zones, scenes, intensity, activeSceneId, selected, projectName, projectId, cabinConfig, aircraftMeshId]);
   useEffect(() => {
     if (!playing) return;
     playStart.current = performance.now() - playbackTime.current * 1000;
+    let lastVisualUpdate = 0;
     let animation = 0;
     const tick = (now: number) => {
       const next = Math.min(scene.durationSeconds, (now - playStart.current) / 1000);
       playbackTime.current = next;
-      setTime(next);
-      setEffectiveImmediately(interpolateScene(scene, next));
-      if (next >= scene.durationSeconds) { setPlaying(false); return; }
-      animation = requestAnimationFrame(tick);
+      // Bound React/Three.js work for large cabin meshes while retaining a smooth lighting crossfade.
+      if (now - lastVisualUpdate >= 100 || next >= scene.durationSeconds) {
+        lastVisualUpdate = now;
+        setTime(next);
+        if (!aircraftMeshId) setEffectiveImmediately(interpolateScene(scene, next));
+      }
+      if (next >= scene.durationSeconds) {
+        if (aircraftMeshId) setEffectiveImmediately(interpolateScene(scene, next));
+        setPlaying(false);
+        return;
+      }
+      animation = window.requestAnimationFrame(tick);
     };
-    animation = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(animation);
-  }, [playing, scene]);
+    animation = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(animation);
+  }, [playing, scene, aircraftMeshId]);
   useEffect(() => () => stopFadeFrame(), []);
   useEffect(() => {
     if (!notice) return;
@@ -697,18 +728,19 @@ function Studio() {
     setScenes((all) => all.map((item) => item.id === updated.id ? updated : item));
     setNotice(`Saved ${scene.name} locally`);
   };
-  const resetScene = () => { const defaults = makeDefaultZones(); setPlaying(false); setUndo([]); setRedo([]); setScenes(copy(PRESETS)); setZones(defaults); setEffectiveImmediately(Object.fromEntries(defaults.map((zone) => [zone.id, zone.rgbw])) as Record<ZoneId, RGBW>); setActiveSceneId('aurora'); setSelected('ceiling'); setTime(0); setIntensity(72); setCabinConfig(DEFAULT_CABIN_CONFIG); setCabinDraft(DEFAULT_CABIN_CONFIG); setNotice('Local studio reset to default scenes'); };
-  const currentProjectState = (): SavedState => ({ zones, scenes, intensity, activeSceneId, selectedZoneId: selected, projectName, cabinConfig });
+  const resetScene = () => { const defaults = makeDefaultZones(); setPlaying(false); setUndo([]); setRedo([]); setScenes(copy(PRESETS)); setZones(defaults); setEffectiveImmediately(Object.fromEntries(defaults.map((zone) => [zone.id, zone.rgbw])) as Record<ZoneId, RGBW>); setActiveSceneId('aurora'); setSelected('ceiling'); setTime(0); setIntensity(72); setCabinConfig(DEFAULT_CABIN_CONFIG); setCabinDraft(DEFAULT_CABIN_CONFIG); setAircraftMeshId(DEFAULT_CABIN_MESH_ID); setAircraftMeshDraftId(DEFAULT_CABIN_MESH_ID); setNotice('Local studio reset to default scenes'); };
+  const currentProjectState = (): SavedState => ({ zones, scenes, intensity, activeSceneId, selectedZoneId: selected, projectName, cabinConfig, aircraftMeshId });
   const saveProject = () => { try { writeProject(projectId, projectName, currentProjectState()); setNotice(`Project “${projectName}” saved locally`); } catch { setNotice('Project could not be saved to browser storage'); } };
   const loadProject = (id: string, name: string) => {
     const next = readSaved(id);
-    const nextZones = Array.isArray(next.zones) ? makeZones().map((base) => { const prior = next.zones!.find((zone) => zone.id === base.id); return prior ? { ...base, ...prior, rgbw: normalizeRGBW(prior.rgbw) } : base; }) : makeDefaultZones();
+    const nextZones = Array.isArray(next.zones) ? migrateZones(next.zones) : makeDefaultZones();
     let nextScenes: SceneFile[]; try {
       const savedScenes = Array.isArray(next.scenes) && next.scenes.length ? next.scenes.map(validateSceneFile) : [];
       nextScenes = [...savedScenes, ...PRESETS.filter((preset) => !savedScenes.some((item) => item.id === preset.id)).map(copy)];
       if (!nextScenes.length) nextScenes = copy(PRESETS);
     } catch { nextScenes = copy(PRESETS); }
-    setProjectId(id); localStorage.setItem(ACTIVE_PROJECT_KEY, id); setProjectName(next.projectName || name); setZones(nextZones); setScenes(nextScenes); setIntensity(Number.isFinite(next.intensity) ? Math.max(0, Math.min(100, next.intensity!)) : 72); setActiveSceneId(next.activeSceneId || 'aurora'); setSelected(ZONE_IDS.includes(next.selectedZoneId as ZoneId) ? next.selectedZoneId! : 'ceiling'); setCabinConfig(validateCabinConfig(next.cabinConfig ?? {})); setCabinDraft(validateCabinConfig(next.cabinConfig ?? {})); setUndo([]); setRedo([]); setPlaying(false); setTime(0); setEffectiveImmediately(Object.fromEntries(nextZones.map((zone) => [zone.id, zone.rgbw])) as Record<ZoneId, RGBW>); setNotice(`Project “${name}” opened`);
+    const nextMeshId = Object.hasOwn(next, 'aircraftMeshId') ? getCabinMeshProfile(next.aircraftMeshId)?.id ?? null : DEFAULT_CABIN_MESH_ID;
+    setProjectId(id); localStorage.setItem(ACTIVE_PROJECT_KEY, id); setProjectName(next.projectName || name); setZones(nextZones); setScenes(nextScenes); setIntensity(Number.isFinite(next.intensity) ? Math.max(0, Math.min(100, next.intensity!)) : 72); setActiveSceneId(next.activeSceneId || 'aurora'); setSelected(ZONE_IDS.includes(next.selectedZoneId as ZoneId) ? next.selectedZoneId! : 'ceiling'); setCabinConfig(validateCabinConfig(next.cabinConfig ?? {})); setCabinDraft(validateCabinConfig(next.cabinConfig ?? {})); setAircraftMeshId(nextMeshId); setAircraftMeshDraftId(nextMeshId); setUndo([]); setRedo([]); setPlaying(false); setTime(0); setEffectiveImmediately(Object.fromEntries(nextZones.map((zone) => [zone.id, zone.rgbw])) as Record<ZoneId, RGBW>); setNotice(`Project “${name}” opened`);
   };
   const openProject = () => {
     const index = readProjectIndex(); if (!index.length) { setNotice('Save a project before using Open Project'); return; }
@@ -722,7 +754,7 @@ function Studio() {
     try { writeProject(projectId, projectName, currentProjectState()); } catch { setNotice('Current project could not be saved'); return; }
     const id = crypto.randomUUID(); setProjectId(id); localStorage.setItem(ACTIVE_PROJECT_KEY, id); setProjectName(name.trim()); resetScene(); setNotice(`New local project “${name.trim()}” created`);
   };
-  const changeCabin = () => { setCabinDraft(cabinConfig); setConfigOpen((open) => !open); setTab('scene'); };
+  const changeCabin = () => { setCabinDraft(cabinConfig); setAircraftMeshDraftId(aircraftMeshId); setConfigOpen((open) => !open); setTab('scene'); };
   const createNewScene = () => {
     const name = window.prompt('New scene name'); if (!name?.trim()) return;
     const targets = Object.fromEntries(zones.map((zone) => [zone.id, { ...zone.rgbw }])) as SceneFile['keyframes'][number]['targets'];
@@ -828,10 +860,7 @@ function Studio() {
     try {
       if (file.size > MAX_SCENARIO_PACKAGE_BYTES) throw new Error('Scenario package exceeds the 64 KiB review limit.');
       const scenario = validateScenarioPackage(JSON.parse(await file.text()));
-      const importedZones = makeZones().map((base) => {
-        const imported = scenario.zones.find((zone) => zone.id === base.id);
-        return imported ? { ...base, ...imported, rgbw: normalizeRGBW(imported.rgbw) } : base;
-      });
+      const importedZones = migrateZones(scenario.zones);
       const nextState: SavedState = {
         zones: importedZones, scenes: scenario.scenes.map(copy), intensity: scenario.masterIntensity,
         activeSceneId: scenario.activeSceneId, selectedZoneId: 'ceiling', projectName: scenario.projectName,
@@ -889,18 +918,20 @@ function Studio() {
           <div className="visual-column">
             <section className="panel cabin-panel" id="cabin-view" tabIndex={-1}>
               <div className="panel-head"><div><h2>{t('cabinDigitalTwin')}</h2></div><div className="view-controls" aria-label={t('cabinViewControls')}><div className="view-switch" role="group" aria-label={t('cabinView')}><button aria-pressed={viewMode === '2d'} onClick={() => setViewMode('2d')}>2D</button><button aria-pressed={viewMode === '3d'} onClick={() => setViewMode('3d')}>3D</button></div><button className={`quality-toggle ${hq4k ? 'is-on' : ''}`} aria-label={t('highQuality4K')} aria-pressed={hq4k} onClick={() => setHq4k((value) => !value)}>HQ 4K <span /></button></div></div>
-              {configOpen && <form className="cabin-config" onSubmit={(e) => { e.preventDefault(); const next = validateCabinConfig(cabinDraft); setCabinDraft(next); setCabinConfig(next); setConfigOpen(false); setNotice(next.layoutId === 'a350900' || next.layoutId === 'a330300' ? `${CABIN_LAYOUTS[next.layoutId].name} planning reference loaded · derived row arrangement is illustrative, not an airline cabin fit.` : next.layoutId === 'ownerVvip' ? `Owner image-derived VVIP reference loaded · proportions are estimated, not measured aircraft geometry.` : `${CABIN_LAYOUTS[next.layoutId].name} cabin loaded · ${next.lengthMeters.toFixed(1)} m × ${next.widthMeters.toFixed(2)} m. Reference layout only.`); }}>
-                <div className="cabin-config-head"><strong>Change cabin <small>· {cabinDraft.layoutId === 'a350900' || cabinDraft.layoutId === 'a330300' ? 'manufacturer data reference' : cabinDraft.layoutId === 'ownerVvip' ? 'owner image-derived visual reference' : 'configurable reference layouts'}</small></strong><button type="button" aria-label="Close cabin configuration" onClick={() => setConfigOpen(false)}><X size={14} /></button></div>
-                <label className="cabin-profile-select">{t('cabinLayout')}<select aria-label={t('cabinLayout')} value={cabinDraft.layoutId} onChange={(e) => setCabinDraft(CABIN_PROFILES[e.target.value as CabinLayoutId])}>{Object.entries(CABIN_LAYOUTS).map(([id, item]) => <option key={id} value={id}>{item.name}</option>)}</select></label>
-                <div className="cabin-profile-summary">{cabinDraft.layoutId === 'a350900' ? <>Airbus A350-900 standard two-class data · 315 passengers: 48 business (6 abreast, 60 in pitch) + 267 economy (9 abreast, 32 in pitch) · {cabinDraft.lengthMeters.toFixed(2)} m cabin length · {cabinDraft.widthMeters.toFixed(2)} m max cabin width</> : cabinDraft.layoutId === 'a330300' ? <>Airbus A330-300 standard two-class data · 300 passengers: 36 business (6 abreast, 60 in pitch) + 264 economy (8 abreast, 32 in pitch) · {cabinDraft.lengthMeters.toFixed(2)} m cabin length · {cabinDraft.widthMeters.toFixed(2)} m max cabin width</> : <>{CABIN_LAYOUTS[cabinDraft.layoutId].description} · {cabinDraft.lengthMeters.toFixed(1)} m long · {cabinDraft.widthMeters.toFixed(2)} m wide · {CABIN_LAYOUTS[cabinDraft.layoutId].groups.reduce((sum, count) => sum + count, 0)} seats/row</>}</div>
-                {([['lengthMeters','Cabin length (m)',8,60,.1],['widthMeters','Interior width (m)',2.6,7,.05],['ceilingHeightMeters','Ceiling height (m)',1.8,4,.05],['seatRows','Seat rows',2,60,1],['seatPitchMeters','Seat pitch (m)',.55,1.6,.01],['windowCountPerSide','Windows per side',2,30,1],['overheadBinDepthMeters','Bin depth (m)',.25,1,.01]] as const).map(([key,label,min,max,step]) => <label key={key}>{(cabinDraft.layoutId === 'a350900' || cabinDraft.layoutId === 'a330300') && key === 'widthMeters' ? 'Max cabin width (m)' : label}<input type="number" min={min} max={max} step={step} value={cabinDraft[key]} disabled={(cabinDraft.layoutId === 'a350900' || cabinDraft.layoutId === 'a330300') && ['lengthMeters','widthMeters','seatRows','seatPitchMeters'].includes(key)} onChange={(e) => setCabinDraft((config) => ({ ...config, [key]: Number(e.target.value) }))} /></label>)}
-                <p className="cabin-profile-note">{cabinDraft.layoutId === 'a350900' ? `Airbus dimensions and seat totals are planning references. ${CABIN_LAYOUTS.a350900.geometryNote}` : cabinDraft.layoutId === 'a330300' ? `Airbus A330-300 planning dimensions and seat totals are references. ${CABIN_LAYOUTS.a330300.geometryNote}` : cabinDraft.layoutId === 'ownerVvip' ? CABIN_LAYOUTS.ownerVvip.geometryNote : 'These are editable reference layouts, not certified aircraft models or operator cabin fits.'}{(cabinDraft.layoutId === 'a350900' || cabinDraft.layoutId === 'a330300') && <><br /><a href={CABIN_LAYOUTS[cabinDraft.layoutId].planningSource} target="_blank" rel="noreferrer">{CABIN_LAYOUTS[cabinDraft.layoutId].sourceRevision}</a> · {CABIN_LAYOUTS[cabinDraft.layoutId].assetRights}</>}</p>
+              {configOpen && <form className="cabin-config" onSubmit={(e) => { e.preventDefault(); const next = validateCabinConfig(cabinDraft); const meshSelect = e.currentTarget.elements.namedItem('aircraftMeshId') as HTMLSelectElement | null; const asset = getCabinMeshProfile(meshSelect?.value || null); setCabinDraft(next); setCabinConfig(next); setAircraftMeshDraftId(asset?.id ?? null); setAircraftMeshId(asset?.id ?? null); setConfigOpen(false); setNotice(asset ? `${asset.label} loaded in the cabin renderer · simulation geometry; no physical or OEM fit is asserted.` : next.layoutId === 'a350900' || next.layoutId === 'a330300' ? `${CABIN_LAYOUTS[next.layoutId].name} planning reference loaded · derived row arrangement is illustrative, not an airline cabin fit.` : next.layoutId === 'ownerVvip' ? 'Owner image-derived VVIP reference loaded · proportions are estimated, not measured aircraft geometry.' : `${CABIN_LAYOUTS[next.layoutId].name} cabin loaded · ${next.lengthMeters.toFixed(1)} m × ${next.widthMeters.toFixed(2)} m. Reference layout only.`); }}>
+                <div className="cabin-config-head"><strong>Change cabin <small>· {cabinDraft.layoutId === 'a350900' || cabinDraft.layoutId === 'a330300' || cabinDraft.layoutId === 'g650erVvip' ? 'manufacturer data reference' : cabinDraft.layoutId === 'ownerVvip' ? 'owner image-derived visual reference' : 'configurable reference layouts'}</small></strong><button type="button" aria-label="Close cabin configuration" onClick={() => setConfigOpen(false)}><X size={14} /></button></div>
+                <label className="cabin-profile-select">{t('cabinLayout')}<select aria-label={t('cabinLayout')} value={cabinDraft.layoutId} onChange={(e) => { setCabinDraft(CABIN_PROFILES[e.target.value as CabinLayoutId]); setAircraftMeshDraftId(null); }}>{Object.entries(CABIN_LAYOUTS).map(([id, item]) => <option key={id} value={id}>{item.name}</option>)}</select></label>
+                <label className="cabin-profile-select">Aircraft / airline 3D model<select name="aircraftMeshId" aria-label="Aircraft or airline 3D model" value={aircraftMeshDraftId ?? ''} onChange={(e) => { const id = e.target.value || null; setAircraftMeshDraftId(id); if (id === DEFAULT_CABIN_MESH_ID) setCabinDraft(CABIN_PROFILES.g650erVvip); }}><option value="">Current reference cabin</option><optgroup label="Airline seat-map reconstructions">{AIRLINE_MESH_PROFILES.map((profile) => <option key={profile.id} value={profile.id}>{profile.label}</option>)}</optgroup><optgroup label="Aircraft dimension-based models">{AIRCRAFT_DIMENSION_PROFILES.map((profile) => <option key={profile.id} value={profile.id}>{profile.label}</option>)}</optgroup></select></label>
+                {(() => { const profile = getCabinMeshProfile(aircraftMeshDraftId); return profile ? <p className="cabin-profile-note">{profile.sourceNote}{profile.sourceUrl && <> · <a href={profile.sourceUrl} target="_blank" rel="noreferrer">source</a></>}</p> : <p className="cabin-profile-note">Choose a sourced simulation profile to load its GLB in the existing 3D viewer. The imported cabin geometry remains labeled as simulation.</p>; })()}
+                <div className="cabin-profile-summary">{cabinDraft.layoutId === 'a350900' ? <>Airbus A350-900 standard two-class data · 315 passengers: 48 business (6 abreast, 60 in pitch) + 267 economy (9 abreast, 32 in pitch) · {cabinDraft.lengthMeters.toFixed(2)} m cabin length · {cabinDraft.widthMeters.toFixed(2)} m max cabin width</> : cabinDraft.layoutId === 'a330300' ? <>Airbus A330-300 standard two-class data · 300 passengers: 36 business (6 abreast, 60 in pitch) + 264 economy (8 abreast, 32 in pitch) · {cabinDraft.lengthMeters.toFixed(2)} m cabin length · {cabinDraft.widthMeters.toFixed(2)} m max cabin width</> : cabinDraft.layoutId === 'g650erVvip' ? <>Gulfstream G650ER · 10 mesh-authored seats · five two-seat rows · {cabinDraft.lengthMeters.toFixed(2)} m cabin length · {cabinDraft.widthMeters.toFixed(2)} m finished cabin width · 16 published windows</> : <>{CABIN_LAYOUTS[cabinDraft.layoutId].description} · {cabinDraft.lengthMeters.toFixed(1)} m long · {cabinDraft.widthMeters.toFixed(2)} m wide · {CABIN_LAYOUTS[cabinDraft.layoutId].groups.reduce((sum, count) => sum + count, 0)} seats/row</>}</div>
+                {([['lengthMeters','Cabin length (m)',8,60,.1],['widthMeters','Interior width (m)',2,7,.05],['ceilingHeightMeters','Ceiling height (m)',1.8,4,.05],['seatRows','Seat rows',2,60,1],['seatPitchMeters','Seat pitch (m)',.55,2.2,.01],['windowCountPerSide','Windows per side',2,30,1],['overheadBinDepthMeters','Bin depth (m)',.25,1,.01]] as const).map(([key,label,min,max,step]) => <label key={key}>{(cabinDraft.layoutId === 'a350900' || cabinDraft.layoutId === 'a330300') && key === 'widthMeters' ? 'Max cabin width (m)' : label}<input type="number" min={min} max={max} step={step} value={cabinDraft[key]} disabled={(cabinDraft.layoutId === 'a350900' || cabinDraft.layoutId === 'a330300') && ['lengthMeters','widthMeters','seatRows','seatPitchMeters'].includes(key) || cabinDraft.layoutId === 'g650erVvip' && ['lengthMeters','widthMeters','ceilingHeightMeters','seatRows','windowCountPerSide'].includes(key)} onChange={(e) => setCabinDraft((config) => ({ ...config, [key]: Number(e.target.value) }))} /></label>)}
+                <p className="cabin-profile-note">{cabinDraft.layoutId === 'a350900' ? `Airbus dimensions and seat totals are planning references. ${CABIN_LAYOUTS.a350900.geometryNote}` : cabinDraft.layoutId === 'a330300' ? `Airbus A330-300 planning dimensions and seat totals are references. ${CABIN_LAYOUTS.a330300.geometryNote}` : cabinDraft.layoutId === 'ownerVvip' ? CABIN_LAYOUTS.ownerVvip.geometryNote : cabinDraft.layoutId === 'g650erVvip' ? CABIN_LAYOUTS.g650erVvip.geometryNote : 'These are editable reference layouts, not certified aircraft models or operator cabin fits.'}{(cabinDraft.layoutId === 'a350900' || cabinDraft.layoutId === 'a330300' || cabinDraft.layoutId === 'g650erVvip') && <><br /><a href={cabinDraft.layoutId === 'g650erVvip' ? CABIN_LAYOUTS.g650erVvip.source : CABIN_LAYOUTS[cabinDraft.layoutId].planningSource} target="_blank" rel="noreferrer">{cabinDraft.layoutId === 'g650erVvip' ? CABIN_LAYOUTS.g650erVvip.sourceRevision : CABIN_LAYOUTS[cabinDraft.layoutId].sourceRevision}</a></>}</p>
                 <button type="submit" className="button button-quiet button-sm">{t('loadCabinLayout')}</button>
               </form>}
-              <div className={`cabin-stage ${hq4k ? 'quality-high' : ''}`} data-view-mode={viewMode} data-cabin-layout={cabinConfig.layoutId} ref={stageRef}><div className="stage-grid" /><div className="stage-crosshair" />
-                {viewMode === '3d' ? <><Suspense fallback={<div className="cabin3d-loading" role="status">Preparing the configurable reference cabin…</div>}><Cabin3D key={JSON.stringify(cabinConfig)} config={cabinConfig} zones={zones} effective={effectiveRGBW} intensity={intensity} selected={selected} onSelect={setSelected} highQuality={hq4k} previewActive={playing} previewMotion={playing && motionPreview} previewTime={time} previewDuration={scene.durationSeconds} cameraView={cameraView} captureRef={cabinCaptureRef} cameraResetRef={cameraResetRef} /></Suspense><select className="camera-angle-select" aria-label="3D camera angle" value={cameraView} onChange={(event) => setCameraView(event.target.value as typeof cameraView)}><option value="entry">Entry view</option><option value="mid-cabin">Mid-cabin</option><option value="aft">Aft view</option><option value="window-row">Window row</option></select></> : <><CabinDrawing zones={zones.map((zone) => ({ ...zone, rgbw: Object.fromEntries(Object.entries(effectiveRGBW[zone.id]).map(([key, value]) => [key, value * intensity / 100])) as RGBW }))} selected={selected} onSelect={setSelected} config={cabinConfig} /><div className="stage-scale"><span /> {CABIN_LAYOUTS[cabinConfig.layoutId].name.toUpperCase()} · 2D REFERENCE MAP</div></>}
+              <div className={`cabin-stage ${hq4k ? 'quality-high' : ''}`} data-view-mode={viewMode} data-cabin-layout={cabinConfig.layoutId} data-aircraft-mesh-id={selectedMeshProfile?.id ?? ''} ref={stageRef}><div className="stage-grid" /><div className="stage-crosshair" />
+                {viewMode === '3d' ? <><Suspense fallback={<div className="cabin3d-loading" role="status">Loading the selected aircraft cabin mesh…</div>}>{selectedMeshProfile ? <CabinAsset3D key={selectedMeshProfile.id} profile={selectedMeshProfile} zones={zones} effective={effectiveRGBW} intensity={intensity} selected={selected} onSelect={setSelected} highQuality={hq4k} previewActive={playing} previewMotion={playing && motionPreview} previewTime={time} previewDuration={scene.durationSeconds} previewStartedAt={previewStartedAt} scene={scene} cameraView={cameraView} captureRef={cabinCaptureRef} cameraResetRef={cameraResetRef} /> : <Cabin3D key={JSON.stringify(cabinConfig)} config={cabinConfig} zones={zones} effective={effectiveRGBW} intensity={intensity} selected={selected} onSelect={setSelected} highQuality={hq4k} previewActive={playing} previewMotion={playing && motionPreview} previewTime={time} previewDuration={scene.durationSeconds} cameraView={cameraView} captureRef={cabinCaptureRef} cameraResetRef={cameraResetRef} />}</Suspense><select className="camera-angle-select" aria-label="3D camera angle" value={cameraView} onChange={(event) => setCameraView(event.target.value as typeof cameraView)}><option value="entry">Entry view</option><option value="mid-cabin">Mid-cabin</option><option value="aft">Aft view</option><option value="window-row">Window row</option></select></> : <><CabinDrawing zones={zones.map((zone) => ({ ...zone, rgbw: Object.fromEntries(Object.entries(effectiveRGBW[zone.id]).map(([key, value]) => [key, value * intensity / 100])) as RGBW }))} selected={selected} onSelect={setSelected} config={cabinConfig} /><div className="stage-scale"><span /> {selectedMeshProfile ? `${selectedMeshProfile.label.toUpperCase()} · 2D REFERENCE MAP` : `${CABIN_LAYOUTS[cabinConfig.layoutId].name.toUpperCase()} · 2D REFERENCE MAP`}</div></>}
               </div>
-              <div className="cabin-legend"><span><i className="legend-active" /> {t('activeZone')}: {currentZone.name}</span><span><i className="legend-zone" /> {t('doubleClickFixture')}</span><span className="legend-revision">Configurable reference geometry · not an aircraft fit</span></div>
+              <div className="cabin-legend"><span><i className="legend-active" /> {t('activeZone')}: {currentZone.name}</span><span><i className="legend-zone" /> {t('doubleClickFixture')}</span><span className="legend-revision">{selectedMeshProfile ? `${selectedMeshProfile.accuracy} · simulation only` : 'Configurable reference geometry · not an aircraft fit'}</span></div>
             </section>
             <section className="panel timeline-panel" id="timeline" tabIndex={-1}>
               <div className="timeline-head"><div><span className="panel-overline">{t('choreographyTimeline')}</span><h2>{t('transitionPreview')}</h2></div><div className="timeline-actions"><button className={`preview-toggle ${motionPreview ? 'is-on' : ''}`} aria-label="Camera motion preview" aria-pressed={motionPreview} title="Subtle camera motion during playback" onClick={() => setMotionPreview((value) => !value)}><Move3D size={13} /> Motion</button><button className={`preview-toggle ${audioCues ? 'is-on' : ''}`} aria-label="Mood music" aria-pressed={audioCues} title="Play a mood-specific instrumental during transition preview" onClick={() => setAudioCues((value) => !value)}><Volume2 size={13} /> Music</button><button className="preview-toggle" aria-label="Audio announcements and volume" aria-expanded={audioPanelOpen} title="Announcement, tour voice, and volume" onClick={() => setAudioPanelOpen((open) => !open)}><Headphones size={13} /> Audio</button><button className="button button-quiet button-sm" onClick={addKeyframe}><Plus size={14} /> {t('addKeyframe')}</button></div></div>

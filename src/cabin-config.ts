@@ -4,6 +4,7 @@ export const CABIN_LAYOUTS = {
   widebody: { name: 'Wide cabin · 3–3–3', description: 'Nine seats per row · two aisles', groups: [3, 3, 3] },
   premium: { name: 'Premium · 1–2–1', description: 'Four seats per row · two aisles', groups: [1, 2, 1] },
   ownerVvip: { name: 'VVIP suite · owner image reference', description: 'Two private seats per row, centered aisle, sidewall windows, full-length floor and individual footwells; image-derived proportions.', groups: [1, 1], geometryNote: 'The supplied cabin image guides the scene layout and materials. Dimensions, seat geometry, window spacing, and fittings are visually inferred because the image contains no scale or CAD data. This is a visual reference model, not an OEM drawing, measured aircraft fit, or photometric model.' },
+  g650erVvip: { name: 'Gulfstream G650ER · VVIP reference', description: 'Two seats across a centered aisle; 10 mesh-authored seats in five rows with sourced cabin envelope and window count.', groups: [1, 1], source: 'https://assets.gulfstream.aero/downloads/22_464552_G650ER_Product_Sheet_PROD_DAM.pdf', sourceRevision: 'Gulfstream G650ER Product Sheet · Feb 2022', seatCount: 10, seatCountBasis: 'Five two-seat rows counted in the supplied G650ER simulation mesh; not the manufacturer maximum capacity.', geometryNote: 'Cabin length (14.27 m), finished width (2.49 m), finished height (1.91 m), and 16 panoramic windows are from Gulfstream. The supplied simulation mesh provides a 10-seat, five-row arrangement; seat dimensions, row pitch, window positions, and interior fittings are authored estimates, not an operator fit.' },
   a330300: {
     name: 'A330-300 · standard reference',
     description: 'Airbus A330-300 planning dimensions and two-class seat data; row distribution is derived for illustration.',
@@ -57,11 +58,12 @@ export const CABIN_PROFILES: Record<CabinLayoutId, CabinConfig> = {
   widebody: { layoutId: 'widebody', lengthMeters: 27.6, widthMeters: 5.75, ceilingHeightMeters: 2.85, seatRows: 15, seatPitchMeters: .79, windowCountPerSide: 16, overheadBinDepthMeters: .75 },
   premium: { layoutId: 'premium', lengthMeters: 20.2, widthMeters: 5.25, ceilingHeightMeters: 2.72, seatRows: 9, seatPitchMeters: 1.05, windowCountPerSide: 12, overheadBinDepthMeters: .62 },
   ownerVvip: { layoutId: 'ownerVvip', lengthMeters: 18.4, widthMeters: 4.55, ceilingHeightMeters: 2.6, seatRows: 7, seatPitchMeters: 1.52, windowCountPerSide: 11, overheadBinDepthMeters: .5 },
+  g650erVvip: { layoutId: 'g650erVvip', lengthMeters: 14.27, widthMeters: 2.49, ceilingHeightMeters: 1.91, seatRows: 5, seatPitchMeters: 1.8, windowCountPerSide: 8, overheadBinDepthMeters: .28 },
   a330300: { layoutId: 'a330300', lengthMeters: 50.36, widthMeters: 5.26, ceilingHeightMeters: 2.85, seatRows: 39, seatPitchMeters: .8128, windowCountPerSide: 16, overheadBinDepthMeters: .72 },
   a350900: { layoutId: 'a350900', lengthMeters: 51.04, widthMeters: 5.71, ceilingHeightMeters: 2.85, seatRows: 38, seatPitchMeters: .8128, windowCountPerSide: 16, overheadBinDepthMeters: .75 },
 };
 
-export const DEFAULT_CABIN_CONFIG: CabinConfig = CABIN_PROFILES.singleAisle;
+export const DEFAULT_CABIN_CONFIG: CabinConfig = CABIN_PROFILES.g650erVvip;
 
 export function validateCabinConfig(input: Partial<CabinConfig> & { seatsPerSide?: number }): CabinConfig {
   const clamp = (value: unknown, fallback: number, min: number, max: number, integer = false) => {
@@ -71,15 +73,15 @@ export function validateCabinConfig(input: Partial<CabinConfig> & { seatsPerSide
   };
   // Migrate saved projects made before the layout selector existed.
   const legacyRows = input.seatsPerSide === 2 ? 'regional' : input.seatsPerSide === 1 ? 'premium' : null;
-  const layoutId: CabinLayoutId = Object.hasOwn(CABIN_LAYOUTS, input.layoutId ?? '') ? input.layoutId! : legacyRows ?? 'singleAisle';
+  const layoutId: CabinLayoutId = Object.hasOwn(CABIN_LAYOUTS, input.layoutId ?? '') ? input.layoutId! : legacyRows ?? 'g650erVvip';
   const fallback = CABIN_PROFILES[layoutId];
   return {
     layoutId,
     lengthMeters: clamp(input.lengthMeters, fallback.lengthMeters, 8, 60),
-    widthMeters: clamp(input.widthMeters, fallback.widthMeters, 2.6, 7),
+    widthMeters: clamp(input.widthMeters, fallback.widthMeters, 2.0, 7),
     ceilingHeightMeters: clamp(input.ceilingHeightMeters, fallback.ceilingHeightMeters, 1.8, 4),
     seatRows: clamp(input.seatRows, fallback.seatRows, 2, 40, true),
-    seatPitchMeters: clamp(input.seatPitchMeters, fallback.seatPitchMeters, .55, 1.3),
+    seatPitchMeters: clamp(input.seatPitchMeters, fallback.seatPitchMeters, .55, 2.2),
     windowCountPerSide: clamp(input.windowCountPerSide, fallback.windowCountPerSide, 2, 30, true),
     overheadBinDepthMeters: clamp(input.overheadBinDepthMeters, fallback.overheadBinDepthMeters, .25, 1),
   };

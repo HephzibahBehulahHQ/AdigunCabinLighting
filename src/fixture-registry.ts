@@ -28,6 +28,9 @@ const REFERENCE_GEOMETRY: Record<ZoneId, string> = {
   handrail: 'procedural handrail-area strip geometry',
   trolley: 'procedural service-area strip geometry',
   cabin: 'procedural general cabin wash geometry',
+  ceiling_cove: 'authored simulation mesh material group: ceiling_cove',
+  left_sidewall: 'authored simulation mesh material group: left_sidewall',
+  right_sidewall: 'authored simulation mesh material group: right_sidewall',
 };
 
 /**

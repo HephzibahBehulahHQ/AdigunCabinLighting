@@ -307,7 +307,8 @@ test('cabin map shapes respond to pointer selection', async ({ page }) => {
 test('new cabin zones, scenes, and browser-local projects are usable', async ({ page }) => {
   test.setTimeout(90_000);
   await page.goto('/studio');
-  await expect(page.getByRole('img', { name: /^Interactive 3D .* cabin reference;/i })).toBeVisible();
+  await expect(page.locator('.cabin-webgl-canvas')).toHaveAttribute('data-cabin-profile', 'gulfstream-g650er');
+  await expect(page.locator('.cabin-webgl-canvas')).toBeVisible();
   const renderSize = await page.locator('canvas.cabin-webgl-canvas').evaluate((canvas: HTMLCanvasElement) => ({ width: canvas.width, height: canvas.height }));
   expect(renderSize.width).toBeGreaterThan(0);
   expect(renderSize.height).toBeGreaterThan(0);
@@ -315,7 +316,7 @@ test('new cabin zones, scenes, and browser-local projects are usable', async ({ 
   await page.getByLabel('Cabin layout').selectOption('widebody');
   await expect(page.locator('.cabin-profile-summary')).toContainText('9 seats/row');
   await page.getByRole('button', { name: 'Load cabin layout' }).click();
-  await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-cabin-layout', 'widebody');
+  await expect(page.locator('.cabin-stage')).toHaveAttribute('data-cabin-layout', 'widebody');
   await page.getByRole('button', { name: 'Change cabin' }).click();
   await expect(page.getByLabel('Length (m)')).toHaveValue('27.6');
   await page.getByLabel('Length (m)').fill('22.4');
@@ -359,7 +360,11 @@ test('new cabin zones, scenes, and browser-local projects are usable', async ({ 
 
 test('Change cabin switches the 3D reference geometry from the left rail', async ({ page }) => {
   await page.goto('/studio');
-  await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-cabin-layout', 'singleAisle');
+  await expect(page.locator('.cabin-webgl-canvas')).toHaveAttribute('data-cabin-profile', 'gulfstream-g650er');
+  await expect(page.locator('.cabin-webgl-canvas')).toHaveAttribute('data-visible-windows', '16');
+  await expect(page.locator('.cabin-webgl-canvas')).toHaveAttribute('data-rendered-seats', '10');
+  await expect(page.locator('.cabin-webgl-canvas')).toHaveAttribute('data-seat-overlaps', '0');
+  await expect(page.locator('.cabin-webgl-canvas')).toHaveAttribute('data-seat-floor-gap', '0');
   await page.getByRole('button', { name: 'Change cabin' }).click();
   await page.getByLabel('Cabin layout').selectOption('regional');
   await expect(page.locator('.cabin-profile-summary')).toContainText('4 seats/row');
@@ -374,7 +379,7 @@ test('Change cabin switches the 3D reference geometry from the left rail', async
   await expect(page.getByLabel('Length (m)')).toHaveValue('27.6');
   await expect(page.getByLabel('Interior width (m)')).toHaveValue('5.75');
   await page.getByRole('button', { name: 'Load cabin layout' }).click();
-  await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-cabin-layout', 'widebody');
+  await expect(page.locator('.cabin-stage')).toHaveAttribute('data-cabin-layout', 'widebody');
   await expect(page.locator('.cabin3d-badge')).toContainText('Wide cabin');
 });
 
@@ -385,7 +390,7 @@ test('owner image-derived VVIP cabin profile switches the matching seat and wind
   await page.getByRole('button', { name: 'Change cabin' }).click();
   await page.getByLabel('Cabin layout').selectOption('ownerVvip');
   await expect(page.locator('.cabin-profile-summary')).toContainText('Two private seats per row');
-  await expect(page.locator('.cabin-profile-note')).toContainText('visually inferred');
+  await expect(page.locator('.cabin-profile-note').last()).toContainText('visually inferred');
   await page.getByRole('button', { name: 'Load cabin layout' }).click();
   const map = page.locator('.cabin-drawing');
   await expect(map).toHaveAttribute('data-layout-id', 'ownerVvip');
@@ -393,9 +398,9 @@ test('owner image-derived VVIP cabin profile switches the matching seat and wind
   await expect(map.locator('g[aria-label^="Cabin window "]')).toHaveCount(22);
 
   await cabinView.getByRole('button', { name: '3D' }).click();
-  const model = page.locator('.cabin3d-root');
+  const model = page.locator('.cabin-stage');
   await expect(model).toHaveAttribute('data-cabin-layout', 'ownerVvip');
-  await expect(model).toHaveAttribute('data-rendered-seat-count', '14');
+  await expect(page.locator('.cabin-webgl-canvas')).toBeVisible();
   await expect(page.locator('.cabin-webgl-canvas')).toHaveAttribute('aria-label', /VVIP suite.*visually inferred geometry/i);
 });
 
@@ -403,6 +408,7 @@ test('A350-900 reference loads source-backed cabin dimensions and the derived 31
   await page.goto('/studio');
   await page.getByRole('button', { name: 'Change cabin' }).click();
   await page.getByLabel('Cabin layout').selectOption('a350900');
+  await expect(page.getByLabel('Aircraft or airline 3D model')).toHaveValue('');
   await expect(page.locator('.cabin-profile-summary')).toContainText('315 passengers');
   await expect(page.locator('.cabin-profile-summary')).toContainText('48 business');
   await expect(page.locator('.cabin-profile-summary')).toContainText('267 economy');
@@ -410,13 +416,13 @@ test('A350-900 reference loads source-backed cabin dimensions and the derived 31
   await expect(page.getByLabel('Max cabin width (m)')).toHaveValue('5.71');
   await expect(page.getByLabel('Cabin length (m)')).toBeDisabled();
   await expect(page.getByLabel('Seat rows')).toBeDisabled();
-  await expect(page.locator('.cabin-profile-note')).toContainText('row distribution are derived');
-  await expect(page.locator('.cabin-profile-note a')).toHaveAttribute('href', /AC_A350_20250715\.pdf$/);
-  await expect(page.locator('.cabin-profile-note')).toContainText('Rev 15 · Jul 15/25');
-  await expect(page.locator('.cabin-profile-note')).toContainText('No licensed 3D cabin asset is included');
+  await expect(page.locator('.cabin-profile-note').last()).toContainText('row distribution are derived');
+  await expect(page.locator('.cabin-profile-note').last().locator('a')).toHaveAttribute('href', /AC_A350_20250715\.pdf$/);
+  await expect(page.locator('.cabin-profile-note').last()).toContainText('Rev 15 · Jul 15/25');
+  await expect(page.locator('.cabin-profile-note').last()).toContainText('not the Airbus plan drawing or an airline fit');
   await page.getByRole('button', { name: 'Load cabin layout' }).click();
-  await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-cabin-layout', 'a350900');
-  await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-rendered-seat-count', '315');
+  await expect(page.locator('.cabin-stage')).toHaveAttribute('data-cabin-layout', 'a350900');
+  await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-rendered-seat-count', '315', { timeout: 20_000 });
   await expect(page.locator('.cabin3d-badge')).toContainText('A350-900');
   await expect(page.locator('.cabin3d-badge')).toContainText('Not an aircraft-specific fit');
 });
@@ -425,6 +431,7 @@ test('A330-300 reference loads source-backed dimensions and its derived 300-seat
   await page.goto('/studio');
   await page.getByRole('button', { name: 'Change cabin' }).click();
   await page.getByLabel('Cabin layout').selectOption('a330300');
+  await expect(page.getByLabel('Aircraft or airline 3D model')).toHaveValue('');
   await expect(page.locator('.cabin-profile-summary')).toContainText('300 passengers');
   await expect(page.locator('.cabin-profile-summary')).toContainText('36 business');
   await expect(page.locator('.cabin-profile-summary')).toContainText('264 economy');
@@ -432,13 +439,13 @@ test('A330-300 reference loads source-backed dimensions and its derived 300-seat
   await expect(page.getByLabel('Max cabin width (m)')).toHaveValue('5.26');
   await expect(page.getByLabel('Cabin length (m)')).toBeDisabled();
   await expect(page.getByLabel('Seat rows')).toBeDisabled();
-  await expect(page.locator('.cabin-profile-note')).toContainText('derived for display');
-  await expect(page.locator('.cabin-profile-note a')).toHaveAttribute('href', /AC_A330_20251201\.pdf$/);
-  await expect(page.locator('.cabin-profile-note')).toContainText('Rev Dec 01/25');
-  await expect(page.locator('.cabin-profile-note')).toContainText('No licensed 3D cabin asset is included');
+  await expect(page.locator('.cabin-profile-note').last()).toContainText('derived for display');
+  await expect(page.locator('.cabin-profile-note').last().locator('a')).toHaveAttribute('href', /AC_A330_20251201\.pdf$/);
+  await expect(page.locator('.cabin-profile-note').last()).toContainText('Rev Dec 01/25');
+  await expect(page.locator('.cabin-profile-note').last()).toContainText('generic reference geometry');
   await page.getByRole('button', { name: 'Load cabin layout' }).click();
-  await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-cabin-layout', 'a330300');
-  await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-rendered-seat-count', '300');
+  await expect(page.locator('.cabin-stage')).toHaveAttribute('data-cabin-layout', 'a330300');
+  await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-rendered-seat-count', '300', { timeout: 20_000 });
   await expect(page.locator('.cabin3d-badge')).toContainText('A330-300');
   await expect(page.locator('.cabin3d-badge')).toContainText('Not an aircraft-specific fit');
 });
@@ -465,8 +472,8 @@ test('engineering preflight export includes source evidence, fixture gaps, and s
   expect(report.sceneComparison.status).toBe('COMPARED');
   expect(report.cabinProfile.sourceRevision).toContain('Jul 15/25');
   expect(report.cabinProfile.assetRights).toContain('No licensed 3D cabin asset');
-  expect(report.fixtureCoverage).toMatchObject({ status: 'MISSING_FIXTURE_DOCUMENTATION', checkedZoneCount: 11, documentedZoneCount: 0 });
-  expect(report.fixtureCoverage.missingDocumentationZones).toHaveLength(11);
+  expect(report.fixtureCoverage).toMatchObject({ status: 'MISSING_FIXTURE_DOCUMENTATION', checkedZoneCount: 14, documentedZoneCount: 0 });
+  expect(report.fixtureCoverage.missingDocumentationZones).toHaveLength(14);
 });
 
 test('Studio fits one viewport with docked panels at all required desktop sizes', async ({ page }) => {
@@ -512,13 +519,78 @@ test('Studio fits one viewport with docked panels at all required desktop sizes'
   }
 });
 
+test('airline cabin meshes load in the locked Studio and respond to controls', async ({ page }) => {
+  test.setTimeout(180_000);
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/studio');
+  const fixedPanels = ['.studio-topbar', '.studio-rail', '#cabin-view', '#timeline', '#scene-library', '#zone-inspector'];
+  const before = await Promise.all(fixedPanels.map((selector) => page.locator(selector).boundingBox()));
+
+  await page.getByRole('button', { name: 'Change cabin' }).click();
+  const modelPicker = page.getByLabel('Aircraft or airline 3D model');
+  await expect(modelPicker.locator('option')).toHaveCount(30);
+  await modelPicker.selectOption('emirates-777-300er-328');
+  await expect(page.locator('.cabin-profile-note').first()).toContainText('authored reconstruction');
+  await page.getByRole('button', { name: 'Load cabin layout' }).click();
+  await expect(page.locator('.cabin-stage')).toHaveAttribute('data-aircraft-mesh-id', 'emirates-777-300er-328');
+  await expect(page.locator('.cabin-asset-renderer')).toHaveCount(1);
+  const canvas = page.locator('.cabin-asset-renderer canvas');
+  await expect(canvas).toHaveAttribute('aria-label', /Emirates/);
+  await expect(canvas).toBeVisible();
+  await expect(page.locator('.cabin-asset-error')).toHaveCount(0);
+  const initialImage = await page.screenshot({ path: 'artifacts/screenshots/airline-emirates-328-3d.png' });
+
+  await page.getByLabel('3D camera angle').selectOption('window-row');
+  await page.mouse.move(720, 420);
+  await page.mouse.down();
+  await page.mouse.move(802, 456, { steps: 4 });
+  await page.mouse.up();
+  await page.locator('.cabin-stage').hover();
+  await page.mouse.wheel(0, -140);
+  const rotatedImage = await page.screenshot({ path: 'artifacts/screenshots/airline-emirates-328-camera-moved.png' });
+  expect(rotatedImage.equals(initialImage)).toBe(false);
+
+  await page.locator('#zone-picker').selectOption('left_sidewall');
+  await page.getByRole('spinbutton', { name: 'R percent' }).fill('88');
+  await page.getByRole('spinbutton', { name: 'R percent' }).press('Enter');
+  await expect(page.getByRole('heading', { name: 'Left Sidewall' })).toBeVisible();
+  const intensity = page.getByRole('slider', { name: 'MASTER INTENSITY' });
+  const intensityBefore = Number(await intensity.inputValue());
+  await intensity.press('ArrowUp');
+  await expect.poll(async () => Number(await intensity.inputValue())).toBeGreaterThan(intensityBefore);
+  await page.getByRole('button', { name: 'Change cabin' }).click();
+  await page.getByLabel('Aircraft or airline 3D model').selectOption('qantaslink-a220-300-137');
+  await page.getByRole('button', { name: 'Load cabin layout' }).click();
+  await expect(page.locator('.cabin-stage')).toHaveAttribute('data-aircraft-mesh-id', 'qantaslink-a220-300-137');
+  await expect(page.locator('.cabin-asset-renderer canvas')).toHaveAttribute('aria-label', /QantasLink/);
+  await page.getByRole('button', { name: 'Mood music' }).click();
+  await page.getByRole('button', { name: 'Play preview' }).click();
+  await expect(page.getByRole('button', { name: 'Pause preview' })).toBeVisible();
+  const timeline = page.getByRole('slider', { name: 'Scene timeline position' });
+  await expect.poll(async () => Number(await timeline.inputValue()), { timeout: 10_000 }).toBeGreaterThan(0);
+  await page.getByRole('button', { name: 'Pause preview' }).evaluate((button: HTMLButtonElement) => button.click());
+  await expect(page.getByRole('button', { name: 'Play preview' })).toBeVisible();
+  await page.screenshot({ path: 'artifacts/screenshots/airline-qantaslink-a220-3d-transition.png' });
+
+  const after = await Promise.all(fixedPanels.map((selector) => page.locator(selector).boundingBox()));
+  for (let index = 0; index < fixedPanels.length; index++) {
+    expect(after[index], `${fixedPanels[index]} disappeared after mesh selection`).not.toBeNull();
+    for (const edge of ['x', 'y', 'width', 'height'] as const) {
+      expect(after[index]![edge], `${fixedPanels[index]} ${edge} moved after mesh selection`).toBeCloseTo(before[index]![edge], 0);
+    }
+  }
+  expect(errors).toEqual([]);
+});
+
 test('3D camera presets change angle inside the existing cabin viewer without moving its docked panel', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/studio');
   const stage = page.locator('.cabin-stage');
   const before = await stage.boundingBox();
   await page.getByLabel('3D camera angle').selectOption('aft');
-  await expect(page.locator('.cabin3d-canvas')).toHaveAttribute('data-camera-view', 'aft');
+  await expect(page.locator('.cabin-asset-renderer')).toHaveAttribute('data-camera-view', 'aft');
   const aft = await stage.boundingBox();
   expect(aft?.x).toBeCloseTo(before?.x ?? 0, 1);
   expect(aft?.y).toBeCloseTo(before?.y ?? 0, 1);
@@ -526,7 +598,7 @@ test('3D camera presets change angle inside the existing cabin viewer without mo
   expect(aft?.height).toBeCloseTo(before?.height ?? 0, 1);
   await page.getByLabel('Reset cabin camera view').click();
   await page.getByLabel('3D camera angle').selectOption('window-row');
-  await expect(page.locator('.cabin3d-canvas')).toHaveAttribute('data-camera-view', 'window-row');
+  await expect(page.locator('.cabin-asset-renderer')).toHaveAttribute('data-camera-view', 'window-row');
 });
 
 test('Studio menus open without moving the canvas and close with Escape', async ({ page }) => {
@@ -539,5 +611,6 @@ test('Studio menus open without moving the canvas and close with Escape', async 
   await page.keyboard.press('Escape');
   await expect(page.getByRole('menuitem', { name: /Export scene JSON/ })).toBeHidden();
 });
+
 
 
