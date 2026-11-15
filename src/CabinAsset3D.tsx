@@ -41,7 +41,11 @@ const MATERIAL_ZONES: Record<string, ZoneId> = {
 function featureZone(name: string): ZoneId | undefined {
   const normalized = name.replace(/_/g, ' ').toLowerCase();
   if (/window (glass|glazing)/.test(normalized)) return 'windows';
-  if (/sidewall light/.test(normalized)) return normalized.includes('-1') ? 'left_sidewall' : 'right_sidewall';
+  if (/left sidewall fixture/.test(normalized) || /sidewall light.*-1/.test(normalized)) return 'left_sidewall';
+  if (/right sidewall fixture/.test(normalized) || /sidewall light.*\b1\b/.test(normalized)) return 'right_sidewall';
+  if (/reading light|reading lamp/.test(normalized)) return 'reading';
+  if (/spotlight|spot light|downlight/.test(normalized)) return 'spotlights';
+  if (/ceiling cove/.test(normalized)) return 'ceiling_cove';
   if (/footwell/.test(normalized)) return 'footwell';
   return undefined;
 }
@@ -237,10 +241,13 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
       const repeatedParts: THREE.Mesh[] = [];
       const windowBounds: THREE.Box3[] = [];
       let excludedWindowGlassCount = 0;
-      const seatBounds: THREE.Box3[] = [];
       const binBounds: THREE.Box3[] = [];
       const consoleBounds: THREE.Box3[] = [];
       const monumentBounds: THREE.Box3[] = [];
+      const sidewallFixtureBounds: Record<'left_sidewall' | 'right_sidewall', THREE.Box3[]> = { left_sidewall: [], right_sidewall: [] };
+      const readingFixtureBounds: THREE.Box3[] = [];
+      const spotlightFixtureBounds: THREE.Box3[] = [];
+      const coveBounds: THREE.Box3[] = [];
       let hasAuthoredCeiling = false;
       let visibleG650WindowGlass = 0;
       if (profile.id === 'gulfstream-g650er') seatG650ERSeatAssemblies(gltf.scene);
@@ -270,8 +277,17 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
         }
         const normalizedName = object.name.replace(/_/g, ' ').toLowerCase();
         if (object instanceof THREE.Mesh && /(?:cabin )?ceiling (?:panel|shell|lining)/.test(normalizedName)) hasAuthoredCeiling = true;
-        if (/seat.*headrest/.test(normalizedName)) {
-          const bounds = new THREE.Box3().setFromObject(object); if (!bounds.isEmpty()) seatBounds.push(bounds);
+        if (feature === 'left_sidewall' || feature === 'right_sidewall') {
+          const bounds = new THREE.Box3().setFromObject(object); if (!bounds.isEmpty()) sidewallFixtureBounds[feature].push(bounds);
+        }
+        if (feature === 'reading') {
+          const bounds = new THREE.Box3().setFromObject(object); if (!bounds.isEmpty()) readingFixtureBounds.push(bounds);
+        }
+        if (feature === 'spotlights') {
+          const bounds = new THREE.Box3().setFromObject(object); if (!bounds.isEmpty()) spotlightFixtureBounds.push(bounds);
+        }
+        if (feature === 'ceiling_cove') {
+          const bounds = new THREE.Box3().setFromObject(object); if (!bounds.isEmpty()) coveBounds.push(bounds);
         }
         if (/overhead luggage bin/.test(normalizedName)) {
           const bounds = new THREE.Box3().setFromObject(object); if (!bounds.isEmpty()) binBounds.push(bounds);
@@ -391,6 +407,15 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
       };
       const centerX = box.getCenter(new THREE.Vector3()).x;
       const cabinSpan = Math.max(.1, box.max.z - box.min.z);
+      for (const zone of ['left_sidewall', 'right_sidewall'] as const) {
+        for (const bounds of sidewallFixtureBounds[zone]) {
+          const source = bounds.getCenter(new THREE.Vector3());
+          source.x += zone === 'left_sidewall' ? size.x * .01 : -size.x * .01;
+          addPoint(zone, source, Math.max(1.2, size.x * .38));
+        }
+      }
+      for (const bounds of readingFixtureBounds) addPoint('reading', bounds.getCenter(new THREE.Vector3()), Math.max(1, size.x * .28));
+      for (const bounds of spotlightFixtureBounds) addPoint('spotlights', bounds.getCenter(new THREE.Vector3()), Math.max(1, size.x * .35));
       const roofHalfWidth = size.x * .49;
       const roofEdgeDrop = Math.max(.16, size.y * .14);
       const roofY = (x: number) => box.max.y - .035 - roofEdgeDrop * Math.min(1, ((x - centerX) / roofHalfWidth) ** 2);
@@ -454,16 +479,10 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
       edgeItems.filter((_, index) => index % Math.max(1, Math.ceil(edgeItems.length / 18)) === 0).forEach((item) => addPoint('handrail', item.position.clone(), Math.max(1.2, size.x * .42)));
 
       // Ceiling wash strips sit just above the overhead-bin tops and aim upward.
-      const ceilingItems = binBounds.map((bounds) => {
+      const ceilingItems = profile.zones.some((zone) => zone.id === 'ceiling') ? binBounds.map((bounds) => {
         const center = bounds.getCenter(new THREE.Vector3()); const extent = bounds.getSize(new THREE.Vector3());
         return { position: new THREE.Vector3(center.x, bounds.max.y + .022, center.z), size: new THREE.Vector3(Math.max(.12, extent.x * .62), .012, Math.max(.18, extent.z * .78)) };
-      });
-      if (!ceilingItems.length) {
-        for (const side of [-1, 1]) {
-          const x = centerX + side * size.x * .29;
-          ceilingItems.push({ position: new THREE.Vector3(x, roofY(x) - .025, box.getCenter(new THREE.Vector3()).z), size: new THREE.Vector3(.035, .018, cabinSpan * .84) });
-        }
-      }
+      }) : [];
       addFixtures('ceiling', ceilingItems);
       ceilingItems.filter((_, index) => index % Math.max(1, Math.ceil(ceilingItems.length / 12)) === 0).forEach((item) => {
         const surfaceY = roofY(item.position.x);
@@ -474,68 +493,7 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
       });
 
       // Central cove is a linear, ceiling-mounted source, independent from the bin-top wash.
-      const coveY = roofY(centerX) - .025;
-      addFixtures('ceiling_cove', [{ position: new THREE.Vector3(centerX, coveY, box.getCenter(new THREE.Vector3()).z), size: new THREE.Vector3(Math.max(.035, size.x * .018), .025, cabinSpan * .86) }]);
-      for (let index = 0; index < 8; index++) addPoint('ceiling_cove', new THREE.Vector3(centerX, coveY - .025, box.min.z + cabinSpan * (index + .5) / 8), Math.max(1.5, size.x * .62));
-
-      // One visible task emitter per authored seat headrest; physical spotlights are sampled along the cabin to bound draw cost.
-      const readingItems = seatBounds.map((bounds) => {
-        const center = bounds.getCenter(new THREE.Vector3());
-        return { position: new THREE.Vector3(center.x, Math.min(roofY(center.x) - .035, bounds.max.y + .42), center.z), size: new THREE.Vector3(.045, .018, .035) };
-      });
-      addFixtures('reading', readingItems);
-      readingItems.filter((_, index) => index % Math.max(1, Math.ceil(readingItems.length / 24)) === 0).forEach((item) => {
-        const target = item.position.clone().add(new THREE.Vector3(0, -Math.max(.42, size.y * .24), .24));
-        addSpot('reading', item.position.clone(), target, Math.max(1.5, size.x * .62), Math.PI / 6);
-      });
-
-      // Focused work lights are tied to modeled galley/monument bounds, not arbitrary cabin coordinates.
-      const workItems = monumentBounds.map((bounds) => {
-        const center = bounds.getCenter(new THREE.Vector3());
-        const aisleFaceX = center.x < centerX ? bounds.max.x : bounds.min.x;
-        return {
-          position: new THREE.Vector3(aisleFaceX, roofY(aisleFaceX) - .07, center.z),
-          size: new THREE.Vector3(.20, .06, .20),
-          target: new THREE.Vector3(aisleFaceX, Math.min(bounds.max.y - .04, bounds.min.y + .68), center.z),
-        };
-      });
-      // Where the cabin has no operator galley/monument surface near the seated
-      // passenger view, derive additional task spots from the modeled side-console
-      // bounds, evenly spaced along their actual longitudinal run.
-      for (const bounds of consoleBounds) {
-        const center = bounds.getCenter(new THREE.Vector3());
-        const extent = bounds.getSize(new THREE.Vector3());
-        const aisleFaceX = center.x < centerX ? bounds.max.x : bounds.min.x;
-        for (let index = 0; index < 4; index++) {
-          const z = bounds.min.z + extent.z * (index + .5) / 4;
-          workItems.push({
-            position: new THREE.Vector3(aisleFaceX, roofY(aisleFaceX) - .07, z),
-            size: new THREE.Vector3(.20, .06, .20),
-            target: new THREE.Vector3(aisleFaceX, bounds.max.y - .012, z),
-          });
-        }
-      }
-      const spotlightLensMaterial = new THREE.MeshBasicMaterial({ color: '#07111d', transparent: true, opacity: 0, depthWrite: false, toneMapped: false });
-      spotlightLensMaterial.userData.simulatedFixture = true;
-      const spotlightLensGeometry = new THREE.CylinderGeometry(.035, .035, .014, 20);
-      const spotlightLenses = new THREE.InstancedMesh(spotlightLensGeometry, spotlightLensMaterial, workItems.length);
-      spotlightLenses.name = `Simulated recessed spotlight lenses · ${workItems.length}`;
-      spotlightLenses.userData.zoneId = 'spotlights';
-      const lensTransform = new THREE.Object3D();
-      workItems.forEach((item, index) => {
-        lensTransform.position.copy(item.position);
-        lensTransform.updateMatrix();
-        spotlightLenses.setMatrixAt(index, lensTransform.matrix);
-      });
-      spotlightLenses.instanceMatrix.needsUpdate = true;
-      spotlightLenses.computeBoundingSphere();
-      root.add(spotlightLenses); selectable.push(spotlightLenses);
-      const spotlightMaterials = zoneMaterials.get('spotlights') ?? new Set<THREE.Material>();
-      spotlightMaterials.add(spotlightLensMaterial); zoneMaterials.set('spotlights', spotlightMaterials);
-      workItems.forEach((item) => {
-        addSpot('spotlights', item.position.clone(), item.target, Math.max(1.2, size.x * .7), Math.PI / 7);
-        addPoint('spotlights', item.target.clone(), Math.max(1.2, size.x * .35), 2.2);
-      });
+      for (const bounds of coveBounds) addPoint('ceiling_cove', bounds.getCenter(new THREE.Vector3()), Math.max(1.2, size.x * .45));
 
       let emergencyFixtureCount = 0;
       if (profile.zones.some((zone) => zone.id === 'emergency')) {
@@ -576,7 +534,7 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
       exitSignCount = signItems.length;
       }
 
-      renderer.domElement.dataset.simulatedFixtureCounts = JSON.stringify({ windows: panes.length, ceiling: ceilingItems.length, handrail: edgeItems.length, reading: readingItems.length, monuments: monumentBounds.length + consoleBounds.length, spotlights: workItems.length, emergency: emergencyFixtureCount, exit: exitSignCount, placementBasis: binBounds.length ? 'overhead-bins' : consoleBounds.length ? 'vip-side-console-and-upper-sidewall' : 'upper-sidewall-fallback' });
+      renderer.domElement.dataset.simulatedFixtureCounts = JSON.stringify({ windows: panes.length, ceiling: ceilingItems.length, handrail: edgeItems.length, leftSidewall: sidewallFixtureBounds.left_sidewall.length, rightSidewall: sidewallFixtureBounds.right_sidewall.length, cove: coveBounds.length, reading: readingFixtureBounds.length, monuments: monumentBounds.length + consoleBounds.length, spotlights: spotlightFixtureBounds.length, emergency: emergencyFixtureCount, exit: exitSignCount, placementBasis: binBounds.length ? 'overhead-bin-mesh-bounds' : consoleBounds.length ? 'vip-side-console-mesh-bounds' : 'named-component-bounds' });
       renderer.domElement.dataset.simulatedLightCount = String([...modelLights.values()].flat().filter((light) => light.userData.simulatedRuntimeLight === true).length);
       fitCamera(cameraView);
       applyZoneLighting(zoneMaterials, modelLights, lighting.current.effective, lighting.current.intensity);
@@ -721,4 +679,5 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
     <span className="cabin-asset-attribution">{profile.label} · SIMULATION GEOMETRY</span>
   </div>;
 }
+
 
