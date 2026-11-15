@@ -66,7 +66,8 @@ test('model-tied cabin fixture groups and combined moods render in the existing 
   const canvas = previewPage.locator('canvas.cabin-webgl-canvas');
   await expect.poll(async () => canvas.getAttribute('data-simulated-fixture-counts'), { timeout: 30_000 }).not.toBeNull();
   const counts = await canvas.evaluate((element) => JSON.parse(element.dataset.simulatedFixtureCounts ?? '{}') as Record<string, number | string>);
-  expect(counts.windows).toBeGreaterThan(0);
+  expect(counts.windows).toBe(16);
+  expect(await canvas.getAttribute('data-visible-windows')).toBe('16');
   expect(counts.reading).toBeGreaterThan(0);
   expect(counts.handrail).toBeGreaterThan(0);
   expect(counts.spotlights).toBeGreaterThanOrEqual(10);
