@@ -1,8 +1,12 @@
 # AdigunCabinLighting release status
 
-**Verified date:** 2026-11-14 (Europe/Berlin)
+**Verified date:** 2026-11-15 (Europe/Berlin)
 
 ## Latest deployed release checkpoint
+
+- **Latest deployed milestone:** [PR #68 — owner-referenced VVIP cabin profile](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/pull/68), merged as [`5200a379dbfdc7812eb59791685dee8efcff6ccf`](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/commit/5200a379dbfdc7812eb59791685dee8efcff6ccf). PR CI [run #179](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43656494376), post-merge CI [run #180](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43657122230), and Pages deployment [run](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43657122223) passed. Live `/` and `/studio/` returned HTTP 200 over HTTPS; the served `/assets/index-B6_ir-K6.js` bundle (261,799 bytes) contains the `ownerVvip` cabin profile, selector, 3D scene, and digital-twin labels.
+- **PR #68 scope and limits:** A selectable, image-derived VVIP cabin profile is available in the existing 2D and 3D views. The 3D view depicts two-seat private suites, centered aisle, side windows, consoles, ottomans/footwells, sidewalls, and flooring. The Studio interface and panel positions remain fixed. The supplied image has no scale/CAD, material specification, or aircraft fit; proportions and fittings are inferred, not an exact/OEM cabin model. 4K remains the measured export path; 16K/24K is not claimed.
+
 
 - **Latest deployed milestone:** [PR #65 — selectable landing-page language candidates](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/pull/65), merged as [`c995253f9b92929255fab019eae267e06fc738db`](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/commit/c995253f9b92929255fab019eae267e06fc738db).
 - **Validation and deployment:** [PR CI #169](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43646033067), post-merge [CI #170](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43646786697), and [Pages deployment #63](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43646786691) passed. Live `/` and `/studio/` returned HTTP 200. The deployed bundle includes English, German, Yoruba, Nigerian Pidgin, and scenario-package import.
