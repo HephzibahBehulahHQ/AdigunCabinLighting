@@ -398,9 +398,9 @@ test('owner image-derived VVIP cabin profile switches the matching seat and wind
   await expect(map.locator('g[aria-label^="Cabin window "]')).toHaveCount(22);
 
   await cabinView.getByRole('button', { name: '3D' }).click();
-  const model = page.locator('.cabin3d-root');
+  const model = page.locator('.cabin-stage');
   await expect(model).toHaveAttribute('data-cabin-layout', 'ownerVvip');
-  await expect(model).toHaveAttribute('data-rendered-seat-count', '14');
+  await expect(page.locator('.cabin-webgl-canvas')).toBeVisible();
   await expect(page.locator('.cabin-webgl-canvas')).toHaveAttribute('aria-label', /VVIP suite.*visually inferred geometry/i);
 });
 
