@@ -236,10 +236,10 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
           if (lightZone) { const entries = modelLights.get(lightZone) ?? []; entries.push(object); modelLights.set(lightZone, entries); }
           return;
         }
-        if (!(object instanceof THREE.Mesh)) return;
+        if (!(object instanceof THREE.Mesh) || !object.visible) return;
         const feature = featureZone(object.name);
         let list = Array.isArray(object.material) ? object.material : [object.material];
-        if (feature === 'windows') {
+        if (feature === 'windows' && object.visible) {
           list = list.map((material) => material.name.toLowerCase().includes('window glass') ? material.clone() : material);
           object.material = Array.isArray(object.material) ? list : list[0];
           const bounds = new THREE.Box3().setFromObject(object);
@@ -276,7 +276,7 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
           if (materialName === 'Upholstery stitching' && 'color' in material) (material as THREE.MeshStandardMaterial).color.set('#76695a');
         }
         const zone = feature ?? list.map((material) => MATERIAL_ZONES[material.name]).find(Boolean);
-        if (zone) {
+        if (zone && (feature !== 'windows' || object.visible)) {
           object.userData.zoneId = zone;
           selectable.push(object);
           for (const material of list) {
