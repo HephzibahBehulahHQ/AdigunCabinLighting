@@ -9,6 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 COMPONENT_PATTERNS = {
     "window_panes": r"^Window (?:glass|glazing)\b",
+    "ceiling_panels": r"^(?:Cabin )?Ceiling (?:panel|shell|lining)\b",
     "ceiling_coves": r"^Ceiling cove\b",
     "left_sidewall_lights": r"^Sidewall light -1$",
     "right_sidewall_lights": r"^Sidewall light 1$",
@@ -55,8 +56,9 @@ def profile_record(profile_id: str, mesh_path: str) -> dict:
 
     if counts["window_panes"]:
         add("windows", "Window daylight", f'{counts["window_panes"]} named glass/glazing components')
+    if counts["ceiling_panels"]:
+        add("ceiling", "Ceiling wash", f'{counts["ceiling_panels"]} named ceiling panel/shell components')
     if counts["overhead_bins"]:
-        add("ceiling", "Ceiling / bin wash", f'{counts["overhead_bins"]} overhead-bin components')
         add("handrail", "Handrail / bin edge", f'{counts["overhead_bins"]} overhead-bin components')
     elif counts["vip_side_consoles"]:
         add("handrail", "VIP console edge", f'{counts["vip_side_consoles"]} VIP side-console components')
