@@ -316,7 +316,7 @@ test('new cabin zones, scenes, and browser-local projects are usable', async ({ 
   await page.getByLabel('Cabin layout').selectOption('widebody');
   await expect(page.locator('.cabin-profile-summary')).toContainText('9 seats/row');
   await page.getByRole('button', { name: 'Load cabin layout' }).click();
-  await expect(page.locator('.cabin3d-root')).toHaveAttribute('data-cabin-layout', 'widebody');
+  await expect(page.locator('.cabin-stage')).toHaveAttribute('data-cabin-layout', 'widebody');
   await page.getByRole('button', { name: 'Change cabin' }).click();
   await expect(page.getByLabel('Length (m)')).toHaveValue('27.6');
   await page.getByLabel('Length (m)').fill('22.4');
