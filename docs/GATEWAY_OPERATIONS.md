@@ -45,7 +45,7 @@ If Node.js is not at \`/usr/bin/node\`, edit \`ExecStart\` in the unit to the ab
 
 \`\`\`sh
 sudo install -d -o root -g root -m 0700 /etc/adigun-cabin-lighting
-sudo sh -c 'umask 077; openssl rand -base64 32 | tr -d '\n' > /etc/adigun-cabin-lighting/gateway-token'
+sudo sh -c "umask 077; openssl rand -base64 32 | tr -d '\n' > /etc/adigun-cabin-lighting/gateway-token"
 sudo install -m 0644 deploy/systemd/adigun-cabin-gateway.service /etc/systemd/system/adigun-cabin-gateway.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now adigun-cabin-gateway.service
