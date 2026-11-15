@@ -377,11 +377,13 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
       const addPoint = (zone: ZoneId, position: THREE.Vector3, distance: number, decay = 2) => {
         if ((modelLights.get(zone)?.length ?? 0) >= MAX_DYNAMIC_LIGHTS_PER_ZONE) return;
         const light = new THREE.PointLight('#ffffff', 0, distance, decay); light.position.copy(position); light.name = `Simulated ${zone} source`;
+        light.userData.simulatedRuntimeLight = true;
         scene.add(light); const list = modelLights.get(zone) ?? []; list.push(light); modelLights.set(zone, list);
       };
       const addSpot = (zone: ZoneId, position: THREE.Vector3, targetPosition: THREE.Vector3, distance: number, angle = Math.PI / 5) => {
         if ((modelLights.get(zone)?.length ?? 0) >= MAX_DYNAMIC_LIGHTS_PER_ZONE) return;
         const light = new THREE.SpotLight('#ffffff', 0, distance, angle, .72, 2); light.position.copy(position); light.name = `Simulated ${zone} aimed source`;
+        light.userData.simulatedRuntimeLight = true;
         const target = new THREE.Object3D(); target.position.copy(targetPosition); scene.add(target); light.target = target; scene.add(light);
         const list = modelLights.get(zone) ?? []; list.push(light); modelLights.set(zone, list);
       };
@@ -566,7 +568,7 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
       signItems.forEach((item) => addPoint('exit', item.position.clone(), Math.max(.8, size.x * .20)));
 
       renderer.domElement.dataset.simulatedFixtureCounts = JSON.stringify({ windows: panes.length, ceiling: ceilingItems.length, handrail: edgeItems.length, reading: readingItems.length, spotlights: workItems.length, emergency: pathItems.length, exit: signItems.length, placementBasis: binBounds.length ? 'overhead-bins' : consoleBounds.length ? 'vip-side-console-and-upper-sidewall' : 'upper-sidewall-fallback' });
-      renderer.domElement.dataset.simulatedLightCount = String([...modelLights.values()].reduce((count, zoneLights) => count + zoneLights.length, 0));
+      renderer.domElement.dataset.simulatedLightCount = String([...modelLights.values()].flat().filter((light) => light.userData.simulatedRuntimeLight === true).length);
       fitCamera(cameraView);
       applyZoneLighting(zoneMaterials, modelLights, lighting.current.effective, lighting.current.intensity);
       rootBoxReady = true;
