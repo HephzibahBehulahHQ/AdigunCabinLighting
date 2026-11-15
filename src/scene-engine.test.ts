@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clampChannel, interpolateRGBW, interpolateScene, PRESETS, validateSceneFile, ZONE_IDS } from './scene-engine';
+import { clampChannel, interpolateRGBW, interpolateScene, PRESETS, preserveSafetyZones, validateSceneFile, ZONE_IDS } from './scene-engine';
 
 describe('RGBW scene engine', () => {
   it('clamps channel boundaries and non-finite input', () => {
@@ -46,6 +46,15 @@ describe('RGBW scene engine', () => {
     expect(Object.keys(state).sort()).toEqual([...ZONE_IDS].sort());
   });
 
+  it('keeps emergency and exit lighting independent from decorative mood scenes', () => {
+    const boarding = interpolateScene(PRESETS.find((item) => item.id === 'boarding')!, 45);
+    const emergency = { r: 12, g: 100, b: 38, w: 90 };
+    const exit = { r: 4, g: 100, b: 16, w: 64 };
+    expect(boarding.emergency).toEqual({ r: 0, g: 0, b: 0, w: 0 });
+    expect(preserveSafetyZones(boarding, { emergency, exit })).toMatchObject({ emergency, exit });
+    expect(preserveSafetyZones(boarding, {}).emergency).toEqual(boarding.emergency);
+  });
+
   it('rejects duplicate keyframe timestamps and out-of-range channel values', () => {
     const base = structuredClone(PRESETS[0]);
     base.keyframes[1].atSeconds = base.keyframes[0].atSeconds;
@@ -83,3 +92,4 @@ describe('RGBW scene engine', () => {
     }
   });
 });
+
