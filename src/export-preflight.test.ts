@@ -34,9 +34,9 @@ describe('offline export preflight report', () => {
       field: 'seatPitchMeters', classification: 'DERIVED_FOR_RENDERING',
       sourceUrl: report.cabinProfile.planningDocumentUrl,
     }));
-    expect(report.fixtureCoverage.checkedZoneCount).toBe(14);
+    expect(report.fixtureCoverage.checkedZoneCount).toBe(17);
     expect(report.fixtureCoverage.documentedZoneCount).toBe(0);
-    expect(report.fixtureEvidence).toHaveLength(14);
+    expect(report.fixtureEvidence).toHaveLength(17);
     expect(report.fixtureEvidence).toContainEqual(expect.objectContaining({
       zoneId: 'ceiling', documentationStatus: 'MISSING', fixtureIdentity: null,
       installationCoordinates: null, photometricData: null, source: null,
@@ -77,4 +77,5 @@ describe('offline export preflight report', () => {
     expect(report.cabinProfile.assetRights).toContain('no manufacturer source');
   });
 });
+
 
