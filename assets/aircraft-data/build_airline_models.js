@@ -1,7 +1,15 @@
+import { Buffer } from 'node:buffer';
+import { log } from 'node:console';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { argv } from 'node:process';
+import { TextEncoder } from 'node:util';
+import { fileURLToPath } from 'node:url';
+
 function makeAirline(profile) {
  const record=profile.aircraft_record;
- const interior=record.interior, ex=record.exterior;
- const isBoeing=record.manufacturer==='Boeing', wide=/777|787|A330|A350|A380/.test(record.model), vip=/G650/.test(record.model);
+ const interior=record.interior;
+ const vip=/G650/.test(record.model);
  const width=profile.width_m;
  const length=profile.length_m;
  const height=profile.height_m;
@@ -12,7 +20,7 @@ function makeAirline(profile) {
  assumptions.push('Seat geometry, pitch, window spacing, bins, bulkheads and fixture positions are authored simulation geometry; not measured OEM or airline-specific CAD.');
  const binary=[], views=[],accessors=[],meshes=[],nodes=[],materials=[],cache=new Map(); let bytes=0;
  function material(name,col,metal=0,rough=.6,emission){let m={name,pbrMetallicRoughness:{baseColorFactor:[...col,1],metallicFactor:metal,roughnessFactor:rough},doubleSided:true};if(emission)m.emissiveFactor=emission;materials.push(m);return materials.length-1;}
- const wall=material('Ivory molded cabin lining',[.77,.78,.80]),seat=material('Navy woven upholstery',[.035,.075,.135],0,.9),leather=material('Pearl seat headrest',[.48,.53,.60],0,.48),floor=material('Charcoal aisle carpet',[.035,.045,.065],0,1),metal=material('Brushed aluminum',[.5,.55,.61],.85,.24),dark=material('Seat frames and recesses',[.018,.025,.035]),glass=material('Window glass',[.055,.18,.30],.35,.15),wood=material('Walnut consoles',[.12,.055,.025],.1,.32),seam=material('Upholstery stitching',[.17,.23,.31],0,.9);
+ const wall=material('Ivory molded cabin lining',[.77,.78,.80]),leather=material('Pearl seat headrest',[.48,.53,.60],0,.48),floor=material('Charcoal aisle carpet',[.035,.045,.065],0,1),metal=material('Brushed aluminum',[.5,.55,.61],.85,.24),dark=material('Seat frames and recesses',[.018,.025,.035]),glass=material('Window glass',[.055,.18,.30],.35,.15),wood=material('Walnut consoles',[.12,.055,.025],.1,.32),seam=material('Upholstery stitching',[.17,.23,.31],0,.9);
  const emit={};for(const [n,c]of Object.entries({ceiling_cove:[.5,.12,1],left_sidewall:[.02,.75,1],right_sidewall:[.55,.08,1],footwell:[.02,.6,.5]}))emit[n]=material(n,c,0,.4,c);
  function buffer(arr,type,comp){let pad=(4-bytes%4)%4;if(pad){binary.push(new Uint8Array(pad));bytes+=pad;}const v=new Uint8Array(arr.buffer,arr.byteOffset,arr.byteLength);views.push({buffer:0,byteOffset:bytes,byteLength:v.length});binary.push(v);bytes+=v.length;const a={bufferView:views.length-1,componentType:comp,count:arr.length/(type==='VEC3'?3:1),type};if(type==='VEC3'){a.min=[Infinity,Infinity,Infinity];a.max=[-Infinity,-Infinity,-Infinity];for(let i=0;i<arr.length;i++){a.min[i%3]=Math.min(a.min[i%3],arr[i]);a.max[i%3]=Math.max(a.max[i%3],arr[i]);}}accessors.push(a);return accessors.length-1;}
  function mesh(name,v,f,mat){const ns=new Float32Array(v.length);for(let i=0;i<f.length;i+=3){const a=f[i]*3,b=f[i+1]*3,c=f[i+2]*3,ab=[v[b]-v[a],v[b+1]-v[a+1],v[b+2]-v[a+2]],ac=[v[c]-v[a],v[c+1]-v[a+1],v[c+2]-v[a+2]],n=[ab[1]*ac[2]-ab[2]*ac[1],ab[2]*ac[0]-ab[0]*ac[2],ab[0]*ac[1]-ab[1]*ac[0]];for(const k of[a,b,c])for(let j=0;j<3;j++)ns[k+j]+=n[j];}for(let i=0;i<ns.length;i+=3){const s=Math.hypot(ns[i],ns[i+1],ns[i+2])||1;for(let j=0;j<3;j++)ns[i+j]/=s;}const position=buffer(new Float32Array(v),'VEC3',5126),normal=buffer(ns,'VEC3',5126),indices=buffer(new Uint32Array(f),'SCALAR',5125);meshes.push({name,primitives:[{attributes:{POSITION:position,NORMAL:normal},indices,material:mat}]});return meshes.length-1;}
@@ -65,7 +73,6 @@ function makeAirline(profile) {
   occupied.push({id:p.id,class:p.class,x_m:p.x_m,z_m:p.z_m,component_node_start:startNode,component_node_end:nodes.length});
  }
  const rows=new Set(profile.seats.map(p=>p.z_m.toFixed(3))).size;
- const xs=[];
  for(const z of[-length/2+.15,length/2-.15]){box('Bulkhead left',[-width*.32,height*.46,z],[width*.30,height*.92,.08],wall);box('Bulkhead right',[width*.32,height*.46,z],[width*.30,height*.92,.08],wall);}
  if(vip)for(const side of[-1,1])box('VIP side console '+side,[side*width*.40,.68,0],[.21,.12,length-.4],wood,.035);
  const lights=[];for(let i=0;i<8;i++){let z=-length/2+(i+.5)*length/8;for(const [x,c,zone]of[[-width*.28,[.04,.6,1],'left_sidewall'],[width*.28,[.55,.1,1],'right_sidewall']]){lights.push({name:zone,type:'point',color:c,intensity:22,range:5});nodes.push({name:zone+' fixture '+i,translation:[x,height*.72,z],extensions:{KHR_lights_punctual:{light:lights.length-1}}});}}
@@ -78,14 +85,16 @@ function makeAirline(profile) {
  return {base64,metadata,stats:{bytes:result.length,meshes:meshes.length,nodes:nodes.length,triangles:accessors.filter(a=>a.type==='SCALAR').reduce((a,b)=>a+b.count/3,0)}};
 }
 
-if (typeof require !== 'undefined' && require.main === module) {
- const fs=require('fs'),path=require('path'),root=__dirname;
- const catalog=JSON.parse(fs.readFileSync(path.join(root,'airline-mesh-catalog.json'),'utf8'));
- fs.mkdirSync(path.join(root,'airline-meshes'),{recursive:true});
+const scriptPath = fileURLToPath(import.meta.url);
+if (argv[1] && resolve(argv[1]) === scriptPath) {
+ const root=dirname(scriptPath);
+ const catalog=JSON.parse(readFileSync(join(root,'airline-mesh-catalog.json'),'utf8'));
+ mkdirSync(join(root,'airline-meshes'),{recursive:true});
  for(const item of catalog.profiles){
-  const profile=JSON.parse(fs.readFileSync(path.join(root,item.layout_json),'utf8'));
+  const profile=JSON.parse(readFileSync(join(root,item.layout_json),'utf8'));
   const model=makeAirline(profile);
-  fs.writeFileSync(path.join(root,item.mesh_path),Buffer.from(model.base64,'base64'));
+  writeFileSync(join(root,item.mesh_path),Buffer.from(model.base64,'base64'));
  }
- console.log('Generated',catalog.profiles.length,'airline cabin GLBs');
+ log('Generated',catalog.profiles.length,'airline cabin GLBs');
 }
+
