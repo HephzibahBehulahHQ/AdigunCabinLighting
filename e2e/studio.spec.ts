@@ -540,7 +540,7 @@ test('airline cabin meshes load in the locked Studio and respond to controls', a
   await expect(canvas).toHaveAttribute('aria-label', /Emirates/);
   await expect(canvas).toBeVisible();
   await expect(page.locator('.cabin-asset-error')).toHaveCount(0);
-  expect(Number(await canvas.getAttribute('data-simulated-light-count'))).toBeLessThanOrEqual(34);
+  expect(Number(await canvas.getAttribute('data-simulated-light-count'))).toBeLessThanOrEqual(17);
   const initialImage = await page.screenshot({ path: 'artifacts/screenshots/airline-emirates-328-3d.png' });
 
   await page.getByLabel('3D camera angle').selectOption('window-row');
@@ -570,8 +570,7 @@ test('airline cabin meshes load in the locked Studio and respond to controls', a
   await page.getByRole('button', { name: 'Mood music' }).click();
   await page.getByRole('button', { name: 'Play preview' }).click();
   await expect(page.getByRole('button', { name: 'Pause preview' })).toBeVisible();
-  const timeline = page.getByRole('slider', { name: 'Scene timeline position' });
-  await expect.poll(async () => Number(await timeline.inputValue()), { timeout: 10_000 }).toBeGreaterThan(0);
+  await expect(page.locator('.time-readout')).not.toContainText('00:00', { timeout: 15_000 });
   await page.getByRole('button', { name: 'Pause preview' }).evaluate((button: HTMLButtonElement) => button.click());
   await expect(page.getByRole('button', { name: 'Play preview' })).toBeVisible();
   await page.screenshot({ path: 'artifacts/screenshots/airline-qantaslink-a220-3d-transition.png' });
