@@ -81,6 +81,8 @@ Useful row/seat audit samples: G650ER 5 rows / 10 seats; A330-900 57 / 456; A380
 - The page explains the profile → modeled light source → preview/save workflow and reports the 29 bundled mesh profiles.
 - Chromium has verified landing GLB load, palette selection, transition play/pause, and audio opt-in. The screenshot is `test-results/landing-live-3d-preview.png` in the worktree.
 - The landing preview is labeled HD simulation. 16K video remains a feasibility task; do not claim 16K capability from the current viewer.
+- Follow-up visual review moved the idle preview to the finished keyframe of its selected mood (so its palette is visible immediately) while Preview still runs the complete transition. The landing palette now samples ceiling, sidewall, window and footwell colors for six moods.
+- A local Chromium/SwiftShader probe reported an 8192 × 8192 max viewport, texture and renderbuffer, against a 15360 × 8640 (16K UHD) target; one RGBA frame requires 530,841,600 bytes (~506 MiB) before depth, multi-buffering or encoding. This host therefore cannot validate 16K; actual device and video-export benchmarking is still required.
 
 ## Additional user request: 16K cabin video
 

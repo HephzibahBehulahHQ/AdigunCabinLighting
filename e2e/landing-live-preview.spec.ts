@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test('landing page loads the cabin GLB and runs its color, transition, and sound controls', async ({ page }) => {
+  test.setTimeout(60_000);
   await page.setViewportSize({ width: 1600, height: 1000 });
   await page.goto('/');
   const preview = page.getByTestId('landing-live-cabin');

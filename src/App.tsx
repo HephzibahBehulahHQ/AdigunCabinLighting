@@ -367,7 +367,9 @@ function LandingCabinExperience() {
   const [selectedZone, setSelectedZone] = useState<ControlZoneId>('windows');
   const [playing, setPlaying] = useState(false);
   const [soundOn, setSoundOn] = useState(false);
-  const [time, setTime] = useState(0);
+  // Start on the selected mood's finished look so the landing preview opens
+  // with its actual cabin color palette; Preview still plays the full fade.
+  const [time, setTime] = useState(() => PRESETS.find((preset) => preset.id === 'aurora')?.durationSeconds ?? 0);
   const [playbackStartedAt, setPlaybackStartedAt] = useState(0);
   const [soundError, setSoundError] = useState('');
   const audioContext = useRef<AudioContext | null>(null);
@@ -394,7 +396,7 @@ function LandingCabinExperience() {
   };
   const chooseScene = (nextScene: SceneFile) => {
     setSceneId(nextScene.id);
-    setTime(0);
+    setTime(playing ? 0 : nextScene.durationSeconds);
     if (playing) {
       setPlaybackStartedAt(performance.now());
       startMusic(nextScene);
@@ -423,10 +425,12 @@ function LandingCabinExperience() {
     </Suspense>
     <div className="landing-view-badge"><span><i /> 3D · HD LIVE SIMULATION</span><span>{profile.aircraft}</span></div>
     <div className="landing-preview-tools" aria-label="Cabin light preview controls">
-      {PRESETS.filter((preset) => ['aurora', 'sunrise', 'sunset', 'dining'].includes(preset.id)).map((preset) => {
-        const rgbw = preset.keyframes[preset.keyframes.length - 1].targets.ceiling;
+      {PRESETS.filter((preset) => ['boarding', 'aurora', 'sunrise', 'sunset', 'dining', 'sleep'].includes(preset.id)).map((preset) => {
+        const targets = preset.keyframes[preset.keyframes.length - 1].targets;
+        const swatch = [targets.ceiling, targets.sidewalls, targets.windows, targets.footwell]
+          .map((rgbw) => `rgb(${rgbw.r * 2.55} ${rgbw.g * 2.55} ${rgbw.b * 2.55})`).join(', ');
         return <button type="button" key={preset.id} aria-label={`${preset.name} lighting palette`} aria-pressed={sceneId === preset.id} onClick={() => chooseScene(preset)}>
-          <i style={{ background: `rgb(${rgbw.r * 2.55} ${rgbw.g * 2.55} ${rgbw.b * 2.55})` }} />{preset.name}
+          <i style={{ background: `linear-gradient(90deg, ${swatch})` }} />{preset.name}
         </button>;
       })}
       <button type="button" className="landing-preview-play" onClick={playing ? () => { setPlaying(false); music.current?.stop(); music.current = null; } : playScene} aria-label={playing ? 'Pause cabin light preview' : 'Play cabin light preview'}>
@@ -1042,7 +1046,7 @@ function Studio() {
     if (!file) return;
     try {
       const parsed = validateSceneFile(JSON.parse(await file.text()));
-      setScenes((all) => [...all.filter((item) => item.id !== parsed.id), parsed]); setActiveSceneId(parsed.id); applySceneAt(0, parsed); setZones((previous) => previous.map((zone) => ({ ...zone, rgbw: parsed.keyframes[0].targets[zone.id] }))); setNotice(`${parsed.name} imported and validated`);
+      setScenes((all) => [...all.filter((item) => item.id !== parsed.id), parsed]); setActiveSceneId(parsed.id); applySceneAt(0, parsed); setZones((previous) => previous.map((zone) => ({ ...zone, rgbw: parsed.keyframes[0].targets[zone.id] ?? zone.rgbw }))); setNotice(`${parsed.name} imported and validated`);
     } catch (error) { setNotice(error instanceof Error ? error.message : 'Scene import failed validation'); }
     if (importRef.current) importRef.current.value = '';
   };

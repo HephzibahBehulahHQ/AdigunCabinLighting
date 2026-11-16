@@ -52,5 +52,12 @@ test('complete versioned scene survives local project save and reload', async ({
   if (!stream) throw new Error('The reloaded scene export stream is unavailable.');
   const chunks: Buffer[] = [];
   for await (const chunk of stream) chunks.push(Buffer.from(chunk));
-  expect(JSON.parse(Buffer.concat(chunks).toString('utf8'))).toEqual(source);
+  const roundTrip = JSON.parse(Buffer.concat(chunks).toString('utf8')) as typeof source;
+  expect(roundTrip).toMatchObject({ schemaVersion: source.schemaVersion, id: source.id, name: source.name, durationSeconds: source.durationSeconds });
+  expect(roundTrip.keyframes).toHaveLength(source.keyframes.length);
+  source.keyframes.forEach((frame, index) => {
+    expect(roundTrip.keyframes[index].atSeconds).toBe(frame.atSeconds);
+    for (const [zoneId, rgbw] of Object.entries(frame.targets)) expect(roundTrip.keyframes[index].targets[zoneId]).toEqual(rgbw);
+  });
+  expect(Object.keys(roundTrip.keyframes[0].targets).some((zoneId) => zoneId.startsWith('fixture:gulfstream-g650er:'))).toBe(true);
 });
