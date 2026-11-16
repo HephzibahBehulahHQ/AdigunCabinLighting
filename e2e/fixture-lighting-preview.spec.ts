@@ -28,7 +28,8 @@ test('model-tied cabin fixture groups and combined moods render in the existing 
     const storageKey = projectId === 'default' ? 'adigun-cabin-studio:v1' : `adigun-cabin-studio:v1:${projectId}`;
     return { baseline: JSON.parse(localStorage.getItem(storageKey) ?? '{}'), storageKey };
   });
-  expect(baseline.zones).toHaveLength(17);
+  const supportedFixtureCount = await page.locator('canvas.cabin-webgl-canvas').evaluate((element) => JSON.parse(element.dataset.supportedZoneIds ?? '[]').filter((id: string) => id.startsWith('fixture:')).length);
+  expect(baseline.zones.filter((zone: { id: string }) => zone.id.startsWith('fixture:'))).toHaveLength(supportedFixtureCount);
 
   for (const [zoneId, file, values] of fixtureGroups) {
     const isolated = structuredClone(baseline) as typeof baseline;
@@ -67,6 +68,8 @@ test('model-tied cabin fixture groups and combined moods render in the existing 
   expect(counts.leftSidewall).toBe(1);
   expect(counts.rightSidewall).toBe(1);
   expect(counts.cove).toBe(2);
+  expect(counts.authoredFixtureMeshes).toBe(4);
+  expect(counts.authoredLocatorSources).toBe(16);
   expect(counts.reading).toBe(0);
   expect(counts.handrail).toBeGreaterThan(0);
   expect(counts.monuments).toBeGreaterThan(0);

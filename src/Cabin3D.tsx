@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import type { RGBW, ZoneId, ZoneState } from './scene-engine';
+import type { ControlZoneId, RGBW, ZoneId, ZoneState } from './scene-engine';
 import { CABIN_LAYOUTS, type CabinConfig } from './cabin-config';
 import { composePreviewRGB, previewLightLevel } from './lighting-preview';
 import { CABIN_EXPORT_4K, canRenderExport } from './export-capabilities';
@@ -27,10 +27,10 @@ function cameraPose(view: CabinCameraView, config: CabinConfig): { position: THR
 type Props = {
   config: CabinConfig;
   zones: ZoneState[];
-  effective: Record<ZoneId, RGBW>;
+  effective: Record<ControlZoneId, RGBW>;
   intensity: number;
-  selected: ZoneId;
-  onSelect: (zone: ZoneId) => void;
+  selected: ControlZoneId;
+  onSelect: (zone: ControlZoneId) => void;
   highQuality: boolean;
   previewActive: boolean;
   previewMotion: boolean;
@@ -342,7 +342,7 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
       pointer.set(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
       raycaster.setFromCamera(pointer, camera);
       const hit = raycaster.intersectObjects(selectable, false)[0];
-      const id = hit?.object.userData.zoneId as ZoneId | undefined;
+      const id = hit?.object.userData.zoneId as ControlZoneId | undefined;
       if (id) onSelect(id);
       requestDraw();
     };
@@ -443,10 +443,12 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
     const current = api.current;
     if (!current) return;
     for (const zone of zones) {
-      const color = sRGB(effective[zone.id]);
-      const level = previewLightLevel(effective[zone.id], intensity);
-      for (const light of current.lights.get(zone.id) ?? []) { light.color.copy(color); light.intensity = level * (zone.id === 'cabin' ? 25 : 19); }
-      for (const material of current.zoneMaterials.get(zone.id) ?? []) { material.emissive.copy(color); material.emissiveIntensity = level === 0 ? 0 : .2 + level * 2.4; }
+      const id = zone.id as ZoneId;
+      const value = effective[id] ?? zone.rgbw;
+      const color = sRGB(value);
+      const level = previewLightLevel(value, intensity);
+      for (const light of current.lights.get(id) ?? []) { light.color.copy(color); light.intensity = level * (id === 'cabin' ? 25 : 19); }
+      for (const material of current.zoneMaterials.get(id) ?? []) { material.emissive.copy(color); material.emissiveIntensity = level === 0 ? 0 : .2 + level * 2.4; }
     }
     if (previewMotion) {
       motionHome.current ??= { position: current.camera.position.clone(), rotation: current.camera.rotation.clone() };

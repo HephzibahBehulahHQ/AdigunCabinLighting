@@ -7,8 +7,8 @@ import {
   Headphones, Megaphone, Move3D, Volume2, Waves, X,
 } from 'lucide-react';
 import {
-  interpolateRGBW, interpolateScene, makeDefaultZones, makeZones, normalizeRGBW, PRESETS, preserveSafetyZones, toHex, validateSceneFile,
-  ZONE_IDS, ZONE_INFO, type RGBW, type SceneFile, type ZoneId, type ZoneState,
+  interpolateRGBW, interpolateScene, makeDefaultZones, makeZones, normalizeRGBW, PRESETS, preserveSafetyZones, toHex, validateSceneFile, withFixtureFallbacks,
+  ZONE_IDS, ZONE_INFO, type ControlZoneId, type RGBW, type SceneFile, type ZoneId, type ZoneState,
 } from './scene-engine';
 import { composePreviewRGB } from './lighting-preview';
 import { CABIN_EXPORT_4K, estimateRgbaSurfaceMiB } from './export-capabilities';
@@ -26,7 +26,7 @@ const REFERENCE_INSPECTOR_ZONE_IDS: readonly ZoneId[] = ['ceiling', 'windows', '
 const STORAGE_KEY = 'adigun-cabin-studio:v1';
 const PROJECT_INDEX_KEY = 'adigun-cabin-projects:v1';
 const ACTIVE_PROJECT_KEY = 'adigun-cabin-active-project:v1';
-type SavedState = { zones: ZoneState[]; scenes: SceneFile[]; intensity: number; activeSceneId: string; selectedZoneId: ZoneId; projectName?: string; cabinConfig?: CabinConfig; aircraftMeshId?: string | null };
+type SavedState = { zones: ZoneState[]; scenes: SceneFile[]; intensity: number; activeSceneId: string; selectedZoneId: ControlZoneId; projectName?: string; cabinConfig?: CabinConfig; aircraftMeshId?: string | null };
 type LocalMoodAudioCue = { readonly objectUrl: string; readonly fileName: string; readonly title: string; readonly rightsReference: string };
 type LocalMoodAudioDraft = { file: File | null; title: string; rightsReference: string };
 const MAX_LOCAL_MOOD_AUDIO_BYTES = 25 * 1024 * 1024;
@@ -52,13 +52,16 @@ function readSaved(projectId = 'default'): Partial<SavedState> {
 
 function migrateZones(saved?: readonly ZoneState[]): ZoneState[] {
   if (!saved) return makeDefaultZones();
-  return makeZones().map((base) => {
+  const baseZones = makeZones().map((base) => {
     const previous = saved.find((zone) => zone.id === base.id);
     if (previous) return { ...base, ...previous, rgbw: normalizeRGBW(previous.rgbw) };
     const legacyId: ZoneId | undefined = base.id === 'ceiling_cove' ? 'ceiling' : base.id === 'left_sidewall' || base.id === 'right_sidewall' ? 'sidewalls' : undefined;
     const legacy = legacyId ? saved.find((zone) => zone.id === legacyId) : undefined;
     return legacy ? { ...base, rgbw: normalizeRGBW(legacy.rgbw), fadeSeconds: legacy.fadeSeconds } : base;
   });
+  const fixtureZones = saved.filter((zone) => zone.id.startsWith('fixture:') && zone.parentZoneId && ZONE_IDS.includes(zone.parentZoneId))
+    .map((zone) => ({ ...zone, rgbw: normalizeRGBW(zone.rgbw) }));
+  return [...baseZones, ...fixtureZones];
 }
 
 type ProjectEntry = { id: string; name: string; updatedAt: string };
@@ -80,7 +83,7 @@ function cabinGlows(zones: ZoneState[]) {
 }
 
 function CabinReferenceView({ zones, selected, onSelect, compact, layoutId }: {
-  zones: ZoneState[]; selected: ZoneId; onSelect?: (id: ZoneId) => void; compact: boolean; layoutId: CabinLayoutId;
+  zones: ZoneState[]; selected: ControlZoneId; onSelect?: (id: ControlZoneId) => void; compact: boolean; layoutId: CabinLayoutId;
 }) {
   const available = new Set(zones.map((zone) => zone.id));
   const spots: { id: ZoneId; label: string; x: number; y: number; w: number; h: number }[] = [
@@ -104,7 +107,7 @@ function CabinReferenceView({ zones, selected, onSelect, compact, layoutId }: {
 }
 
 function CabinDrawing({ zones, selected, onSelect, compact = false, config = DEFAULT_CABIN_CONFIG, referenceImage = true }: {
-  zones: ZoneState[]; selected: ZoneId; onSelect?: (id: ZoneId) => void; compact?: boolean; config?: CabinConfig; referenceImage?: boolean;
+  zones: ZoneState[]; selected: ControlZoneId; onSelect?: (id: ControlZoneId) => void; compact?: boolean; config?: CabinConfig; referenceImage?: boolean;
 }) {
   const glows = cabinGlows(zones);
   if (referenceImage) return <CabinReferenceView zones={zones} selected={selected} onSelect={onSelect} compact={compact} layoutId={config.layoutId} />;
@@ -253,7 +256,7 @@ const LANDING_COPY = {
     sectionEyebrow: 'A WORKSPACE FOR LIGHT', sectionTitle: 'From zone to', atmosphere: 'atmosphere.',
     sectionBody: 'Every control is tied to an editable cabin zone. Every scene is yours to shape, preview, and save locally.',
     cards: [
-      ['01 · SPATIAL DESIGN', 'Zone by zone', 'Select ceiling coves, window reveals, sidewalls, footwell, reading lights, and entry accents in an interactive cabin map.'],
+      ['01 · SPATIAL DESIGN', 'Cabin-aware zones', 'Choose a modeled aircraft profile and inspect its available lighting sources in the interactive cabin view. Unsupported fixtures stay out of that cabin’s inspector.'],
       ['02 · RGBW CONTROL', 'Precise, editable scenes', 'Shape red, green, blue, and white output per zone. Refine a fade and see the simulator respond immediately.'],
       ['03 · CHOREOGRAPHY', 'Time has a texture', 'Build a paced transition with real keyframes, scrub the deterministic preview, and export a versioned scene file.'],
     ],
@@ -262,6 +265,13 @@ const LANDING_COPY = {
     exploreStudio: 'Explore the Studio', safetyTitle: 'Safety is explicit in every session.',
     safetyBody: 'SIMULATION · OFFLINE · NO HARDWARE CONNECTED. Physical bench and aircraft integration require independent authorization, validated equipment, and their own safety gates.',
     review: 'Review the simulator', footer: 'Engineering simulator · 2026',
+    workflowTitle: 'From cabin profile to repeatable scene.',
+    workflow: [
+      ['01', 'Choose a cabin', 'Switch between the aircraft and airline mesh profiles available in this workspace.'],
+      ['02', 'Work with modeled sources', 'The inspector follows the selected cabin and exposes only its supported lighting sources.'],
+      ['03', 'Preview and save', 'Edit RGBW values, review a timed transition, then save or export the scene for review.'],
+    ],
+    profileCount: '29 bundled cabin mesh profiles',
   },
   de: {
     language: 'Sprache', navLabel: 'Hauptnavigation', nav: ['Funktionen', 'Technik', 'Sicherheit'], open: 'Studio öffnen',
@@ -283,6 +293,13 @@ const LANDING_COPY = {
     exploreStudio: 'Studio ansehen', safetyTitle: 'Sicherheit ist in jeder Sitzung ausdrücklich ausgewiesen.',
     safetyBody: 'SIMULATION · OFFLINE · KEINE HARDWARE VERBUNDEN. Prüfstand- und Flugzeugintegration erfordern eine unabhängige Genehmigung, validierte Ausrüstung und eigene Sicherheitsfreigaben.',
     review: 'Simulator ansehen', footer: 'Engineering-Simulator · 2026',
+    workflowTitle: 'Vom Kabinenprofil zur wiederholbaren Szene.',
+    workflow: [
+      ['01', 'Kabine auswählen', 'Wechseln Sie zwischen den Flugzeug- und Airline-Meshprofilen dieses Arbeitsbereichs.'],
+      ['02', 'Modellierte Lichtquellen nutzen', 'Der Inspector richtet sich nach der ausgewählten Kabine und zeigt nur belegte Lichtquellen.'],
+      ['03', 'Vorschau und speichern', 'Bearbeiten Sie RGBW-Werte, prüfen Sie den zeitlichen Übergang und speichern oder exportieren Sie die Szene.'],
+    ],
+    profileCount: '29 enthaltene Kabinen-Meshprofile',
   },
   yo: {
     language: 'Èdè', navLabel: 'Àkójọ ìtọ́kasí àkọ́kọ́', nav: ['Àwọn iṣẹ́', 'Ìmọ̀ ẹ̀rọ', 'Ààbò'], open: 'Ṣí Studio',
@@ -304,6 +321,13 @@ const LANDING_COPY = {
     exploreStudio: 'Ṣàyẹ̀wò Studio', safetyTitle: 'A ń ṣàlàyé ààbò ní gbogbo ìgbà ìlò.',
     safetyBody: 'ÌṢẸ̀LẸ̀ · LÁÌSÍ ÌSỌ̀DỌ̀ · KÒ SÍ Ẹ̀RỌ̀ GIDI TÍ A SOPỌ̀. Ìdánwò pẹ̀lú ohun èlò àti ìsopọ̀ ọkọ̀ òfurufú nílò àṣẹ olómìnira, ohun èlò tí a ti fọwọ́sí, àti ìgbésẹ̀ ààbò lọ́tọ̀ọ̀tọ̀.',
     review: 'Ṣàyẹ̀wò simulator', footer: 'Simulator ìmọ̀ ẹ̀rọ · 2026',
+    workflowTitle: 'Láti àpẹẹrẹ àgọ́ dé ìran tó ṣeé tún ṣe.',
+    workflow: [
+      ['01', 'Yan àpẹẹrẹ àgọ́', 'Yí padà láàárín àwọn àpẹẹrẹ ọkọ̀ òfurufú àti ọkọ̀ òfurufú ilé-iṣẹ́ tó wà.'],
+      ['02', 'Lo àwọn orísun ìmọ́lẹ̀ tó wà nínú àwòrán', 'Inspector yóò tẹ̀lé àgọ́ tí a yàn, yóò sì fi àwọn orísun ìmọ́lẹ̀ tó ní àkọsílẹ̀ hàn.'],
+      ['03', 'Ṣàyẹ̀wò, kí o sì pamọ́', 'Ṣàtúnṣe RGBW, ṣàyẹ̀wò ìyípadà àkókò, kí o sì pamọ́ tàbí gbé ìran jáde.'],
+    ],
+    profileCount: 'Àpẹẹrẹ mesh àgọ́ 29 wà nínú ètò',
   },
   pcm: {
     language: 'Language', navLabel: 'Main navigation', nav: ['Wetin e fit do', 'Engineering', 'Safety'], open: 'Open Studio',
@@ -325,9 +349,97 @@ const LANDING_COPY = {
     exploreStudio: 'Check the Studio', safetyTitle: 'Safety dey clear for every session.',
     safetyBody: 'SIMULATION · OFFLINE · NO HARDWARE CONNECTED. Bench test and aircraft integration need independent authorization, validated equipment, and separate safety checks.',
     review: 'Review the simulator', footer: 'Engineering simulator · 2026',
+    workflowTitle: 'From cabin profile reach scene wey you fit repeat.',
+    workflow: [
+      ['01', 'Choose cabin', 'Switch between aircraft and airline mesh profiles wey dey for this workspace.'],
+      ['02', 'Use modeled light sources', 'Inspector follow the cabin wey you choose and show only the lighting sources wey get support.'],
+      ['03', 'Preview and save', 'Edit RGBW, check timed transition, then save or export the scene for review.'],
+    ],
+    profileCount: '29 cabin mesh profiles dey inside',
   },
 } as const;
 type LandingLocale = keyof typeof LANDING_COPY;
+
+function LandingCabinExperience() {
+  const profile = getCabinMeshProfile(DEFAULT_CABIN_MESH_ID) ?? AIRCRAFT_DIMENSION_PROFILES[0];
+  const zones = useMemo(() => getProfileZones(profile, makeDefaultZones()), [profile]);
+  const [sceneId, setSceneId] = useState('aurora');
+  const [selectedZone, setSelectedZone] = useState<ControlZoneId>('windows');
+  const [playing, setPlaying] = useState(false);
+  const [soundOn, setSoundOn] = useState(false);
+  const [time, setTime] = useState(0);
+  const [playbackStartedAt, setPlaybackStartedAt] = useState(0);
+  const [soundError, setSoundError] = useState('');
+  const audioContext = useRef<AudioContext | null>(null);
+  const music = useRef<MoodMusicHandle | null>(null);
+  const captureRef = useRef<(() => Promise<Blob>) | null>(null);
+  const resetRef = useRef<(() => void) | null>(null);
+  const scene = PRESETS.find((preset) => preset.id === sceneId) ?? PRESETS[1];
+  const effective = useMemo(() => withFixtureFallbacks(interpolateScene(scene, time), zones), [scene, time, zones]);
+
+  const startMusic = (selectedScene: SceneFile, enabled = soundOn) => {
+    if (!enabled) return;
+    if (!window.AudioContext) { setSoundError('Instrumental preview is unavailable in this browser.'); return; }
+    audioContext.current ??= new window.AudioContext();
+    void audioContext.current.resume().then(() => {
+      music.current?.stop();
+      music.current = scheduleMoodMusic(audioContext.current!, selectedScene.id, 0, selectedScene.durationSeconds, .36);
+    }).catch(() => setSoundError('Browser audio permission prevented playback.'));
+  };
+  const playScene = () => {
+    setTime(0);
+    setPlaybackStartedAt(performance.now());
+    setPlaying(true);
+    startMusic(scene);
+  };
+  const chooseScene = (nextScene: SceneFile) => {
+    setSceneId(nextScene.id);
+    setTime(0);
+    if (playing) {
+      setPlaybackStartedAt(performance.now());
+      startMusic(nextScene);
+    }
+  };
+
+  useEffect(() => {
+    if (!playing) return;
+    let frame = 0;
+    const tick = (now: number) => {
+      const nextTime = Math.min(scene.durationSeconds, Math.max(0, (now - playbackStartedAt) / 1000));
+      setTime(nextTime);
+      if (nextTime < scene.durationSeconds) frame = requestAnimationFrame(tick);
+      else { setPlaying(false); music.current?.stop(); music.current = null; }
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [playing, playbackStartedAt, scene.durationSeconds]);
+  useEffect(() => () => { music.current?.stop(); void audioContext.current?.close(); }, []);
+
+  return <div className="hero-art live-cabin-preview" data-testid="landing-live-cabin">
+    <Suspense fallback={<div className="landing-3d-loading">Loading cabin scene…</div>}>
+      <CabinAsset3D profile={profile} zones={zones} effective={effective} intensity={78} selected={selectedZone} onSelect={setSelectedZone}
+        highQuality previewActive={playing} previewMotion={false} previewTime={time} previewDuration={scene.durationSeconds} previewStartedAt={playbackStartedAt}
+        scene={scene} cameraView="entry" captureRef={captureRef} cameraResetRef={resetRef} />
+    </Suspense>
+    <div className="landing-view-badge"><span><i /> 3D · HD LIVE SIMULATION</span><span>{profile.aircraft}</span></div>
+    <div className="landing-preview-tools" aria-label="Cabin light preview controls">
+      {PRESETS.filter((preset) => ['aurora', 'sunrise', 'sunset', 'dining'].includes(preset.id)).map((preset) => {
+        const rgbw = preset.keyframes[preset.keyframes.length - 1].targets.ceiling;
+        return <button type="button" key={preset.id} aria-label={`${preset.name} lighting palette`} aria-pressed={sceneId === preset.id} onClick={() => chooseScene(preset)}>
+          <i style={{ background: `rgb(${rgbw.r * 2.55} ${rgbw.g * 2.55} ${rgbw.b * 2.55})` }} />{preset.name}
+        </button>;
+      })}
+      <button type="button" className="landing-preview-play" onClick={playing ? () => { setPlaying(false); music.current?.stop(); music.current = null; } : playScene} aria-label={playing ? 'Pause cabin light preview' : 'Play cabin light preview'}>
+        {playing ? <Pause size={13} /> : <Play size={13} />}{playing ? 'Pause' : 'Preview'}
+      </button>
+      <button type="button" className={`landing-preview-sound ${soundOn ? 'is-on' : ''}`} aria-pressed={soundOn} onClick={() => { const next = !soundOn; setSoundOn(next); if (next) startMusic(scene, true); else { music.current?.stop(); music.current = null; } }}>
+        <Volume2 size={14} />{soundOn ? 'Sound on' : 'Sound'}
+      </button>
+    </div>
+    {soundError && <span className="landing-audio-status" role="status">{soundError}</span>}
+    <div className="art-caption"><span className="art-caption-dot" /> {scene.name} / cabin lighting <small>RGBW · SIMULATED</small></div>
+  </div>;
+}
 
 function Landing() {
   const [locale, setLocale] = useState<LandingLocale>(readAppLocale);
@@ -345,11 +457,10 @@ function Landing() {
         <p>{text.intro}</p>
         <div className="hero-actions"><a className="button button-primary button-large" href="/studio">{text.enter} <ArrowRight size={18} /></a><a href="#capabilities" className="text-link">{text.explore} <ArrowDownToLine size={15} /></a></div>
         <div className="hero-proof"><span><Radio size={16} /> {text.offline}</span><span><ShieldCheck size={16} /> {text.noOutput}</span></div>
+        <div className="landing-profile-proof"><span className="landing-profile-count">{AIRLINE_MESH_PROFILES.length + AIRCRAFT_DIMENSION_PROFILES.length}</span><span>{text.profileCount}</span><span className="landing-proof-divider" /><span>2D / 3D · RGBW · Scene timeline</span></div>
       </div>
       <div className="hero-art-wrap"><div className="hero-art-label"><span>{text.sceneStudy}</span><span>{text.simProfile}</span></div>
-        <div className="hero-art"><CabinDrawing zones={PRESETS[1].keyframes[1] ? makeZones().map((zone) => ({ ...zone, rgbw: PRESETS[1].keyframes[1].targets[zone.id] })) : makeZones()} selected="windows" compact />
-          <div className="art-caption"><span className="art-caption-dot" /> {text.aurora} <small>{text.zoneCount}</small></div>
-        </div>
+        <LandingCabinExperience />
         <div className="hero-art-bottom"><span>{text.zoneMap}</span><span>{text.notConnected}</span></div>
       </div>
     </section>
@@ -359,6 +470,7 @@ function Landing() {
         {text.cards.map(([meta, title, body]) => <article key={meta}><span className="feature-icon"><LayoutGrid size={19} /></span><small>{meta}</small><h3>{title}</h3><p>{body}</p></article>)}
       </div>
     </section>
+    <section className="landing-workflow" aria-labelledby="landing-workflow-title"><div className="landing-workflow-heading"><div className="eyebrow">{text.profileCount}</div><h2 id="landing-workflow-title">{text.workflowTitle}</h2></div><div className="landing-workflow-steps">{text.workflow.map(([number, title, body]) => <article key={number}><span>{number}</span><div><h3>{title}</h3><p>{body}</p></div></article>)}</div><a href="/studio" className="button button-outline">{text.exploreStudio} <ArrowRight size={15} /></a></section>
     <section className="engineering-band" id="engineering"><div className="engineering-mark"><Gauge size={24} /></div><div><div className="eyebrow">{text.engineeringEyebrow}</div><h2>{text.engineeringTitle}</h2><p>{text.engineeringBody}</p></div><a href="/studio" className="button button-quiet">{text.exploreStudio} <ArrowRight size={16} /></a></section>
     <section className="safety-section" id="safety"><ShieldCheck size={18} /><div><strong>{text.safetyTitle}</strong><p>{text.safetyBody}</p></div><a href="/studio">{text.review} <ArrowRight size={14} /></a></section>
     <footer className="landing-footer"><Brand small /><span>AdigunCabinLighting · HB Elektroniker</span><span>{text.footer}</span></footer>
@@ -393,7 +505,7 @@ function Studio() {
     catch { return copy(PRESETS); }
   });
   const [intensity, setIntensity] = useState<number>(() => Number.isFinite(stored.intensity) ? Math.max(0, Math.min(100, stored.intensity!)) : 72);
-  const [selected, setSelected] = useState<ZoneId>(() => ZONE_IDS.includes(stored.selectedZoneId as ZoneId) ? stored.selectedZoneId! : 'ceiling');
+  const [selected, setSelected] = useState<ControlZoneId>(() => ZONE_IDS.includes(stored.selectedZoneId as ZoneId) || stored.selectedZoneId?.startsWith('fixture:') ? stored.selectedZoneId! : 'ceiling');
   const [activeSceneId, setActiveSceneId] = useState(() => typeof stored.activeSceneId === 'string' ? stored.activeSceneId : 'aurora');
   const [projectName, setProjectName] = useState(() => typeof stored.projectName === 'string' && stored.projectName.trim() ? stored.projectName : 'Cabin 01');
   const [cabinConfig, setCabinConfig] = useState<CabinConfig>(() => validateCabinConfig(stored.cabinConfig ?? {}));
@@ -403,14 +515,14 @@ function Studio() {
   const selectedMeshProfile = getCabinMeshProfile(aircraftMeshId);
   const inspectorZones = useMemo(() => selectedMeshProfile
     ? getProfileZones(selectedMeshProfile, zones)
-    : zones.filter((zone) => REFERENCE_INSPECTOR_ZONE_IDS.includes(zone.id)), [selectedMeshProfile, zones]);
+    : zones.filter((zone) => REFERENCE_INSPECTOR_ZONE_IDS.includes(zone.id as ZoneId)), [selectedMeshProfile, zones]);
   const inspectorZoneIds = useMemo(() => new Set(inspectorZones.map((zone) => zone.id)), [inspectorZones]);
   useEffect(() => {
     if (!inspectorZoneIds.has(selected) && inspectorZones[0]) setSelected(inspectorZones[0].id);
   }, [inspectorZoneIds, inspectorZones, selected]);
   const [time, setTime] = useState(0);
   const [previewStartedAt, setPreviewStartedAt] = useState(0);
-  const [effectiveRGBW, setEffectiveRGBW] = useState<Record<ZoneId, RGBW>>(() => Object.fromEntries(zones.map((zone) => [zone.id, { ...zone.rgbw }])) as Record<ZoneId, RGBW>);
+  const [effectiveRGBW, setEffectiveRGBW] = useState<Record<ControlZoneId, RGBW>>(() => Object.fromEntries(zones.map((zone) => [zone.id, { ...zone.rgbw }])) as Record<ControlZoneId, RGBW>);
   const [playing, setPlaying] = useState(false);
   const [motionPreview, setMotionPreview] = useState(false);
   const [audioCues, setAudioCues] = useState(true);
@@ -446,11 +558,35 @@ function Studio() {
   const speechUtterance = useRef<SpeechSynthesisUtterance | null>(null);
   const speechTimer = useRef<number | null>(null);
   const effectiveRef = useRef(effectiveRGBW);
-  const zoneValuesRef = useRef(Object.fromEntries(zones.map((zone) => [zone.id, zone.rgbw])) as Record<ZoneId, RGBW>);
-  zoneValuesRef.current = Object.fromEntries(zones.map((zone) => [zone.id, zone.rgbw])) as Record<ZoneId, RGBW>;
-  const fadeTransitions = useRef<Partial<Record<ZoneId, { from: RGBW; to: RGBW; started: number; durationMs: number }>>>({});
+  const zoneValuesRef = useRef(Object.fromEntries(zones.map((zone) => [zone.id, zone.rgbw])) as Record<ControlZoneId, RGBW>);
+  zoneValuesRef.current = Object.fromEntries(zones.map((zone) => [zone.id, zone.rgbw])) as Record<ControlZoneId, RGBW>;
+  const fadeTransitions = useRef<Partial<Record<ControlZoneId, { from: RGBW; to: RGBW; started: number; durationMs: number }>>>({});
   const fadeFrame = useRef<number | null>(null);
   const scene = scenes.find((item) => item.id === activeSceneId) ?? scenes[0] ?? PRESETS[0];
+  useEffect(() => {
+    if (!selectedMeshProfile) return;
+    const profileFixtures = getProfileZones(selectedMeshProfile, zones).filter((zone) => zone.parentZoneId);
+    if (!profileFixtures.length) return;
+    const existing = new Set(zones.map((zone) => zone.id));
+    const added = profileFixtures.filter((zone) => !existing.has(zone.id));
+    if (added.length) {
+      setZones((previous) => [...previous, ...added.filter((zone) => !previous.some((item) => item.id === zone.id))]);
+      const effective = { ...effectiveRef.current, ...Object.fromEntries(added.map((zone) => [zone.id, { ...zone.rgbw }])) };
+      effectiveRef.current = effective;
+      setEffectiveRGBW(effective);
+    }
+    setScenes((previous) => previous.map((item) => ({
+      ...item,
+      keyframes: item.keyframes.map((frame) => ({
+        ...frame,
+        targets: { ...frame.targets, ...Object.fromEntries(profileFixtures.map((zone) => [
+          zone.id,
+          frame.targets[zone.id] ?? frame.targets[zone.parentZoneId!] ?? zone.rgbw,
+        ])) },
+      })),
+    })));
+  // Seed only the selected cabin's fixture tracks from its parent moods.
+  }, [selectedMeshProfile?.id]);
   const audioTrackKey = `${projectId}:${scene.id}`;
   const currentMoodAudio = localMoodAudio[audioTrackKey];
   const currentVoiceAudio = localAudioRole === 'mood' ? undefined : localVoiceAudio[`${projectId}:${localAudioRole}`];
@@ -588,7 +724,7 @@ function Studio() {
     if (fadeFrame.current !== null) cancelAnimationFrame(fadeFrame.current);
     fadeFrame.current = null;
   };
-  const setEffectiveImmediately = (values: Record<ZoneId, RGBW>) => {
+  const setEffectiveImmediately = (values: Record<ControlZoneId, RGBW>) => {
     stopFadeFrame(); fadeTransitions.current = {}; effectiveRef.current = values; setEffectiveRGBW(values);
   };
   useEffect(() => {
@@ -656,7 +792,7 @@ function Studio() {
     if (speechUtterance.current) speechUtterance.current.volume = audioVolume / 100;
     if (localVoiceAudioRef.current) localVoiceAudioRef.current.volume = audioVolume / 100;
   }, [audioVolume]);
-  const fadeZoneTo = (id: ZoneId, value: RGBW, seconds: number) => {
+  const fadeZoneTo = (id: ControlZoneId, value: RGBW, seconds: number) => {
     if (seconds <= 0) {
       fadeTransitions.current[id] = undefined;
       const next = { ...effectiveRef.current, [id]: { ...value } };
@@ -667,7 +803,7 @@ function Studio() {
     const tick = (now: number) => {
       const next = { ...effectiveRef.current };
       let active = false;
-      for (const zoneId of ZONE_IDS) {
+      for (const zoneId of Object.keys(fadeTransitions.current) as ControlZoneId[]) {
         const transition = fadeTransitions.current[zoneId];
         if (!transition) continue;
         const progress = Math.min(1, Math.max(0, (now - transition.started) / transition.durationMs));
@@ -702,10 +838,10 @@ function Studio() {
       if (now - lastVisualUpdate >= 100 || next >= scene.durationSeconds) {
         lastVisualUpdate = now;
         setTime(next);
-        if (!aircraftMeshId) setEffectiveImmediately(preserveSafetyZones(interpolateScene(scene, next), zoneValuesRef.current));
+        if (!aircraftMeshId) setEffectiveImmediately(preserveSafetyZones(withFixtureFallbacks(interpolateScene(scene, next), zones), zoneValuesRef.current));
       }
       if (next >= scene.durationSeconds) {
-        if (aircraftMeshId) setEffectiveImmediately(preserveSafetyZones(interpolateScene(scene, next), zoneValuesRef.current));
+        if (aircraftMeshId) setEffectiveImmediately(preserveSafetyZones(withFixtureFallbacks(interpolateScene(scene, next), zones), zoneValuesRef.current));
         setPlaying(false);
         return;
       }
@@ -713,7 +849,7 @@ function Studio() {
     };
     animation = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(animation);
-  }, [playing, scene, aircraftMeshId]);
+  }, [playing, scene, aircraftMeshId, zones]);
   useEffect(() => () => stopFadeFrame(), []);
   useEffect(() => {
     if (!notice) return;
@@ -731,19 +867,25 @@ function Studio() {
   const setRGBW = (channel: keyof RGBW, value: number) => {
     snapshot(); setRedo([]);
     const rgbw = { ...currentZone.rgbw, [channel]: Math.max(0, Math.min(100, value)) };
-    const editedIds: ZoneId[] = selected === 'sidewalls' ? ['sidewalls', 'left_sidewall', 'right_sidewall'] : [selected];
-    setZones((previous) => previous.map((zone) => editedIds.includes(zone.id) ? { ...zone, rgbw } : zone));
+    const editedIds: ControlZoneId[] = selected === 'sidewalls' ? ['sidewalls', 'left_sidewall', 'right_sidewall'] : [selected];
+    setZones((previous) => {
+      const matching = previous.map((zone) => editedIds.includes(zone.id) ? { ...zone, rgbw } : zone);
+      return matching.some((zone, index) => zone !== previous[index]) ? matching : [...previous, { ...currentZone, rgbw }];
+    });
     editedIds.forEach((id) => fadeZoneTo(id, rgbw, zones.find((zone) => zone.id === id)?.fadeSeconds ?? currentZone.fadeSeconds));
     setPlaying(false);
   };
   const setZoneColor = (rgbw: RGBW) => {
     snapshot(); setRedo([]);
-    const editedIds: ZoneId[] = selected === 'sidewalls' ? ['sidewalls', 'left_sidewall', 'right_sidewall'] : [selected];
-    setZones((previous) => previous.map((zone) => editedIds.includes(zone.id) ? { ...zone, rgbw } : zone));
+    const editedIds: ControlZoneId[] = selected === 'sidewalls' ? ['sidewalls', 'left_sidewall', 'right_sidewall'] : [selected];
+    setZones((previous) => {
+      const matching = previous.map((zone) => editedIds.includes(zone.id) ? { ...zone, rgbw } : zone);
+      return matching.some((zone, index) => zone !== previous[index]) ? matching : [...previous, { ...currentZone, rgbw }];
+    });
     editedIds.forEach((id) => fadeZoneTo(id, rgbw, zones.find((zone) => zone.id === id)?.fadeSeconds ?? currentZone.fadeSeconds)); setPlaying(false);
   };
   const applySceneAt = (nextTime: number, nextScene = scene) => {
-    const targets = preserveSafetyZones(interpolateScene(nextScene, nextTime), zoneValuesRef.current);
+    const targets = preserveSafetyZones(withFixtureFallbacks(interpolateScene(nextScene, nextTime), zones), zoneValuesRef.current);
     setEffectiveImmediately(targets);
     playbackTime.current = nextTime;
     const audio = localMoodAudioRef.current;
@@ -754,7 +896,10 @@ function Studio() {
     const next = scenes.find((item) => item.id === id);
     if (!next) return;
     setPlaying(false); setActiveSceneId(id); applySceneAt(0, next);
-    setZones((previous) => previous.map((zone) => ({ ...zone, rgbw: ['emergency', 'exit'].includes(zone.id) ? zone.rgbw : next.keyframes[0].targets[zone.id] })));
+    setZones((previous) => previous.map((zone) => ({
+      ...zone,
+      rgbw: zone.id === 'emergency' || zone.id === 'exit' ? zone.rgbw : next.keyframes[0].targets[zone.id] ?? (zone.parentZoneId ? next.keyframes[0].targets[zone.parentZoneId] : zone.rgbw),
+    })));
     setNotice(next.name + ' loaded into simulator');
   };
   const changeFade = (value: number) => {
@@ -762,11 +907,11 @@ function Studio() {
   };
   const undoOnce = () => {
     if (!undo.length) return;
-    setRedo((history) => [...history, copy(zones)]); setZones(undo[undo.length - 1]); setEffectiveImmediately(Object.fromEntries(undo[undo.length - 1].map((zone) => [zone.id, zone.rgbw])) as Record<ZoneId, RGBW>); setUndo((history) => history.slice(0, -1)); setPlaying(false);
+    setRedo((history) => [...history, copy(zones)]); setZones(undo[undo.length - 1]); setEffectiveImmediately(Object.fromEntries(undo[undo.length - 1].map((zone) => [zone.id, zone.rgbw])) as Record<ControlZoneId, RGBW>); setUndo((history) => history.slice(0, -1)); setPlaying(false);
   };
   const redoOnce = () => {
     if (!redo.length) return;
-    setUndo((history) => [...history, copy(zones)]); setZones(redo[redo.length - 1]); setEffectiveImmediately(Object.fromEntries(redo[redo.length - 1].map((zone) => [zone.id, zone.rgbw])) as Record<ZoneId, RGBW>); setRedo((history) => history.slice(0, -1)); setPlaying(false);
+    setUndo((history) => [...history, copy(zones)]); setZones(redo[redo.length - 1]); setEffectiveImmediately(Object.fromEntries(redo[redo.length - 1].map((zone) => [zone.id, zone.rgbw])) as Record<ControlZoneId, RGBW>); setRedo((history) => history.slice(0, -1)); setPlaying(false);
   };
   const saveScene = () => {
     const finalEasing = scene.keyframes.find((item) => item.atSeconds === scene.durationSeconds)?.easing;
@@ -776,7 +921,7 @@ function Studio() {
     setScenes((all) => all.map((item) => item.id === updated.id ? updated : item));
     setNotice(`Saved ${scene.name} locally`);
   };
-  const resetScene = () => { const defaults = makeDefaultZones(); setPlaying(false); setUndo([]); setRedo([]); setScenes(copy(PRESETS)); setZones(defaults); setEffectiveImmediately(Object.fromEntries(defaults.map((zone) => [zone.id, zone.rgbw])) as Record<ZoneId, RGBW>); setActiveSceneId('aurora'); setSelected('ceiling'); setTime(0); setIntensity(72); setCabinConfig(DEFAULT_CABIN_CONFIG); setCabinDraft(DEFAULT_CABIN_CONFIG); setAircraftMeshId(DEFAULT_CABIN_MESH_ID); setAircraftMeshDraftId(DEFAULT_CABIN_MESH_ID); setNotice('Local studio reset to default scenes'); };
+  const resetScene = () => { const defaults = makeDefaultZones(); setPlaying(false); setUndo([]); setRedo([]); setScenes(copy(PRESETS)); setZones(defaults); setEffectiveImmediately(Object.fromEntries(defaults.map((zone) => [zone.id, zone.rgbw])) as Record<ControlZoneId, RGBW>); setActiveSceneId('aurora'); setSelected('ceiling'); setTime(0); setIntensity(72); setCabinConfig(DEFAULT_CABIN_CONFIG); setCabinDraft(DEFAULT_CABIN_CONFIG); setAircraftMeshId(DEFAULT_CABIN_MESH_ID); setAircraftMeshDraftId(DEFAULT_CABIN_MESH_ID); setNotice('Local studio reset to default scenes'); };
   const currentProjectState = (): SavedState => ({ zones, scenes, intensity, activeSceneId, selectedZoneId: selected, projectName, cabinConfig, aircraftMeshId });
   const saveProject = () => { try { writeProject(projectId, projectName, currentProjectState()); setNotice(`Project “${projectName}” saved locally`); } catch { setNotice('Project could not be saved to browser storage'); } };
   const loadProject = (id: string, name: string) => {
@@ -788,7 +933,7 @@ function Studio() {
       if (!nextScenes.length) nextScenes = copy(PRESETS);
     } catch { nextScenes = copy(PRESETS); }
     const nextMeshId = Object.hasOwn(next, 'aircraftMeshId') ? getCabinMeshProfile(next.aircraftMeshId)?.id ?? null : DEFAULT_CABIN_MESH_ID;
-    setProjectId(id); localStorage.setItem(ACTIVE_PROJECT_KEY, id); setProjectName(next.projectName || name); setZones(nextZones); setScenes(nextScenes); setIntensity(Number.isFinite(next.intensity) ? Math.max(0, Math.min(100, next.intensity!)) : 72); setActiveSceneId(next.activeSceneId || 'aurora'); setSelected(ZONE_IDS.includes(next.selectedZoneId as ZoneId) ? next.selectedZoneId! : 'ceiling'); setCabinConfig(validateCabinConfig(next.cabinConfig ?? {})); setCabinDraft(validateCabinConfig(next.cabinConfig ?? {})); setAircraftMeshId(nextMeshId); setAircraftMeshDraftId(nextMeshId); setUndo([]); setRedo([]); setPlaying(false); setTime(0); setEffectiveImmediately(Object.fromEntries(nextZones.map((zone) => [zone.id, zone.rgbw])) as Record<ZoneId, RGBW>); setNotice(`Project “${name}” opened`);
+    setProjectId(id); localStorage.setItem(ACTIVE_PROJECT_KEY, id); setProjectName(next.projectName || name); setZones(nextZones); setScenes(nextScenes); setIntensity(Number.isFinite(next.intensity) ? Math.max(0, Math.min(100, next.intensity!)) : 72); setActiveSceneId(next.activeSceneId || 'aurora'); setSelected(next.selectedZoneId && (ZONE_IDS.includes(next.selectedZoneId as ZoneId) || next.selectedZoneId.startsWith('fixture:')) ? next.selectedZoneId : 'ceiling'); setCabinConfig(validateCabinConfig(next.cabinConfig ?? {})); setCabinDraft(validateCabinConfig(next.cabinConfig ?? {})); setAircraftMeshId(nextMeshId); setAircraftMeshDraftId(nextMeshId); setUndo([]); setRedo([]); setPlaying(false); setTime(0); setEffectiveImmediately(Object.fromEntries(nextZones.map((zone) => [zone.id, zone.rgbw])) as Record<ControlZoneId, RGBW>); setNotice(`Project “${name}” opened`);
   };
   const openProject = () => {
     const index = readProjectIndex(); if (!index.length) { setNotice('Save a project before using Open Project'); return; }
@@ -921,7 +1066,7 @@ function Studio() {
       setActiveSceneId(scenario.activeSceneId); setSelected('ceiling');
       setCabinConfig(scenario.cabin.config); setCabinDraft(scenario.cabin.config);
       setUndo([]); setRedo([]); setPlaying(false); setTime(0);
-      setEffectiveImmediately(Object.fromEntries(importedZones.map((zone) => [zone.id, zone.rgbw])) as Record<ZoneId, RGBW>);
+      setEffectiveImmediately(Object.fromEntries(importedZones.map((zone) => [zone.id, zone.rgbw])) as Record<ControlZoneId, RGBW>);
       setNotice(`Scenario “${scenario.projectName}” imported as a new local project · simulation only · no hardware output`);
     } catch (error) { setNotice(error instanceof Error ? error.message : 'Scenario package import failed validation'); }
     if (scenarioImportRef.current) scenarioImportRef.current.value = '';
@@ -1028,7 +1173,7 @@ function Studio() {
           </div>
           <aside className="inspector panel" id="zone-inspector" tabIndex={-1}>
             <div className="inspector-head"><div><span className="panel-overline">{t('zoneInspector')}</span><h2>{currentZone.name}</h2><p>{currentZone.detail}</p></div><button className="icon-button" aria-label="Inspector settings" title="Inspector settings" onClick={() => setNotice('Zone values are editable in SIMULATION only.')}><Settings2 size={17} /></button></div>
-            <div className="zone-select"><label htmlFor="zone-picker">{t('editingZone')}</label><select id="zone-picker" value={inspectorZoneIds.has(selected) ? selected : inspectorZones[0]?.id} onChange={(e) => setSelected(e.target.value as ZoneId)}>{inspectorZones.map((zone) => <option key={zone.id} value={zone.id}>{zone.name}</option>)}</select><ChevronDown size={14} /></div>
+            <div className="zone-select"><label htmlFor="zone-picker">{t('editingZone')}</label><select id="zone-picker" value={inspectorZoneIds.has(selected) ? selected : inspectorZones[0]?.id} onChange={(e) => setSelected(e.target.value as ControlZoneId)}>{inspectorZones.map((zone) => <option key={zone.id} value={zone.id}>{zone.name}</option>)}</select><ChevronDown size={14} /></div>
             <div className="rgbw-head"><div><span className="panel-overline">{t('rgbwOutput')}</span><span className="channel-model">{t('channelRange')}</span></div><label className="color-well" aria-label="RGB color picker"><input type="color" aria-label="Choose RGB color" value={toHex(currentZone.rgbw)} onChange={(e) => { const hex = e.target.value; setZoneColor({ r: parseInt(hex.slice(1, 3), 16) / 2.55, g: parseInt(hex.slice(3, 5), 16) / 2.55, b: parseInt(hex.slice(5, 7), 16) / 2.55, w: currentZone.rgbw.w }); }} /><span style={{ background: toHex(currentZone.rgbw) }} /></label></div>
             <div className="channel-list">
               {(['r', 'g', 'b', 'w'] as const).map((channel) => <Channel key={channel} name={channel.toUpperCase()} value={currentZone.rgbw[channel]} color={{ r: '#ff6b72', g: '#59d6a5', b: '#6c9eff', w: '#e9edf2' }[channel]} onChange={(value) => setRGBW(channel, value)} />)}
@@ -1037,7 +1182,7 @@ function Studio() {
             <div className="control-block"><div className="control-head"><label htmlFor="intensity">{t('masterIntensity')}</label><strong>{Math.round(intensity)}<small>%</small></strong></div><input id="intensity" className="wide-range" type="range" min="0" max="100" value={intensity} style={{ '--range-fill': `${intensity}%` } as React.CSSProperties} onChange={(e) => setIntensity(Number(e.target.value))} /></div>
             <div className="control-block fade-block"><div className="control-head"><label htmlFor="fade">{t('zoneFadeDuration')}</label><strong>{currentZone.fadeSeconds}<small>s</small></strong></div><input id="fade" className="wide-range" type="range" min="0" max="30" step="1" value={currentZone.fadeSeconds} style={{ '--range-fill': `${currentZone.fadeSeconds / 30 * 100}%` } as React.CSSProperties} onChange={(e) => changeFade(Number(e.target.value))} /><div className="range-ends"><span>{t('instant')}</span><span>{t('thirtySeconds')}</span></div></div>
             <div className="inspector-divider" />
-            <div className="inspector-summary"><div><span className="summary-symbol"><Lightbulb size={15} /></span><div><b>{t('simulatorOutput')}</b><small>{t('effectiveOfflinePreview')}</small></div></div><code>{Math.round(effectiveRGBW[selected].r * intensity / 100)} / {Math.round(effectiveRGBW[selected].g * intensity / 100)} / {Math.round(effectiveRGBW[selected].b * intensity / 100)} / {Math.round(effectiveRGBW[selected].w * intensity / 100)}</code></div>
+            <div className="inspector-summary"><div><span className="summary-symbol"><Lightbulb size={15} /></span><div><b>{t('simulatorOutput')}</b><small>{t('effectiveOfflinePreview')}</small></div></div><code>{Math.round((effectiveRGBW[selected] ?? currentZone.rgbw).r * intensity / 100)} / {Math.round((effectiveRGBW[selected] ?? currentZone.rgbw).g * intensity / 100)} / {Math.round((effectiveRGBW[selected] ?? currentZone.rgbw).b * intensity / 100)} / {Math.round((effectiveRGBW[selected] ?? currentZone.rgbw).w * intensity / 100)}</code></div>
             <button className="apply-button" onClick={commitCurrentKeyframe}>{t('applySetKeyframe')} <ArrowRight size={16} /></button>
             <div className="inspector-note"><ShieldCheck size={15} /><span>Applies to the local preview only. No physical output path exists in this release.</span></div>
           </aside>

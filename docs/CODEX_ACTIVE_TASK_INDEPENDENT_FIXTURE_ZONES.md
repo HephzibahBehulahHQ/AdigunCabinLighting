@@ -1,6 +1,6 @@
 # Active implementation handoff: cabin-specific independent lighting fixtures
 
-**Status:** In progress. The repository contains an asset audit and this implementation plan; the requested per-fixture controls are not yet implemented. The next agent should continue from this document and the current Studio code, not restart the project.
+**Status:** In progress. First implementation increment is local on `codex/independent-cabin-fixtures`; it has not yet been opened as a PR or deployed.
 **Base:** Current `main`; prior handoff is PR #87. Confirm current branch/commit before implementation.
 **Product constraint:** Preserve the approved Studio interface exactly.
 
@@ -8,7 +8,7 @@
 
 Make the existing aircraft cabin lighting simulator behave like a cabin-specific lighting editor. Each cabin profile must expose only the fixtures/components supported by that cabin’s model and source data. Users must be able to select an individual source on the existing 3D canvas and edit it in the existing Zone Inspector without changing other sources.
 
-The goal is a traceable, cabin-layout-aware visual simulation—not a generic collection of glowing patches and not a claim of OEM-installed equipment when the source does not establish that.
+The goal is a traceable, cabin-layout-aware visual simulation—not a generic collection of glowing patches and not a claim of OEM-installed equipment when the source does not establish that. The public landing page also needs an interactive 3D cabin hero, user-selected mood palette, smooth light playback, and optional instrumental audio; improve public-page content without changing the locked Studio layout.
 
 ## Locked interface — binding
 
@@ -69,11 +69,18 @@ Useful row/seat audit samples: G650ER 5 rows / 10 seats; A330-900 57 / 456; A380
 
 ## Immediate next actions
 
-1. Inspect the current branch/main and relevant renderer, scene-engine, profile inventory and tests.
-2. Build a data-backed per-profile fixture inventory from the GLBs/manifests, including actual seat/row/bay identities; do not expose unsupported PSU/reading/call options as modeled hardware.
-3. Implement and verify independent controls for the first supported geometry classes inside the locked canvas/Inspector.
-4. Continue cabin-by-cabin until all 29 profiles are audited and their supported fixtures are represented; document each actual evidence gap without stopping unrelated work.
-5. Capture and review the actual rendered previews; fix geometry/rendering issues before calling the simulator complete.
+1. Publish the current implementation commit on top of latest `main`, open a progressive PR, wait for CI, then merge and verify Pages/live landing and Studio.
+2. Continue the cabin-by-cabin visual audit across all 29 profiles; current tests exercise profile-specific source inventory and a rendered G650 sidewall selection. Do not claim all 29 previews have been visually reviewed yet.
+3. Investigate missing PSU/reading/call-button source evidence; do not expose unsupported hardware as modeled fixtures.
+4. Run the remaining browser suite and capture separate source-class and combined-scene previews. Fix any visual errors found.
+5. Measure 16K video capability after defining its output contract; no 16K video control exists until render, encode, memory and device checks pass.
+
+## Landing-page progress
+
+- The public hero now loads the bundled G650ER cabin GLB using the existing 3D renderer, supports scene palette selection, animated timeline preview and user-initiated mood instrumental audio.
+- The page explains the profile → modeled light source → preview/save workflow and reports the 29 bundled mesh profiles.
+- Chromium has verified landing GLB load, palette selection, transition play/pause, and audio opt-in. The screenshot is `test-results/landing-live-3d-preview.png` in the worktree.
+- The landing preview is labeled HD simulation. 16K video remains a feasibility task; do not claim 16K capability from the current viewer.
 
 ## Additional user request: 16K cabin video
 
