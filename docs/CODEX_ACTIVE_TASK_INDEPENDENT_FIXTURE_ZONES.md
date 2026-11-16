@@ -74,3 +74,19 @@ Useful row/seat audit samples: G650ER 5 rows / 10 seats; A330-900 57 / 456; A380
 3. Implement and verify independent controls for the first supported geometry classes inside the locked canvas/Inspector.
 4. Continue cabin-by-cabin until all 29 profiles are audited and their supported fixtures are represented; document each actual evidence gap without stopping unrelated work.
 5. Capture and review the actual rendered previews; fix geometry/rendering issues before calling the simulator complete.
+
+## Additional user request: 16K cabin video
+
+The user has added a request to render cabin profiles as 16K video and place the video action in the existing top viewer control cluster beside the 2D / 3D / HQ 4K controls. Treat this as an explicitly requested control addition at that location, while keeping the rest of the approved interface, panel positions, and navigation unchanged.
+
+Before offering a 16K option or claiming support:
+
+- Define and document the exact output dimensions, frame rate, codec/container, color handling, duration limits, and whether 16K means 15360 × 8640 or another explicitly selected format.
+- Benchmark representative small, narrowbody, widebody and airline GLBs for memory use, render time, thermal/performance constraints, cancellation, and file size. Browser WebGL viewport limits mean a 16K render may require tiled/offscreen rendering; prove it works before exposing it as a working export.
+- Generate actual video frames from the selected loaded cabin and its animated lighting tracks, not a still image renamed as video or a placeholder.
+- Keep 2D/3D/HQ 4K controls working. The video control must preserve scene/profile selection and render the selected cabin only.
+- Add user-visible completion, failure, and progress behavior inside the existing export/control surface without moving the locked layout.
+
+“Real cabin” and “international standard” must be tied to a stated aircraft variant, airline/cabin-fit source, asset license, and source revision. A 16K output resolution increases pixel count; it does not make estimated geometry or unsupported fixture positions authentic. Do not label illustrative assets as an airline/OEM fit or claim generic international-standard compliance. Record precisely which profiles and details have verified source data versus remaining estimates.
+
+Include 16K export in the visual QA and compatibility checklist. This request does not authorize hardware output; all rendering and lighting remain simulation-only.
