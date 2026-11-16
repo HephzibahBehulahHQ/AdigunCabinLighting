@@ -3,7 +3,7 @@
 import aircraftCatalog from '../assets/aircraft-data/catalog.json';
 import airlineMeshCatalog from '../assets/aircraft-data/airline-mesh-catalog.json';
 import zoneAvailabilityCatalog from '../assets/aircraft-data/zone-availability.json';
-import type { ZoneId, ZoneState } from './scene-engine';
+import type { ControlZoneId, ZoneId, ZoneState } from './scene-engine';
 
 type AircraftCatalog = typeof aircraftCatalog;
 type AirlineCatalog = typeof airlineMeshCatalog;
@@ -28,7 +28,7 @@ export type CabinMeshProfile = {
   modelPath: string;
   accuracy: string;
   componentCounts: Record<string, number>;
-  zones: { id: ZoneId; name: string; basis: string }[];
+  zones: { id: ControlZoneId; name: string; basis: string; parent_zone_id?: ZoneId; source_node_name?: string; source_kind?: 'mesh' | 'locator' }[];
 };
 
 type ZoneAvailability = typeof zoneAvailabilityCatalog.profiles[number];
@@ -97,9 +97,21 @@ export function getCabinMeshProfile(id: string | null | undefined): CabinMeshPro
 }
 
 export function getProfileZones(profile: CabinMeshProfile, zones: readonly ZoneState[]): ZoneState[] {
-  const profileZones = new Map<ZoneId, CabinMeshProfile['zones'][number]>(profile.zones.map((zone) => [zone.id, zone] as const));
-  return zones.flatMap((zone) => {
-    const evidence = profileZones.get(zone.id);
-    return evidence ? [{ ...zone, name: evidence.name, detail: evidence.basis }] : [];
+  const available = new Map<ControlZoneId, ZoneState>(zones.map((zone) => [zone.id, zone] as const));
+  return profile.zones.flatMap((evidence) => {
+    const existing = available.get(evidence.id);
+    if (existing) return [{ ...existing, name: evidence.name, detail: evidence.basis, parentZoneId: evidence.parent_zone_id, sourceNodeName: evidence.source_node_name, sourceKind: evidence.source_kind }];
+    if (!evidence.parent_zone_id) return [];
+    const parent = available.get(evidence.parent_zone_id);
+    return [{
+      id: evidence.id,
+      name: evidence.name,
+      detail: evidence.basis,
+      rgbw: { ...(parent?.rgbw ?? { r: 0, g: 0, b: 0, w: 0 }) },
+      fadeSeconds: parent?.fadeSeconds ?? 3,
+      parentZoneId: evidence.parent_zone_id,
+      sourceNodeName: evidence.source_node_name,
+      sourceKind: evidence.source_kind,
+    }];
   });
 }

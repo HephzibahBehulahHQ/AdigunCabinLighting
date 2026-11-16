@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clampChannel, interpolateRGBW, interpolateScene, PRESETS, preserveSafetyZones, validateSceneFile, ZONE_IDS } from './scene-engine';
+import { clampChannel, interpolateRGBW, interpolateScene, PRESETS, preserveSafetyZones, validateSceneFile, withFixtureFallbacks, ZONE_IDS } from './scene-engine';
 
 describe('RGBW scene engine', () => {
   it('clamps channel boundaries and non-finite input', () => {
@@ -44,6 +44,31 @@ describe('RGBW scene engine', () => {
     const state = interpolateScene(scene, 0);
     expect(state.ceiling).not.toEqual(state.footwell);
     expect(Object.keys(state).sort()).toEqual([...ZONE_IDS].sort());
+  });
+
+  it('interpolates authored cabin fixture tracks independently from their parent zone', () => {
+    const fixtureId = 'fixture:gulfstream-g650er:left_sidewall:left-sidewall-fixture-1:node-42';
+    const scene = structuredClone(PRESETS.find((item) => item.id === 'aurora')!);
+    scene.keyframes[0].targets[fixtureId] = { r: 100, g: 0, b: 0, w: 0 };
+    scene.keyframes[1].targets[fixtureId] = { r: 0, g: 0, b: 100, w: 0 };
+    const midpoint = interpolateScene(validateSceneFile(scene), scene.durationSeconds / 2);
+    expect(midpoint[fixtureId]).toEqual({ r: 50, g: 0, b: 50, w: 0 });
+    expect(midpoint.left_sidewall).not.toEqual(midpoint[fixtureId]);
+  });
+
+  it('inherits parent scene values for model fixtures without an explicit fixture track', () => {
+    const fixture = { id: 'fixture:airbus-a330-900:left_sidewall:anchor:node-9' as const, name: 'Left sidewall locator 1', detail: 'Authored locator node', parentZoneId: 'left_sidewall' as const, rgbw: { r: 0, g: 0, b: 0, w: 0 }, fadeSeconds: 3, sourceNodeName: 'left_sidewall fixture 1', sourceKind: 'locator' as const };
+    const values = withFixtureFallbacks(interpolateScene(PRESETS.find((item) => item.id === 'aurora')!, 0), [fixture]);
+    expect(values[fixture.id]).toEqual(values.left_sidewall);
+  });
+
+  it('rejects malformed profile fixture target ids and channel values', () => {
+    const malformedId = structuredClone(PRESETS[0]);
+    malformedId.keyframes[1].targets['fixture:unknown:lavatory:fake:node-1'] = { r: 20, g: 0, b: 0, w: 0 };
+    expect(() => validateSceneFile(malformedId)).toThrow(/Invalid cabin fixture/);
+    const malformedValue = structuredClone(PRESETS[0]);
+    malformedValue.keyframes[1].targets['fixture:gulfstream-g650er:left_sidewall:left-fixture:node-1'] = { r: 120, g: 0, b: 0, w: 0 };
+    expect(() => validateSceneFile(malformedValue)).toThrow(/Invalid cabin fixture/);
   });
 
   it('keeps emergency and exit lighting independent from decorative mood scenes', () => {

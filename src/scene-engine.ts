@@ -1,8 +1,10 @@
 export type RGBW = { r: number; g: number; b: number; w: number };
 export type SceneEasing = 'linear' | 'smoothstep' | 'cubicInOut';
 export type ZoneId = 'ceiling' | 'windows' | 'sidewalls' | 'footwell' | 'reading' | 'entry' | 'monuments' | 'toilet' | 'handrail' | 'trolley' | 'cabin' | 'ceiling_cove' | 'left_sidewall' | 'right_sidewall' | 'spotlights' | 'emergency' | 'exit';
-export type ZoneState = { id: ZoneId; name: string; detail: string; rgbw: RGBW; fadeSeconds: number };
-export type SceneKeyframe = { atSeconds: number; targets: Record<ZoneId, RGBW>; easing?: SceneEasing };
+export type FixtureZoneId = `fixture:${string}`;
+export type ControlZoneId = ZoneId | FixtureZoneId;
+export type ZoneState = { id: ControlZoneId; name: string; detail: string; rgbw: RGBW; fadeSeconds: number; parentZoneId?: ZoneId; sourceNodeName?: string; sourceKind?: 'mesh' | 'locator'; };
+export type SceneKeyframe = { atSeconds: number; targets: Record<ControlZoneId, RGBW>; easing?: SceneEasing };
 export type SceneFile = {
   schemaVersion: 1;
   id: string;
@@ -53,7 +55,7 @@ export function interpolateRGBW(from: RGBW, to: RGBW, progress: number, easing: 
 }
 
 const scaled = (value: RGBW, factor: number): RGBW => ({ r: value.r * factor, g: value.g * factor, b: value.b * factor, w: value.w * factor });
-const targets = (color: RGBW, overrides: Partial<Record<ZoneId, RGBW>> = {}): Record<ZoneId, RGBW> => {
+const targets = (color: RGBW, overrides: Partial<Record<ControlZoneId, RGBW>> = {}): Record<ControlZoneId, RGBW> => {
   const ceiling = overrides.ceiling ?? color;
   const sidewalls = overrides.sidewalls ?? scaled(ceiling, .52);
   const handrail = overrides.handrail ?? scaled(sidewalls, .56);
@@ -69,10 +71,10 @@ const targets = (color: RGBW, overrides: Partial<Record<ZoneId, RGBW>> = {}): Re
       ?? (id === 'ceiling' ? ceiling : undefined)
       ?? ZERO;
     return [id, { ...value }];
-  })) as Record<ZoneId, RGBW>;
+  })) as Record<ControlZoneId, RGBW>;
 };
 
-export function preserveSafetyZones<T extends Record<ZoneId, RGBW>>(sceneValues: T, independentValues: Partial<Record<ZoneId, RGBW>>): T {
+export function preserveSafetyZones<T extends Record<ControlZoneId, RGBW>>(sceneValues: T, independentValues: Partial<Record<ControlZoneId, RGBW>>): T {
   return { ...sceneValues, ...Object.fromEntries(SAFETY_ZONE_IDS.map((id) => [id, { ...(independentValues[id] ?? sceneValues[id]) }])) };
 }
 
@@ -149,11 +151,11 @@ export function makeZones(): ZoneState[] {
 
 export function makeDefaultZones(): ZoneState[] {
   const initial = PRESETS.find((scene) => scene.id === 'aurora')!.keyframes[0].targets;
-  const independentSafety: Partial<Record<ZoneId, RGBW>> = { exit: { r: 0, g: 48, b: 12, w: 28 } };
+  const independentSafety: Partial<Record<ControlZoneId, RGBW>> = { exit: { r: 0, g: 48, b: 12, w: 28 } };
   return makeZones().map((zone) => ({ ...zone, rgbw: { ...(independentSafety[zone.id] ?? initial[zone.id]) } }));
 }
 
-export function interpolateScene(scene: SceneFile, timeSeconds: number): Record<ZoneId, RGBW> {
+export function interpolateScene(scene: SceneFile, timeSeconds: number): Record<ControlZoneId, RGBW> {
   const frames = scene.keyframes;
   if (frames.length === 0) throw new Error('A scene must contain at least one keyframe.');
   const time = Math.max(0, Math.min(scene.durationSeconds, timeSeconds));
@@ -164,14 +166,28 @@ export function interpolateScene(scene: SceneFile, timeSeconds: number): Record<
       left = frames[index]; right = frames[index + 1]; break;
     }
   }
+  const ids = new Set<ControlZoneId>([...ZONE_IDS, ...Object.keys(left.targets) as ControlZoneId[], ...Object.keys(right.targets) as ControlZoneId[]]);
+  const valueAt = (frame: SceneKeyframe, id: ControlZoneId): RGBW => {
+    const target = frame.targets[id];
+    if (target) return target;
+    const parent = id.startsWith('fixture:') ? id.split(':')[2] as ZoneId | undefined : undefined;
+    return (parent && frame.targets[parent]) || ZERO;
+  };
   if (left === right || left.atSeconds === right.atSeconds || time <= left.atSeconds) {
-    return Object.fromEntries(ZONE_IDS.map((id) => [id, normalizeRGBW(left.targets[id])])) as Record<ZoneId, RGBW>;
+    return Object.fromEntries([...ids].map((id) => [id, normalizeRGBW(valueAt(left, id))])) as Record<ControlZoneId, RGBW>;
   }
   const progress = (time - left.atSeconds) / (right.atSeconds - left.atSeconds);
-  return Object.fromEntries(ZONE_IDS.map((id) => {
-    const a = left.targets[id]; const b = right.targets[id];
-    return [id, interpolateRGBW(a, b, progress, right.easing ?? 'linear')];
-  })) as Record<ZoneId, RGBW>;
+  return Object.fromEntries([...ids].map((id) => [id, interpolateRGBW(valueAt(left, id), valueAt(right, id), progress, right.easing ?? 'linear')])) as Record<ControlZoneId, RGBW>;
+}
+
+export function withFixtureFallbacks(values: Record<ControlZoneId, RGBW>, zones: readonly ZoneState[]): Record<ControlZoneId, RGBW> {
+  const resolved = { ...values };
+  for (const zone of zones) {
+    if (!zone.parentZoneId || resolved[zone.id]) continue;
+    const parent = resolved[zone.parentZoneId] ?? zone.rgbw;
+    resolved[zone.id] = { ...parent };
+  }
+  return resolved;
 }
 
 export function validateSceneFile(value: unknown): SceneFile {
@@ -188,7 +204,7 @@ export function validateSceneFile(value: unknown): SceneFile {
     previous = frame.atSeconds;
     if (frame.easing !== undefined && !['linear', 'smoothstep', 'cubicInOut'].includes(frame.easing)) throw new Error('Keyframe easing is not supported.');
     if (!frame.targets || typeof frame.targets !== 'object') throw new Error('Each keyframe needs RGBW targets for every zone.');
-    const normalizedTargets = { ...frame.targets } as Record<ZoneId, RGBW>;
+    const normalizedTargets = { ...frame.targets } as Record<ControlZoneId, RGBW>;
     for (const id of ZONE_IDS) {
       const target = normalizedTargets[id];
       const inherited = id === 'left_sidewall' || id === 'right_sidewall' ? normalizedTargets.sidewalls : id === 'ceiling_cove' ? normalizedTargets.ceiling : undefined;
@@ -196,6 +212,13 @@ export function validateSceneFile(value: unknown): SceneFile {
       if (!target && !LEGACY_ZONE_IDS.includes(id)) { normalizedTargets[id] = { ...ZERO }; continue; }
       if (!target || !['r', 'g', 'b', 'w'].every((key) => Number.isFinite(target[key as keyof RGBW]) && target[key as keyof RGBW] >= 0 && target[key as keyof RGBW] <= 100)) {
         throw new Error(`Invalid RGBW target for ${id}.`);
+      }
+    }
+    for (const [id, target] of Object.entries(normalizedTargets)) {
+      if (ZONE_IDS.includes(id as ZoneId)) continue;
+      if (!/^fixture:[a-z0-9-]+:(?:ceiling_cove|left_sidewall|right_sidewall|reading):[a-z0-9-]+:node-\d+$/i.test(id)
+        || !['r', 'g', 'b', 'w'].every((key) => Number.isFinite(target?.[key as keyof RGBW]) && target[key as keyof RGBW] >= 0 && target[key as keyof RGBW] <= 100)) {
+        throw new Error(`Invalid cabin fixture RGBW target for ${id}.`);
       }
     }
     (frame as SceneKeyframe).targets = normalizedTargets;

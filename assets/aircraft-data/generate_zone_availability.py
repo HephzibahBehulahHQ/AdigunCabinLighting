@@ -15,9 +15,12 @@ COMPONENT_PATTERNS = {
     "right_sidewall_lights": r"^Sidewall light 1$",
     "left_sidewall_fixture_meshes": r"^left sidewall fixture \d+$",
     "right_sidewall_fixture_meshes": r"^right sidewall fixture \d+$",
+    "left_sidewall_fixture_anchors": r"^left sidewall fixture \d+$",
+    "right_sidewall_fixture_anchors": r"^right sidewall fixture \d+$",
     "footwells": r"^Footwell (?:-1|1)$",
     "seat_headrests": r"\bseat\b.*\bheadrest\b",
     "reading_fixtures": r"^(?:Reading light|Reading lamp|Passenger service panel reading light)\b",
+    "call_button_fixtures": r"^(?:Passenger )?(?:attendant )?call button\b|^Passenger service panel call button\b",
     "spotlight_fixtures": r"^(?:Spotlight|Spot light|Downlight)\b",
     "overhead_bins": r"^Overhead luggage bin\b",
     "bin_handles": r"^Bin door handle\b",
@@ -63,7 +66,16 @@ def profile_record(profile_id: str, mesh_path: str) -> dict:
             "mesh" in node and bool(re.search(pattern, node["name"].replace("_", " "), re.IGNORECASE))
             for node in nodes
         )
+    for key, pattern in (
+        ("left_sidewall_fixture_anchors", COMPONENT_PATTERNS["left_sidewall_fixture_anchors"]),
+        ("right_sidewall_fixture_anchors", COMPONENT_PATTERNS["right_sidewall_fixture_anchors"]),
+    ):
+        counts[key] = sum(
+            "mesh" not in node and bool(re.search(pattern, node["name"].replace("_", " "), re.IGNORECASE))
+            for node in nodes
+        )
     zones = []
+    fixtures = []
 
     def add(zone_id: str, name: str, basis: str) -> None:
         zones.append({"id": zone_id, "name": name, "basis": basis})
@@ -103,11 +115,59 @@ def profile_record(profile_id: str, mesh_path: str) -> dict:
         if counts[key]:
             add(zone_id, label, f'{counts[key]} named components')
 
+    # Keep each explicitly named source/anchor separate. Empty sidewall nodes
+    # are locator transforms only; their visual emitter is clearly labeled as
+    # simulated and is not described as installed aircraft hardware.
+    fixture_patterns = (
+        ("left_sidewall", "locator", re.compile(r"^left sidewall fixture (\d+)$", re.IGNORECASE), "Left sidewall locator"),
+        ("right_sidewall", "locator", re.compile(r"^right sidewall fixture (\d+)$", re.IGNORECASE), "Right sidewall locator"),
+        ("left_sidewall", "mesh", re.compile(r"^sidewall light -1$", re.IGNORECASE), "Left sidewall light strip"),
+        ("right_sidewall", "mesh", re.compile(r"^sidewall light 1$", re.IGNORECASE), "Right sidewall light strip"),
+        ("ceiling_cove", "mesh", re.compile(r"^ceiling cove(?: -1| 1)$", re.IGNORECASE), "Ceiling recess segment"),
+        ("reading", "mesh", re.compile(r"^(?:reading light|reading lamp|passenger service panel reading light)\b", re.IGNORECASE), "Reading light"),
+    )
+    for node_index, node in enumerate(nodes):
+        actual_name = node["name"]
+        normalized_name = actual_name.replace("_", " ")
+        for parent_zone, expected_kind, pattern, label in fixture_patterns:
+            match = pattern.search(normalized_name)
+            if not match:
+                continue
+            has_mesh = "mesh" in node
+            if (expected_kind == "mesh") != has_mesh:
+                continue
+            slug = re.sub(r"[^a-z0-9]+", "-", normalized_name.lower()).strip("-")
+            qualifier = f" {match.group(1)}" if match.lastindex else f" · {actual_name}"
+            basis = (
+                f"Named GLB mesh node: {actual_name}"
+                if has_mesh
+                else f"Named GLB locator node: {actual_name}; authored transform, no fixture mesh"
+            )
+            fixtures.append({
+                "id": f"fixture:{profile_id}:{parent_zone}:{slug}:node-{node_index}",
+                "name": f"{label}{qualifier}",
+                "parent_zone_id": parent_zone,
+                "node_name": actual_name,
+                "source_kind": "mesh" if has_mesh else "locator",
+                "basis": basis,
+            })
+            break
+
+    zones.extend({
+        "id": fixture["id"],
+        "name": fixture["name"],
+        "basis": fixture["basis"],
+        "parent_zone_id": fixture["parent_zone_id"],
+        "source_node_name": fixture["node_name"],
+        "source_kind": fixture["source_kind"],
+    } for fixture in fixtures)
+
     return {
         "id": profile_id,
         "mesh_path": mesh_path,
         "component_counts": counts,
         "zones": zones,
+        "fixtures": fixtures,
     }
 
 

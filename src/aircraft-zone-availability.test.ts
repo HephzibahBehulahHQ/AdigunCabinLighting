@@ -28,6 +28,17 @@ describe('aircraft mesh zone inventory', () => {
       expect(profile.zones.map((zone) => zone.id), `${profile.id}:unmodeled ceiling shell`).not.toContain('ceiling');
       expect(profile.zones.find((zone) => zone.id === 'left_sidewall')?.basis, `${profile.id}:left-sidewall evidence`).toContain('1 modeled left-sidewall light strip mesh');
       expect(profile.zones.find((zone) => zone.id === 'right_sidewall')?.basis, `${profile.id}:right-sidewall evidence`).toContain('1 modeled right-sidewall light strip mesh');
+      const authoredFixtures = profile.zones.filter((zone) => zone.id.startsWith('fixture:'));
+      expect(authoredFixtures.length, `${profile.id}:authored independent fixture inventory`).toBeGreaterThan(0);
+      expect(new Set(authoredFixtures.map((fixture) => fixture.id)).size, `${profile.id}:unique authored fixture ids`).toBe(authoredFixtures.length);
+      for (const fixture of authoredFixtures) {
+        expect(fixture.source_node_name, `${profile.id}:${fixture.id}:source node`).toBeTruthy();
+        expect(fixture.parent_zone_id, `${profile.id}:${fixture.id}:parent`).toBeTruthy();
+        expect(['mesh', 'locator'], `${profile.id}:${fixture.id}:source kind`).toContain(fixture.source_kind);
+      }
+      expect(authoredFixtures.filter((fixture) => fixture.source_kind === 'locator' && fixture.parent_zone_id === 'left_sidewall').length, `${profile.id}:left locators`).toBe(profile.componentCounts.left_sidewall_fixture_anchors);
+      expect(authoredFixtures.filter((fixture) => fixture.source_kind === 'locator' && fixture.parent_zone_id === 'right_sidewall').length, `${profile.id}:right locators`).toBe(profile.componentCounts.right_sidewall_fixture_anchors);
+      expect(getProfileZones(profile, makeZones()).filter((zone) => zone.id.startsWith('fixture:')), `${profile.id}:inspector fixtures`).toHaveLength(authoredFixtures.length);
     }
   });
 
