@@ -1,3 +1,4 @@
+import { LANDING_CHALLENGE_COPY } from './landing-challenge-copy';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity, ArrowDownToLine, ArrowRight, Bookmark, Check, ChevronDown, ClipboardCheck, CopyPlus,
@@ -14,10 +15,10 @@ import { composePreviewRGB } from './lighting-preview';
 import { CABIN_EXPORT_4K, estimateRgbaSurfaceMiB } from './export-capabilities';
 import { CABIN_LAYOUTS, CABIN_PROFILES, DEFAULT_CABIN_CONFIG, validateCabinConfig, type CabinConfig, type CabinLayoutId } from './cabin-config';
 import { createExportPreflightReport } from './export-preflight';
-import { MAX_SCENARIO_PACKAGE_BYTES, validateScenarioPackage } from '../operator/scenario-package';
-import { CABIN_GUIDED_TOUR, CABIN_WELCOME_ANNOUNCEMENT, getMoodInstrumentLabel, getMoodScore, playWelcomeChime, scheduleMoodMusic, type MoodMusicHandle } from './cabin-audio';
+import { createScenarioPackage, MAX_SCENARIO_PACKAGE_BYTES, validateScenarioPackage } from '../operator/scenario-package';
+import { getMoodScore, playWelcomeChime, scheduleMoodMusic, type MoodMusicHandle } from './cabin-audio';
 import { cabinAudioAssetKey, deleteCabinAudioAsset, readCabinAudioAsset, saveCabinAudioAsset, type StoredCabinAudioAsset } from './audio-asset-store';
-import { readAppLocale, saveAppLocale, studioText, type AppLocale, type StudioCopyKey } from './studio-localization';
+import { readAppLocale, saveAppLocale, studioText, studioCabinGeometryNote, studioCabinLayoutDescription, studioCabinLayoutName, studioGeometryAccuracy, studioInstrumentLabel, studioProfileSourceNote, studioSceneDiagnostic, studioSceneName, studioVoicePreview, studioZoneDetail, studioZoneName, type AppLocale, type StudioCopyKey } from './studio-localization';
 import { AIRCRAFT_DIMENSION_PROFILES, AIRLINE_MESH_PROFILES, DEFAULT_CABIN_MESH_ID, getCabinMeshProfile, getProfileZones } from './aircraft-assets';
 import cabinReferenceImage from './assets/vvip-cabin-reference.jpg';
 
@@ -82,35 +83,37 @@ function cabinGlows(zones: ZoneState[]) {
   return Object.fromEntries(zones.map((zone) => [zone.id, toHex({ ...composePreviewRGB(zone.rgbw), w: 0 })])) as Record<ZoneId, string>;
 }
 
-function CabinReferenceView({ zones, selected, onSelect, compact, layoutId }: {
+function CabinReferenceView({ zones, selected, onSelect, compact, layoutId, locale = 'en' }: {
+  locale?: AppLocale;
   zones: ZoneState[]; selected: ControlZoneId; onSelect?: (id: ControlZoneId) => void; compact: boolean; layoutId: CabinLayoutId;
 }) {
   const available = new Set(zones.map((zone) => zone.id));
   const spots: { id: ZoneId; label: string; x: number; y: number; w: number; h: number }[] = [
-    { id: 'windows', label: 'Cabin window 1 on left side', x: 18, y: 0, w: 300, h: 125 },
-    { id: 'windows', label: 'Cabin window 1 on right side', x: 967, y: 0, w: 300, h: 125 },
-    { id: 'ceiling_cove', label: ZONE_INFO.ceiling_cove.name, x: 553, y: 66, w: 138, h: 33 },
-    { id: 'left_sidewall', label: ZONE_INFO.left_sidewall.name, x: 117, y: 161, w: 149, h: 34 },
-    { id: 'right_sidewall', label: ZONE_INFO.right_sidewall.name, x: 1037, y: 203, w: 158, h: 35 },
-    { id: 'footwell', label: ZONE_INFO.footwell.name, x: 553, y: 380, w: 127, h: 35 },
+    { id: 'windows', label: studioText(locale, 'leftWindow').replace('{number}', '1'), x: 18, y: 0, w: 300, h: 125 },
+    { id: 'windows', label: studioText(locale, 'rightWindow').replace('{number}', '1'), x: 967, y: 0, w: 300, h: 125 },
+    { id: 'ceiling_cove', label: studioZoneName(locale, { id: 'ceiling_cove', name: ZONE_INFO.ceiling_cove.name }), x: 553, y: 66, w: 138, h: 33 },
+    { id: 'left_sidewall', label: studioZoneName(locale, { id: 'left_sidewall', name: ZONE_INFO.left_sidewall.name }), x: 117, y: 161, w: 149, h: 34 },
+    { id: 'right_sidewall', label: studioZoneName(locale, { id: 'right_sidewall', name: ZONE_INFO.right_sidewall.name }), x: 1037, y: 203, w: 158, h: 35 },
+    { id: 'footwell', label: studioZoneName(locale, { id: 'footwell', name: ZONE_INFO.footwell.name }), x: 553, y: 380, w: 127, h: 35 },
   ];
-  return <div className={`cabin-drawing cabin-reference-view ${compact ? 'compact' : ''}`} data-layout-id={layoutId} data-selected-zone={selected} role={compact ? undefined : 'group'} aria-label={compact ? undefined : 'Interactive VVIP cabin reference view'}>
+  return <div className={`cabin-drawing cabin-reference-view ${compact ? 'compact' : ''}`} data-layout-id={layoutId} data-selected-zone={selected} role={compact ? undefined : 'group'} aria-label={compact ? undefined : studioText(locale, 'vvipMap')}>
     <img src={cabinReferenceImage} alt={compact ? 'VVIP cabin reference with ceiling cove, sidewall and footwell lighting' : ''} draggable={false} />
-    {!compact && <svg viewBox="0 0 1285 443" role="group" aria-label="Cabin lighting zone selection overlay">
+    {!compact && <svg viewBox="0 0 1285 443" role="group" aria-label={studioText(locale, 'zoneOverlay')}>
       {spots.filter((spot) => available.has(spot.id)).map((spot, index) => <g key={`${spot.id}-${index}`} role="button" tabIndex={0} aria-label={spot.label} aria-pressed={selected === spot.id}
         onClick={() => onSelect?.(spot.id)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect?.(spot.id); } }}>
-        <title>{spot.label} · select to edit</title>
+        <title>{spot.label} · {studioText(locale, 'selectToEdit')}</title>
         <rect className={selected === spot.id ? 'reference-zone-selected' : 'reference-zone-target'} x={spot.x} y={spot.y} width={spot.w} height={spot.h} rx="16" />
       </g>)}
     </svg>}
   </div>;
 }
 
-function CabinDrawing({ zones, selected, onSelect, compact = false, config = DEFAULT_CABIN_CONFIG, referenceImage = true }: {
+function CabinDrawing({ zones, selected, onSelect, compact = false, config = DEFAULT_CABIN_CONFIG, referenceImage = true, locale = 'en' }: {
+  locale?: AppLocale;
   zones: ZoneState[]; selected: ControlZoneId; onSelect?: (id: ControlZoneId) => void; compact?: boolean; config?: CabinConfig; referenceImage?: boolean;
 }) {
   const glows = cabinGlows(zones);
-  if (referenceImage) return <CabinReferenceView zones={zones} selected={selected} onSelect={onSelect} compact={compact} layoutId={config.layoutId} />;
+  if (referenceImage) return <CabinReferenceView zones={zones} selected={selected} onSelect={onSelect} compact={compact} layoutId={config.layoutId} locale={locale} />;
   const layout = CABIN_LAYOUTS[config.layoutId];
   const rowTemplates = 'seatPlan' in layout
     ? layout.seatPlan.flatMap((section) => Array.from({ length: section.rows }, () => section.groups))
@@ -130,14 +133,14 @@ function CabinDrawing({ zones, selected, onSelect, compact = false, config = DEF
   };
   const group = (id: ZoneId, label: string, children: React.ReactNode, className = '') => (
     <g className={`cabin-zone ${selected === id ? 'is-selected' : ''} ${className}`} role={compact ? undefined : 'button'} tabIndex={compact ? -1 : 0}
-      aria-label={compact ? undefined : `Select ${ZONE_INFO[id].name}`} aria-pressed={compact ? undefined : selected === id}
+      aria-label={compact ? undefined : studioText(locale, 'selectMapZone').replace('{name}', () => studioZoneName(locale, { id, name: ZONE_INFO[id].name }))} aria-pressed={compact ? undefined : selected === id}
       onClick={() => onSelect?.(id)} onKeyDown={(e) => onKey(e, id)}>
-      <title>{ZONE_INFO[id].name} · select to edit</title>{children}
+      <title>{studioZoneName(locale, { id, name: ZONE_INFO[id].name })} · {studioText(locale, 'selectToEdit')}</title>{children}
       {!compact && <text className="zone-label" x={labelPositions[id].x} y={labelPositions[id].y} textAnchor="middle" fill={selected === id ? '#f2f7ff' : '#8fa4bd'}>{label}</text>}
     </g>
   );
   return (
-    <svg className={`cabin-drawing ${compact ? 'compact' : ''}`} data-layout-id={config.layoutId} viewBox={compact ? '0 0 980 470' : '40 25 900 415'} role={compact ? 'img' : 'group'} aria-label={compact ? `Illustrative ${layout.name} cabin preview` : `Interactive ${layout.name} cabin map`}>
+    <svg className={`cabin-drawing ${compact ? 'compact' : ''}`} data-layout-id={config.layoutId} viewBox={compact ? '0 0 980 470' : '40 25 900 415'} role={compact ? 'img' : 'group'} aria-label={compact ? `Illustrative ${layout.name} cabin preview` : studioText(locale, 'interactiveMap').replace('{name}', () => studioCabinLayoutName(locale, config.layoutId))}>
       <defs>
         <linearGradient id="shell" x1="0" x2="0" y1="0" y2="1"><stop stopColor="#26384c" /><stop offset=".52" stopColor="#111d2b" /><stop offset="1" stopColor="#08111c" /></linearGradient>
         <linearGradient id="floor" x1="0" x2="1"><stop stopColor="#122131" /><stop offset=".5" stopColor="#213247" /><stop offset="1" stopColor="#0e1b29" /></linearGradient>
@@ -162,7 +165,7 @@ function CabinDrawing({ zones, selected, onSelect, compact = false, config = DEF
           const xOffset = Math.min(285, config.widthMeters * 52);
           return [-1, 1].map((side) => {
             const x = 490 + side * xOffset;
-            return <g key={`win-${side}-${index}`} aria-hidden={compact || undefined} aria-label={compact ? undefined : `Cabin window ${index + 1} on ${side < 0 ? 'left' : 'right'} side`}>
+            return <g key={`win-${side}-${index}`} aria-hidden={compact || undefined} aria-label={compact ? undefined : studioText(locale, side < 0 ? 'leftWindow' : 'rightWindow').replace('{number}', String(index + 1))}>
               <rect x={x - 8} y={y - 12} width="16" height="25" rx="8" fill="#172a3a" stroke="#7690a4" strokeWidth="2" />
               <rect x={x - 5} y={y - 9} width="10" height="19" rx="5" fill="#19374a" stroke={glows.windows} strokeWidth="1.6" />
               <rect x={x - 3} y={y - 7} width="6" height="15" rx="3" fill="#60acc3" opacity=".18" />
@@ -184,7 +187,7 @@ function CabinDrawing({ zones, selected, onSelect, compact = false, config = DEF
             for (let seat = 0; seat < count; seat++) { seats.push(x); x += seatWidth + 3; }
             if (groupIndex < groups.length - 1) x += aisleGap - 3;
           });
-          return <g key={row} aria-hidden={compact || undefined} aria-label={compact ? undefined : `Cabin row ${row + 1}`}>
+          return <g key={row} aria-hidden={compact || undefined} aria-label={compact ? undefined : studioText(locale, 'cabinRow').replace('{number}', String(row + 1))}>
             {seats.map((seatX, index) => <g key={index}>
               <rect x={seatX - seatWidth / 2} y={rowY - (config.layoutId === 'ownerVvip' ? 8 : 5)} width={seatWidth} height={config.layoutId === 'ownerVvip' ? 16 : 10} rx={Math.min(8, seatWidth / 3)} fill={config.layoutId === 'ownerVvip' ? '#627b91' : '#344658'} stroke="#8298aa" strokeWidth="1.5" />
               <rect x={seatX - seatWidth * .34} y={rowY - (config.layoutId === 'ownerVvip' ? 6 : 3)} width={seatWidth * .68} height={config.layoutId === 'ownerVvip' ? 5 : 3} rx="2" fill="#9eb2c3" opacity=".72" />
@@ -360,11 +363,19 @@ const LANDING_COPY = {
 } as const;
 type LandingLocale = keyof typeof LANDING_COPY;
 
-function LandingCabinExperience() {
+function LandingCabinExperience({ locale }: { locale: AppLocale }) {
+  const copy = LANDING_CHALLENGE_COPY[locale];
   const profile = getCabinMeshProfile(DEFAULT_CABIN_MESH_ID) ?? AIRCRAFT_DIMENSION_PROFILES[0];
   const zones = useMemo(() => getProfileZones(profile, makeDefaultZones()), [profile]);
   const [sceneId, setSceneId] = useState('aurora');
+  const [challenge, setChallenge] = useState(false);
+  const [showOriginal, setShowOriginal] = useState(false);
+  const [daylight, setDaylight] = useState(45);
+  const [warmth, setWarmth] = useState(55);
+  const [isolated, setIsolated] = useState(false);
+  const [challengeStatus, setChallengeStatus] = useState('');
   const [selectedZone, setSelectedZone] = useState<ControlZoneId>('windows');
+  const inspectedZone = selectedZone === 'left_sidewall' || selectedZone === 'ceiling_cove' ? selectedZone : 'windows';
   const [playing, setPlaying] = useState(false);
   const [soundOn, setSoundOn] = useState(false);
   // Start on the selected mood's finished look so the landing preview opens
@@ -376,26 +387,91 @@ function LandingCabinExperience() {
   const music = useRef<MoodMusicHandle | null>(null);
   const captureRef = useRef<(() => Promise<Blob>) | null>(null);
   const resetRef = useRef<(() => void) | null>(null);
-  const scene = PRESETS.find((preset) => preset.id === sceneId) ?? PRESETS[1];
-  const effective = useMemo(() => withFixtureFallbacks(interpolateScene(scene, time), zones), [scene, time, zones]);
+  const preset = PRESETS.find((item) => item.id === sceneId) ?? PRESETS[1];
+  const scene = useMemo(() => {
+    if (!challenge) return preset;
+    const last = preset.keyframes.at(-1)!;
+    const study = validateSceneFile({
+      ...preset,
+      id: 'landing-lighting-study',
+      name: copy.study,
+      keyframes: [...preset.keyframes.slice(0, -1), {
+        ...last,
+        targets: {
+          ...last.targets,
+          windows: Object.fromEntries(Object.entries(last.targets.windows).map(([key, value]) => [key, value * daylight / 100])),
+          left_sidewall: { r: warmth, g: warmth * .55, b: warmth * .24, w: 12 },
+          right_sidewall: { r: warmth, g: warmth * .55, b: warmth * .24, w: 12 },
+        },
+      }],
+    });
+    return {
+      ...study,
+      keyframes: study.keyframes.map((frame) => ({
+        ...frame,
+        targets: withFixtureFallbacks(frame.targets, zones),
+      })),
+    };
+  }, [challenge, copy.study, daylight, preset, warmth, zones]);
+  const effective = useMemo(() => {
+    const values = withFixtureFallbacks(interpolateScene(showOriginal ? preset : scene, time), zones);
+    if (!isolated) return values;
+    return Object.fromEntries(zones.map((zone) => [
+      zone.id,
+      zone.id === inspectedZone || zone.parentZoneId === inspectedZone
+        ? values[zone.id]
+        : { r: 0, g: 0, b: 0, w: 0 },
+    ])) as typeof values;
+  }, [inspectedZone, isolated, preset, scene, showOriginal, time, zones]);
+
+  const openStudy = () => {
+    try {
+      const id = crypto.randomUUID();
+      const targets = withFixtureFallbacks(interpolateScene(scene, scene.durationSeconds), zones);
+      const studyZones = makeDefaultZones().map((zone) => ({ ...zone, rgbw: targets[zone.id] }));
+      writeProject(id, scene.name, {
+        zones: studyZones, scenes: [scene], intensity: 78, activeSceneId: scene.id,
+        selectedZoneId: 'windows', projectName: scene.name, cabinConfig: CABIN_PROFILES.g650erVvip,
+        aircraftMeshId: profile.id,
+      });
+      window.location.assign('/studio');
+    } catch {
+      setChallengeStatus(copy.storage);
+    }
+  };
+
+  const downloadStudy = () => {
+    const targets = interpolateScene(scene, scene.durationSeconds);
+    const scenario = createScenarioPackage({
+      projectName: scene.name,
+      cabinConfig: CABIN_PROFILES.g650erVvip,
+      zones: makeDefaultZones().map((zone) => ({ ...zone, rgbw: targets[zone.id] })),
+      scenes: [scene], activeSceneId: scene.id, masterIntensity: 78,
+    });
+    downloadBlob(new Blob([JSON.stringify(scenario, null, 2)], { type: 'application/json' }), 'cabin-lighting-scenario.json');
+  };
+
 
   const startMusic = (selectedScene: SceneFile, enabled = soundOn) => {
     if (!enabled) return;
-    if (!window.AudioContext) { setSoundError('Instrumental preview is unavailable in this browser.'); return; }
+    if (!window.AudioContext) { setSoundError(studioText(locale, 'instrumentalUnsupported')); return; }
     audioContext.current ??= new window.AudioContext();
     void audioContext.current.resume().then(() => {
       music.current?.stop();
       music.current = scheduleMoodMusic(audioContext.current!, selectedScene.id, 0, selectedScene.durationSeconds, .36);
-    }).catch(() => setSoundError('Browser audio permission prevented playback.'));
+    }).catch(() => setSoundError(studioText(locale, 'playbackPermission')));
   };
   const playScene = () => {
+    setShowOriginal(false);
+    setIsolated(false);
     setTime(0);
     setPlaybackStartedAt(performance.now());
     setPlaying(true);
-    startMusic(scene);
+    startMusic(preset);
   };
   const chooseScene = (nextScene: SceneFile) => {
     setSceneId(nextScene.id);
+    setIsolated(false);
     setTime(playing ? 0 : nextScene.durationSeconds);
     if (playing) {
       setPlaybackStartedAt(performance.now());
@@ -417,32 +493,60 @@ function LandingCabinExperience() {
   }, [playing, playbackStartedAt, scene.durationSeconds]);
   useEffect(() => () => { music.current?.stop(); void audioContext.current?.close(); }, []);
 
-  return <div className="hero-art live-cabin-preview" data-testid="landing-live-cabin">
-    <Suspense fallback={<div className="landing-3d-loading">Loading cabin scene…</div>}>
-      <CabinAsset3D profile={profile} zones={zones} effective={effective} intensity={78} selected={selectedZone} onSelect={setSelectedZone}
+  return <><div className="hero-art live-cabin-preview" data-testid="landing-live-cabin">
+    <Suspense fallback={<div className="landing-3d-loading">{copy.loading}</div>}>
+      <CabinAsset3D locale={locale} profile={profile} zones={zones} effective={effective} intensity={78} selected={selectedZone} onSelect={setSelectedZone}
         highQuality previewActive={playing} previewMotion={false} previewTime={time} previewDuration={scene.durationSeconds} previewStartedAt={playbackStartedAt}
         scene={scene} cameraView="entry" captureRef={captureRef} cameraResetRef={resetRef} />
     </Suspense>
-    <div className="landing-view-badge"><span><i /> 3D · HD LIVE SIMULATION</span><span>{profile.aircraft}</span></div>
-    <div className="landing-preview-tools" aria-label="Cabin light preview controls">
+    <div className="landing-view-badge"><span><i /> {copy.live}</span><span>{profile.aircraft}</span></div>
+    <div className="landing-preview-tools" aria-label={copy.viewControls}>
       {PRESETS.filter((preset) => ['boarding', 'aurora', 'sunrise', 'sunset', 'dining', 'sleep'].includes(preset.id)).map((preset) => {
         const targets = preset.keyframes[preset.keyframes.length - 1].targets;
         const swatch = [targets.ceiling, targets.sidewalls, targets.windows, targets.footwell]
           .map((rgbw) => `rgb(${rgbw.r * 2.55} ${rgbw.g * 2.55} ${rgbw.b * 2.55})`).join(', ');
-        return <button type="button" key={preset.id} aria-label={`${preset.name} lighting palette`} aria-pressed={sceneId === preset.id} onClick={() => chooseScene(preset)}>
-          <i style={{ background: `linear-gradient(90deg, ${swatch})` }} />{preset.name}
+        return <button type="button" key={preset.id} aria-label={copy.palette.replace('{name}', () => studioSceneName(locale, preset))} aria-pressed={sceneId === preset.id} onClick={() => chooseScene(preset)}>
+          <i style={{ background: `linear-gradient(90deg, ${swatch})` }} />{studioSceneName(locale, preset)}
         </button>;
       })}
-      <button type="button" className="landing-preview-play" onClick={playing ? () => { setPlaying(false); music.current?.stop(); music.current = null; } : playScene} aria-label={playing ? 'Pause cabin light preview' : 'Play cabin light preview'}>
-        {playing ? <Pause size={13} /> : <Play size={13} />}{playing ? 'Pause' : 'Preview'}
+      <button type="button" className="landing-preview-play" onClick={playing ? () => { setPlaying(false); music.current?.stop(); music.current = null; } : playScene} aria-label={playing ? copy.pauseLabel : copy.playLabel}>
+        {playing ? <Pause size={13} /> : <Play size={13} />}{playing ? copy.pause : copy.preview}
       </button>
-      <button type="button" className={`landing-preview-sound ${soundOn ? 'is-on' : ''}`} aria-pressed={soundOn} onClick={() => { const next = !soundOn; setSoundOn(next); if (next) startMusic(scene, true); else { music.current?.stop(); music.current = null; } }}>
-        <Volume2 size={14} />{soundOn ? 'Sound on' : 'Sound'}
+      <button type="button" className={`landing-preview-sound ${soundOn ? 'is-on' : ''}`} aria-pressed={soundOn} onClick={() => { const next = !soundOn; setSoundOn(next); if (next) startMusic(preset, true); else { music.current?.stop(); music.current = null; } }}>
+        <Volume2 size={14} />{soundOn ? copy.soundOn : copy.sound}
       </button>
     </div>
     {soundError && <span className="landing-audio-status" role="status">{soundError}</span>}
-    <div className="art-caption"><span className="art-caption-dot" /> {scene.name} / cabin lighting <small>RGBW · SIMULATED</small></div>
-  </div>;
+    <div className="art-caption"><span className="art-caption-dot" /> {studioSceneName(locale, scene)} / {copy.cabinLighting} <small>{copy.sim}</small></div>
+  </div>
+    <section className="landing-lighting-lab" id="lighting-challenge" lang={locale} aria-labelledby="lighting-challenge-heading">
+      <h2 id="lighting-challenge-heading">{copy.title}</h2>
+      <p>{copy.intro}</p>
+      {!challenge ? <button type="button" className="button button-primary" onClick={() => { setChallenge(true); setIsolated(false); setPlaying(false); music.current?.stop(); setTime(preset.durationSeconds); }}>{copy.start}</button> : <>
+        <div className="landing-lab-controls">
+          <label>{copy.daylight} <output>{daylight}%</output><input type="range" min="0" max="100" value={daylight} onChange={(event) => { setPlaying(false); music.current?.stop(); setShowOriginal(false); setDaylight(Number(event.target.value)); setTime(preset.durationSeconds); }} /></label>
+          <label>{copy.warmth} <output>{warmth}%</output><input type="range" min="0" max="100" value={warmth} onChange={(event) => { setPlaying(false); music.current?.stop(); setShowOriginal(false); setWarmth(Number(event.target.value)); setTime(preset.durationSeconds); }} /></label>
+        </div>
+        <div className="landing-lab-actions">
+          <button type="button" className="button button-outline" aria-pressed={showOriginal} onClick={() => { setPlaying(false); music.current?.stop(); setIsolated(false); setShowOriginal(!showOriginal); setTime(preset.durationSeconds); }}>{showOriginal ? copy.showEdit : copy.compare}</button>
+          <button type="button" className="button button-primary" onClick={openStudy}>{copy.edit} <ArrowRight size={15} /></button>
+          <button type="button" className="button button-outline" onClick={downloadStudy}><Download size={15} /> {copy.download}</button>
+        </div>
+        {challengeStatus && <p role="status">{challengeStatus}</p>}
+      </>}
+      <details className="landing-fixture-study">
+        <summary>{copy.inspect}</summary>
+        <label>{copy.group} <select value={inspectedZone} onChange={(event) => { setSelectedZone(event.target.value as ControlZoneId); setIsolated(true); setPlaying(false); music.current?.stop(); setTime(preset.durationSeconds); }}>
+          <option value="windows">{copy.daylight}</option>
+          <option value="left_sidewall">{copy.sidewall}</option>
+          <option value="ceiling_cove">{copy.cove}</option>
+        </select></label>
+        <button type="button" className="button button-outline" aria-pressed={isolated} onClick={() => { setSelectedZone(inspectedZone); setIsolated(!isolated); setPlaying(false); music.current?.stop(); setTime(preset.durationSeconds); }}>{isolated ? copy.combined : copy.isolate}</button>
+        <p>{studioZoneDetail(locale, zones.find((zone) => zone.id === inspectedZone)!)}. {inspectedZone === 'windows' ? copy.windowTip : inspectedZone === 'left_sidewall' ? copy.sideTip : copy.coveTip}</p>
+        <p>{copy.limits}{profile.sourceUrl && <> <a href={profile.sourceUrl}>{copy.source}</a></>}</p>
+      </details>
+    </section>
+  </>;
 }
 
 function Landing() {
@@ -459,12 +563,12 @@ function Landing() {
         <div className="eyebrow"><span className="eyebrow-line" /> {text.eyebrow}</div>
         <h1>{text.title}<br />{text.titleEnd} <em>{text.moment}</em></h1>
         <p>{text.intro}</p>
-        <div className="hero-actions"><a className="button button-primary button-large" href="/studio">{text.enter} <ArrowRight size={18} /></a><a href="#capabilities" className="text-link">{text.explore} <ArrowDownToLine size={15} /></a></div>
+        <div className="hero-actions"><a className="button button-primary button-large" href="/studio">{text.enter} <ArrowRight size={18} /></a><a href="#lighting-challenge" className="text-link">{LANDING_CHALLENGE_COPY[locale].tryIt} <ArrowDownToLine size={15} /></a></div>
         <div className="hero-proof"><span><Radio size={16} /> {text.offline}</span><span><ShieldCheck size={16} /> {text.noOutput}</span></div>
         <div className="landing-profile-proof"><span className="landing-profile-count">{AIRLINE_MESH_PROFILES.length + AIRCRAFT_DIMENSION_PROFILES.length}</span><span>{text.profileCount}</span><span className="landing-proof-divider" /><span>2D / 3D · RGBW · Scene timeline</span></div>
       </div>
       <div className="hero-art-wrap"><div className="hero-art-label"><span>{text.sceneStudy}</span><span>{text.simProfile}</span></div>
-        <LandingCabinExperience />
+        <LandingCabinExperience locale={locale} />
         <div className="hero-art-bottom"><span>{text.zoneMap}</span><span>{text.notConnected}</span></div>
       </div>
     </section>
@@ -481,12 +585,12 @@ function Landing() {
   </main>;
 }
 
-function Channel({ name, value, color, onChange }: { name: string; value: number; color: string; onChange: (value: number) => void }) {
+function Channel({ locale, name, value, color, onChange }: { locale: AppLocale; name: string; value: number; color: string; onChange: (value: number) => void }) {
   const inputId = `channel-${name.toLowerCase()}`;
   return <div className="channel-row"><label htmlFor={inputId}><i style={{ background: color }} />{name}</label>
-    <input id={inputId} aria-label={`${name} channel`} type="range" min="0" max="100" step="1" value={value}
+    <input id={inputId} aria-label={studioText(locale, 'channelSlider').replace('{name}', name)} type="range" min="0" max="100" step="1" value={value}
       style={{ '--range-fill': `${value}%`, '--range-color': color } as React.CSSProperties} onChange={(e) => onChange(Number(e.target.value))} />
-    <input className="channel-value" type="number" min="0" max="100" step="1" value={Math.round(value)} aria-label={`${name} percent`}
+    <input className="channel-value" type="number" min="0" max="100" step="1" value={Math.round(value)} aria-label={studioText(locale, 'channelPercent').replace('{name}', name)}
       onChange={(e) => onChange(Math.max(0, Math.min(100, Number(e.target.value))))} />
   </div>;
 }
@@ -608,7 +712,7 @@ function Studio() {
       if (asset.role === 'mood' && asset.sceneId) setLocalMoodAudio((current) => ({ ...current, [projectId + ':' + asset.sceneId]: cue }));
       else if (asset.role !== 'mood') setLocalVoiceAudio((current) => ({ ...current, [projectId + ':' + asset.role]: cue }));
     }).catch(() => {
-      if (!cancelled && ticket === audioLoadTicket.current) setNotice('Browser-local audio storage could not be read.');
+      if (!cancelled && ticket === audioLoadTicket.current) setNotice(t('audioReadFailed'));
     });
     return () => { cancelled = true; };
   }, [currentAudioAssetKey, projectId]);
@@ -618,28 +722,28 @@ function Studio() {
     setPreviewStartedAt(performance.now() - startAt * 1000);
     if (time >= scene.durationSeconds) applySceneAt(0);
     if (audioCues && !currentMoodAudio) {
-      if (!window.AudioContext) setNotice('Instrumental preview is not supported in this browser.');
+      if (!window.AudioContext) setNotice(t('instrumentalUnsupported'));
       else {
         audioContext.current ??= new window.AudioContext();
-        void audioContext.current.resume().catch(() => setNotice('Browser audio permission prevented the instrumental preview.'));
+        void audioContext.current.resume().catch(() => setNotice(t('instrumentalPermission')));
       }
     }
     setPlaying(true);
   };
 
   const getAudioContext = () => {
-    if (!window.AudioContext) { setNotice('Generated audio is not supported in this browser.'); return null; }
+    if (!window.AudioContext) { setNotice(t('generatedAudioUnsupported')); return null; }
     audioContext.current ??= new window.AudioContext();
-    void audioContext.current.resume().catch(() => setNotice('Browser audio permission prevented audio playback.'));
+    void audioContext.current.resume().catch(() => setNotice(t('playbackPermission')));
     return audioContext.current;
   };
   const importLocalMoodAudio = async () => {
     const { file, title, rightsReference } = localMoodAudioDraft;
-    if (!file) { setNotice('Choose a local audio file first.'); return; }
-    if (file.size > MAX_LOCAL_MOOD_AUDIO_BYTES) { setNotice('Local audio must be 25 MiB or smaller.'); return; }
+    if (!file) { setNotice(t('chooseLocalAudio')); return; }
+    if (file.size > MAX_LOCAL_MOOD_AUDIO_BYTES) { setNotice(t('audioFileTooLarge')); return; }
     const audioExtension = /\.(aac|flac|m4a|mp3|oga|ogg|wav|webm)$/i.test(file.name);
-    if (!file.type.startsWith('audio/') && !audioExtension) { setNotice('Choose a supported audio file.'); return; }
-    if (!title.trim() || !rightsReference.trim()) { setNotice('Add the track title and a rights/source reference before importing.'); return; }
+    if (!file.type.startsWith('audio/') && !audioExtension) { setNotice(t('chooseSupportedAudio')); return; }
+    if (!title.trim() || !rightsReference.trim()) { setNotice(t('audioMetadataRequired')); return; }
     const role = localAudioRole;
     const projectIdAtSave = projectId;
     const sceneAtSave = scene;
@@ -648,7 +752,7 @@ function Studio() {
     const voiceKey = projectIdAtSave + ':' + role;
     const asset: StoredCabinAudioAsset = { key: cabinAudioAssetKey(projectIdAtSave, role, sceneId ?? undefined), projectId: projectIdAtSave, role, sceneId, fileName: file.name, mediaType: file.type || 'application/octet-stream', title: title.trim(), rightsReference: rightsReference.trim(), savedAt: new Date().toISOString(), blob: file };
     try { await saveCabinAudioAsset(asset); }
-    catch { setNotice('Audio could not be saved in this browser. Check available local storage.'); return; }
+    catch { setNotice(t('audioSaveFailed')); return; }
     audioLoadTicket.current += 1;
     const objectUrl = URL.createObjectURL(file);
     localAudioObjectUrls.current.add(objectUrl);
@@ -657,7 +761,7 @@ function Studio() {
       const previous = localMoodAudio[moodKey];
       if (previous) { URL.revokeObjectURL(previous.objectUrl); localAudioObjectUrls.current.delete(previous.objectUrl); }
       setLocalMoodAudio((current) => ({ ...current, [moodKey]: cue }));
-      setNotice('Local instrumental added to ' + sceneAtSave.name + '; its rights declaration has not been verified.');
+      setNotice(t('instrumentalAdded').replace('{name}', () => studioSceneName(locale, sceneAtSave)));
     } else {
       const roleKey = voiceKey;
       const previous = localVoiceAudio[roleKey];
@@ -667,7 +771,7 @@ function Studio() {
         localAudioObjectUrls.current.delete(previous.objectUrl);
       }
       setLocalVoiceAudio((current) => ({ ...current, [roleKey]: cue }));
-      setNotice('Local ' + (role === 'welcome' ? 'welcome' : 'tour') + ' recording added; its rights declaration has not been verified.');
+      setNotice(t(role === 'welcome' ? 'welcomeRecordingAdded' : 'tourRecordingAdded'));
     }
     setLocalMoodAudioDraft({ file: null, title: '', rightsReference: '' });
     if (moodAudioFileRef.current) moodAudioFileRef.current.value = '';
@@ -678,18 +782,18 @@ function Studio() {
     const role = localAudioRole;
     const moodKey = audioTrackKey;
     const voiceKey = projectId + ':' + role;
-    const sceneName = scene.name;
+    const sceneName = studioSceneName(locale, scene);
     try { await deleteCabinAudioAsset(currentAudioAssetKey); }
-    catch { setNotice('Audio could not be removed from this browser.'); return; }
+    catch { setNotice(t('audioRemoveFailed')); return; }
     audioLoadTicket.current += 1;
     if (role === 'mood') {
       setLocalMoodAudio((current) => { const next = { ...current }; delete next[moodKey]; return next; });
-      setNotice('Local audio cue removed from ' + sceneName + '.');
+      setNotice(t('audioCueRemoved').replace('{name}', () => sceneName));
     } else {
       const roleKey = voiceKey;
       if (localVoiceAudioRef.current?.src === cue.objectUrl) { localVoiceAudioRef.current.pause(); localVoiceAudioRef.current.removeAttribute('src'); }
       setLocalVoiceAudio((current) => { const next = { ...current }; delete next[roleKey]; return next; });
-      setNotice('Local ' + (role === 'welcome' ? 'welcome' : 'tour') + ' recording removed.');
+      setNotice(t(role === 'welcome' ? 'welcomeRecordingRemoved' : 'tourRecordingRemoved'));
     }
     URL.revokeObjectURL(cue.objectUrl);
     localAudioObjectUrls.current.delete(cue.objectUrl);
@@ -701,29 +805,33 @@ function Studio() {
       if ('speechSynthesis' in window) window.speechSynthesis.cancel();
       if (speechTimer.current !== null) { window.clearTimeout(speechTimer.current); speechTimer.current = null; }
       const player = localVoiceAudioRef.current;
-      if (!player) { setNotice('The local recording player is unavailable.'); return; }
+      if (!player) { setNotice(t('recordingPlayerUnavailable')); return; }
       player.pause(); player.src = recordedVoice.objectUrl; player.currentTime = 0; player.loop = false; player.volume = audioVolume / 100;
-      void player.play().then(() => setNotice('Local ' + (kind === 'welcome' ? 'welcome announcement' : 'guided tour') + ' started · rights/source unverified'))
-        .catch(() => setNotice('The local recording could not play in this browser.'));
+      void player.play().then(() => setNotice(t(kind === 'welcome' ? 'welcomeRecordingStarted' : 'tourRecordingStarted')))
+        .catch(() => setNotice(t('recordingPlaybackFailed')));
       return;
     }
-    if (!('speechSynthesis' in window) || typeof window.SpeechSynthesisUtterance !== 'function') { setNotice('Spoken announcements are not supported in this browser.'); return; }
+    if (!('speechSynthesis' in window) || typeof window.SpeechSynthesisUtterance !== 'function') { setNotice(t('speechUnsupported')); return; }
     speechUtterance.current = null; window.speechSynthesis.cancel();
     if (speechTimer.current !== null) window.clearTimeout(speechTimer.current);
     const announce = () => {
-      const utterance = new window.SpeechSynthesisUtterance(kind === 'welcome' ? CABIN_WELCOME_ANNOUNCEMENT : CABIN_GUIDED_TOUR);
-      utterance.lang = 'en-GB'; utterance.rate = kind === 'welcome' ? .88 : .94; utterance.pitch = .94; utterance.volume = audioVolume / 100;
+      const preview = studioVoicePreview(locale, kind);
+      const utterance = new window.SpeechSynthesisUtterance(preview.text);
+      utterance.lang = preview.language; utterance.rate = kind === 'welcome' ? .88 : .94; utterance.pitch = .94; utterance.volume = audioVolume / 100;
       const voices = window.speechSynthesis.getVoices();
-      const englishVoice = voices.find((voice) => voice.lang.toLowerCase() === 'en-gb') ?? voices.find((voice) => voice.lang.toLowerCase().startsWith('en-'));
-      if (englishVoice) utterance.voice = englishVoice;
+      const language = preview.language.toLowerCase();
+      const primaryLanguage = language.split('-')[0];
+      const matchingVoice = voices.find((voice) => voice.lang.toLowerCase() === language)
+        ?? voices.find((voice) => voice.lang.toLowerCase().split('-')[0] === primaryLanguage);
+      if (matchingVoice) utterance.voice = matchingVoice;
       speechUtterance.current = utterance;
       utterance.onend = () => { if (speechUtterance.current === utterance) speechUtterance.current = null; };
-      utterance.onerror = () => { if (speechUtterance.current === utterance) { speechUtterance.current = null; setNotice('The browser voice could not play. Check its speech settings.'); } };
+      utterance.onerror = () => { if (speechUtterance.current === utterance) { speechUtterance.current = null; setNotice(t('voicePlaybackFailed')); } };
       window.speechSynthesis.speak(utterance);
     };
     if (kind === 'welcome') { const context = getAudioContext(); if (context) { playWelcomeChime(context, audioVolume); speechTimer.current = window.setTimeout(announce, 850); } else announce(); }
     else announce();
-    setNotice(kind === 'welcome' ? 'Welcome announcement started · generated voice preview' : 'Cabin guide started · generated voice preview');
+    setNotice(kind === 'welcome' ? t('welcomeVoiceStarted') : t('guideVoiceStarted'));
   };  const stopFadeFrame = () => {
     if (fadeFrame.current !== null) cancelAnimationFrame(fadeFrame.current);
     fadeFrame.current = null;
@@ -742,7 +850,7 @@ function Studio() {
     const context = audioContext.current;
     void context.resume().then(() => {
       if (!cancelled) moodMusicRef.current = scheduleMoodMusic(context, scene.id, playbackTime.current, scene.durationSeconds, audioVolume);
-    }).catch(() => setNotice('Browser audio permission prevented the instrumental preview.'));
+    }).catch(() => setNotice(t('instrumentalPermission')));
     return () => {
       cancelled = true;
       moodMusicRef.current?.stop();
@@ -768,7 +876,7 @@ function Studio() {
       const duration = Number.isFinite(element.duration) && element.duration > 0 ? element.duration : 0;
       const target = duration ? playbackTime.current % duration : playbackTime.current;
       if (element.paused || Math.abs(element.currentTime - target) > .5) element.currentTime = target;
-      if (playing && audioCues) void element.play().catch(() => setNotice('The imported audio could not play in this browser.'));
+      if (playing && audioCues) void element.play().catch(() => setNotice(t('importedAudioPlaybackFailed')));
       else element.pause();
     };
     if (element.readyState >= 1) syncPosition();
@@ -824,7 +932,7 @@ function Studio() {
   useEffect(() => {
     const persist = () => {
       try { writeProject(projectId, projectName, { zones, scenes, intensity, activeSceneId, selectedZoneId: selected, projectName, cabinConfig, aircraftMeshId }); }
-      catch { setNotice('Browser storage is unavailable. Export scenes to save a local copy.'); }
+      catch { setNotice(t('browserStorageUnavailable')); }
     };
     const timer = window.setTimeout(persist, 300);
     window.addEventListener('pagehide', persist);
@@ -904,7 +1012,7 @@ function Studio() {
       ...zone,
       rgbw: zone.id === 'emergency' || zone.id === 'exit' ? zone.rgbw : next.keyframes[0].targets[zone.id] ?? (zone.parentZoneId ? next.keyframes[0].targets[zone.parentZoneId] : zone.rgbw),
     })));
-    setNotice(next.name + ' loaded into simulator');
+    setNotice(t('sceneLoaded').replace('{name}', () => studioSceneName(locale, next)));
   };
   const changeFade = (value: number) => {
     snapshot(); setZones((previous) => previous.map((zone) => zone.id === selected ? { ...zone, fadeSeconds: Math.max(0, Math.min(120, value)) } : zone));
@@ -923,11 +1031,11 @@ function Studio() {
     const keyframes = scene.keyframes.filter((item) => item.atSeconds !== scene.durationSeconds).concat(frame).sort((a, b) => a.atSeconds - b.atSeconds);
     const updated = validateSceneFile({ ...scene, keyframes });
     setScenes((all) => all.map((item) => item.id === updated.id ? updated : item));
-    setNotice(`Saved ${scene.name} locally`);
+    setNotice(t('sceneSaved').replace('{name}', () => studioSceneName(locale, scene)));
   };
-  const resetScene = () => { const defaults = makeDefaultZones(); setPlaying(false); setUndo([]); setRedo([]); setScenes(copy(PRESETS)); setZones(defaults); setEffectiveImmediately(Object.fromEntries(defaults.map((zone) => [zone.id, zone.rgbw])) as Record<ControlZoneId, RGBW>); setActiveSceneId('aurora'); setSelected('ceiling'); setTime(0); setIntensity(72); setCabinConfig(DEFAULT_CABIN_CONFIG); setCabinDraft(DEFAULT_CABIN_CONFIG); setAircraftMeshId(DEFAULT_CABIN_MESH_ID); setAircraftMeshDraftId(DEFAULT_CABIN_MESH_ID); setNotice('Local studio reset to default scenes'); };
+  const resetScene = () => { const defaults = makeDefaultZones(); setPlaying(false); setUndo([]); setRedo([]); setScenes(copy(PRESETS)); setZones(defaults); setEffectiveImmediately(Object.fromEntries(defaults.map((zone) => [zone.id, zone.rgbw])) as Record<ControlZoneId, RGBW>); setActiveSceneId('aurora'); setSelected('ceiling'); setTime(0); setIntensity(72); setCabinConfig(DEFAULT_CABIN_CONFIG); setCabinDraft(DEFAULT_CABIN_CONFIG); setAircraftMeshId(DEFAULT_CABIN_MESH_ID); setAircraftMeshDraftId(DEFAULT_CABIN_MESH_ID); setNotice(t('localReset')); };
   const currentProjectState = (): SavedState => ({ zones, scenes, intensity, activeSceneId, selectedZoneId: selected, projectName, cabinConfig, aircraftMeshId });
-  const saveProject = () => { try { writeProject(projectId, projectName, currentProjectState()); setNotice(`Project “${projectName}” saved locally`); } catch { setNotice('Project could not be saved to browser storage'); } };
+  const saveProject = () => { try { writeProject(projectId, projectName, currentProjectState()); setNotice(t('projectSaved').replace('{name}', () => projectName)); } catch { setNotice(t('projectStorageFailed')); } };
   const loadProject = (id: string, name: string) => {
     const next = readSaved(id);
     const nextZones = Array.isArray(next.zones) ? migrateZones(next.zones) : makeDefaultZones();
@@ -937,51 +1045,51 @@ function Studio() {
       if (!nextScenes.length) nextScenes = copy(PRESETS);
     } catch { nextScenes = copy(PRESETS); }
     const nextMeshId = Object.hasOwn(next, 'aircraftMeshId') ? getCabinMeshProfile(next.aircraftMeshId)?.id ?? null : DEFAULT_CABIN_MESH_ID;
-    setProjectId(id); localStorage.setItem(ACTIVE_PROJECT_KEY, id); setProjectName(next.projectName || name); setZones(nextZones); setScenes(nextScenes); setIntensity(Number.isFinite(next.intensity) ? Math.max(0, Math.min(100, next.intensity!)) : 72); setActiveSceneId(next.activeSceneId || 'aurora'); setSelected(next.selectedZoneId && (ZONE_IDS.includes(next.selectedZoneId as ZoneId) || next.selectedZoneId.startsWith('fixture:')) ? next.selectedZoneId : 'ceiling'); setCabinConfig(validateCabinConfig(next.cabinConfig ?? {})); setCabinDraft(validateCabinConfig(next.cabinConfig ?? {})); setAircraftMeshId(nextMeshId); setAircraftMeshDraftId(nextMeshId); setUndo([]); setRedo([]); setPlaying(false); setTime(0); setEffectiveImmediately(Object.fromEntries(nextZones.map((zone) => [zone.id, zone.rgbw])) as Record<ControlZoneId, RGBW>); setNotice(`Project “${name}” opened`);
+    setProjectId(id); localStorage.setItem(ACTIVE_PROJECT_KEY, id); setProjectName(next.projectName || name); setZones(nextZones); setScenes(nextScenes); setIntensity(Number.isFinite(next.intensity) ? Math.max(0, Math.min(100, next.intensity!)) : 72); setActiveSceneId(next.activeSceneId || 'aurora'); setSelected(next.selectedZoneId && (ZONE_IDS.includes(next.selectedZoneId as ZoneId) || next.selectedZoneId.startsWith('fixture:')) ? next.selectedZoneId : 'ceiling'); setCabinConfig(validateCabinConfig(next.cabinConfig ?? {})); setCabinDraft(validateCabinConfig(next.cabinConfig ?? {})); setAircraftMeshId(nextMeshId); setAircraftMeshDraftId(nextMeshId); setUndo([]); setRedo([]); setPlaying(false); setTime(0); setEffectiveImmediately(Object.fromEntries(nextZones.map((zone) => [zone.id, zone.rgbw])) as Record<ControlZoneId, RGBW>); setNotice(t('projectOpened').replace('{name}', () => name));
   };
   const openProject = () => {
-    const index = readProjectIndex(); if (!index.length) { setNotice('Save a project before using Open Project'); return; }
-    try { writeProject(projectId, projectName, currentProjectState()); } catch { setNotice('Current project could not be saved'); return; }
-    const answer = window.prompt('Enter a project number:\n' + index.map((item, i) => `${i + 1}. ${item.name}`).join('\n'), '1');
+    const index = readProjectIndex(); if (!index.length) { setNotice(t('saveBeforeOpening')); return; }
+    try { writeProject(projectId, projectName, currentProjectState()); } catch { setNotice(t('currentProjectSaveFailed')); return; }
+    const answer = window.prompt(t('projectNumber') + '\n' + index.map((item, i) => `${i + 1}. ${item.name}`).join('\n'), '1');
     const entry = index[Number(answer) - 1]; if (entry) loadProject(entry.id, entry.name);
   };
   const createProject = () => {
-    const name = window.prompt('New project name', 'Cabin project');
+    const name = window.prompt(t('newProjectName'), t('defaultProjectName'));
     if (!name?.trim()) return;
-    try { writeProject(projectId, projectName, currentProjectState()); } catch { setNotice('Current project could not be saved'); return; }
-    const id = crypto.randomUUID(); setProjectId(id); localStorage.setItem(ACTIVE_PROJECT_KEY, id); setProjectName(name.trim()); resetScene(); setNotice(`New local project “${name.trim()}” created`);
+    try { writeProject(projectId, projectName, currentProjectState()); } catch { setNotice(t('currentProjectSaveFailed')); return; }
+    const id = crypto.randomUUID(); setProjectId(id); localStorage.setItem(ACTIVE_PROJECT_KEY, id); setProjectName(name.trim()); resetScene(); setNotice(t('projectCreated').replace('{value}', () => name.trim()));
   };
   const changeCabin = () => { setCabinDraft(cabinConfig); setAircraftMeshDraftId(aircraftMeshId); setConfigOpen((open) => !open); setTab('scene'); };
   const createNewScene = () => {
-    const name = window.prompt('New scene name'); if (!name?.trim()) return;
+    const name = window.prompt(t('newSceneName')); if (!name?.trim()) return;
     const targets = Object.fromEntries(zones.map((zone) => [zone.id, { ...zone.rgbw }])) as SceneFile['keyframes'][number]['targets'];
     const next: SceneFile = { schemaVersion: 1, id: `scene-${Date.now()}`, name: name.trim().slice(0, 80), durationSeconds: 60, keyframes: [{ atSeconds: 0, targets }, { atSeconds: 60, targets: copy(targets) }] };
-    setScenes((all) => [...all, next]); setActiveSceneId(next.id); setTime(0); setEffectiveImmediately(targets); setNotice(`Scene “${next.name}” created`);
+    setScenes((all) => [...all, next]); setActiveSceneId(next.id); setTime(0); setEffectiveImmediately(targets); setNotice(t('sceneCreated').replace('{value}', () => next.name));
   };
   const duplicateScene = (id: string) => {
     const source = scenes.find((item) => item.id === id); if (!source) return;
-    const next = validateSceneFile({ ...copy(source), id: `${source.id.slice(0, 45)}-copy-${Date.now()}`, name: `${source.name} copy`.slice(0, 80) });
-    setScenes((all) => [...all, next]); setNotice(`Scene “${next.name}” duplicated`);
+    const next = validateSceneFile({ ...copy(source), id: `${source.id.slice(0, 45)}-copy-${Date.now()}`, name: t('sceneCopyName').replace('{name}', () => studioSceneName(locale, source)).slice(0, 80) });
+    setScenes((all) => [...all, next]); setNotice(t('sceneDuplicated').replace('{value}', () => next.name));
   };
   const renameScene = (id: string) => {
     const source = scenes.find((item) => item.id === id); if (!source) return;
-    const name = window.prompt('Rename scene', source.name); if (!name?.trim()) return;
-    try { const renamed = validateSceneFile({ ...source, name: name.trim() }); setScenes((all) => all.map((item) => item.id === id ? renamed : item)); setNotice(`Scene renamed to “${renamed.name}”`); }
-    catch (error) { setNotice(error instanceof Error ? error.message : 'Scene name is invalid'); }
+    const name = window.prompt(t('renameScenePrompt'), source.name); if (!name?.trim()) return;
+    try { const renamed = validateSceneFile({ ...source, name: name.trim() }); setScenes((all) => all.map((item) => item.id === id ? renamed : item)); setNotice(t('sceneRenamed').replace('{value}', () => renamed.name)); }
+    catch (error) { setNotice(studioSceneDiagnostic(locale, error, 'sceneNameInvalid')); }
   };
   const deleteScene = (id: string) => {
-    if (scenes.length <= 1) { setNotice('Keep at least one scene in the library'); return; }
-    const target = scenes.find((item) => item.id === id); if (!target || !window.confirm(`Delete scene “${target.name}”?`)) return;
+    if (scenes.length <= 1) { setNotice(t('keepOneScene')); return; }
+    const target = scenes.find((item) => item.id === id); if (!target || !window.confirm(t('deleteScenePrompt').replace('{name}', () => studioSceneName(locale, target)))) return;
     const remaining = scenes.filter((item) => item.id !== id); setScenes(remaining);
     if (activeSceneId === id) { const next = remaining[0]; setActiveSceneId(next.id); setTime(0); setEffectiveImmediately(next.keyframes[0].targets); }
-    setNotice(`Scene “${target.name}” deleted`);
+    setNotice(t('sceneDeleted').replace('{value}', () => studioSceneName(locale, target)));
   };
   const addKeyframe = () => {
     const at = Math.max(1, Math.min(scene.durationSeconds - 1, Math.round(time)));
     const existingEasing = scene.keyframes.find((item) => item.atSeconds === at)?.easing;
     const frame = { atSeconds: at, ...(existingEasing ? { easing: existingEasing } : {}), targets: Object.fromEntries(zones.map((zone) => [zone.id, zone.rgbw])) as SceneFile['keyframes'][number]['targets'] };
     const frames = scene.keyframes.filter((item) => item.atSeconds !== at).concat(frame).sort((a, b) => a.atSeconds - b.atSeconds);
-    setScenes((all) => all.map((item) => item.id === scene.id ? { ...item, keyframes: frames } : item)); setNotice(`Keyframe set at ${formatTime(at)}`);
+    setScenes((all) => all.map((item) => item.id === scene.id ? { ...item, keyframes: frames } : item)); setNotice(t('keyframeSet').replace('{value}', () => formatTime(at)));
   };
   const commitCurrentKeyframe = () => {
     const atSeconds = Math.max(0, Math.min(scene.durationSeconds, Math.round(time)));
@@ -993,39 +1101,39 @@ function Studio() {
       const updated = validateSceneFile({ ...scene, keyframes });
       setScenes((all) => all.map((item) => item.id === scene.id ? updated : item));
       setEffectiveImmediately(targets);
-      setNotice('Values committed to ' + scene.name + ' at ' + formatTime(atSeconds));
-    } catch (error) { setNotice(error instanceof Error ? error.message : 'Current values could not be committed.'); }
+      setNotice(t('valuesCommitted').replace('{time}', formatTime(atSeconds)).replace('{name}', () => studioSceneName(locale, scene)));
+    } catch (error) { setNotice(studioSceneDiagnostic(locale, error, 'commitFailed')); }
   };
   const exportScene = () => {
     const payload = JSON.stringify(scene, null, 2);
     downloadBlob(new Blob([payload], { type: 'application/json' }), `${scene.id}.adigun-scene.json`);
-    setNotice('Versioned scene file exported');
+    setNotice(t('sceneFileExported'));
   };
   const exportPreflight = () => {
     const baseline = PRESETS.find((preset) => preset.id === scene.id);
     const report = createExportPreflightReport(scene, cabinConfig, baseline);
     downloadBlob(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }), `${scene.id}.engineering-preflight.json`);
-    const coverage = `${report.fixtureCoverage.documentedZoneCount}/${report.fixtureCoverage.checkedZoneCount} fixture zones documented`;
+    const coverage = `${report.fixtureCoverage.documentedZoneCount}/${report.fixtureCoverage.checkedZoneCount} ${t('fixtureZonesDocumented')}`;
     const comparison = report.sceneComparison.changes
-      ? `${report.sceneComparison.changes.summary.changedTargets} target changes · ${report.sceneComparison.changes.easingChanges} easing changes vs ${report.sceneComparison.baselineId}`
-      : 'no saved comparison baseline';
-    setNotice(`Preflight exported · ${report.sceneValidation.status} scene · ${coverage} · ${comparison}`);
+      ? t('comparisonDetails').replace('{targets}', String(report.sceneComparison.changes.summary.changedTargets)).replace('{easing}', String(report.sceneComparison.changes.easingChanges)).replace('{baseline}', () => String(report.sceneComparison.baselineId))
+      : t('noComparisonBaseline');
+    setNotice(`${t('preflightExported')} · ${t(report.sceneValidation.status === 'VALID' ? 'validScene' : 'invalidScene')} · ${coverage} · ${comparison}`);
   };
   const exportCabin4K = async () => {
     if (viewMode === '3d') {
       try {
         const startedAt = performance.now();
         const png = await cabinCaptureRef.current?.();
-        if (!png) throw new Error('The 3D renderer is not ready for capture.');
+        if (!png) throw new Error(t('rendererNotReady'));
         downloadBlob(png, 'adigun-configurable-reference-cabin-3840x2160.png');
         const elapsedMs = Math.round(performance.now() - startedAt);
         const surfaceMiB = estimateRgbaSurfaceMiB(CABIN_EXPORT_4K.width, CABIN_EXPORT_4K.height);
-        setNotice(`3D 4K: ${elapsedMs} ms; ≥${surfaceMiB.toFixed(1)} MiB per RGBA surface (peak unknown).`);
-      } catch (error) { setNotice(error instanceof Error ? error.message : 'The 3D cabin could not be exported.'); }
+        setNotice(t('export4KMeasured').replace('{elapsed}', String(elapsedMs)).replace('{surface}', surfaceMiB.toFixed(1)));
+      } catch (error) { setNotice(error instanceof Error ? error.message : t('export3DFailed')); }
       return;
     }
     const source = stageRef.current?.querySelector('svg');
-    if (!source) { setNotice('Cabin view is not ready for export'); return; }
+    if (!source) { setNotice(t('cabinExportNotReady')); return; }
     try {
       const clone = source.cloneNode(true) as SVGSVGElement;
       const width = hq4k ? 3840 : 1920; const height = hq4k ? 2160 : 1080;
@@ -1033,21 +1141,21 @@ function Studio() {
       const image = new Image(); const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)], { type: 'image/svg+xml;charset=utf-8' }));
       await new Promise<void>((resolve, reject) => { image.onload = () => resolve(); image.onerror = () => reject(new Error('Unable to render 4K cabin image')); image.src = url; });
       const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height; const context = canvas.getContext('2d');
-      if (!context) throw new Error('Cabin image canvas is unavailable');
+      if (!context) throw new Error(t('canvasUnavailable'));
       context.fillStyle = '#0b1420'; context.fillRect(0, 0, canvas.width, canvas.height);
       const scale = Math.min(canvas.width / image.width, canvas.height / image.height); context.drawImage(image, (canvas.width - image.width * scale) / 2, (canvas.height - image.height * scale) / 2, image.width * scale, image.height * scale);
       URL.revokeObjectURL(url);
       const png = await new Promise<Blob>((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('4K PNG encoding failed')), 'image/png'));
       downloadBlob(png, `adigun-zone-map-${width}x${height}.png`);
-      setNotice(`${width} × ${height} 2D zone map exported`);
-    } catch (error) { setNotice(error instanceof Error ? error.message : '4K cabin export failed'); }
+      setNotice(t('mapExported').replace('{width}', String(width)).replace('{height}', String(height)));
+    } catch (error) { setNotice(error instanceof Error ? error.message : t('export4KFailed')); }
   };
   const importScene = async (file?: File) => {
     if (!file) return;
     try {
       const parsed = validateSceneFile(JSON.parse(await file.text()));
-      setScenes((all) => [...all.filter((item) => item.id !== parsed.id), parsed]); setActiveSceneId(parsed.id); applySceneAt(0, parsed); setZones((previous) => previous.map((zone) => ({ ...zone, rgbw: parsed.keyframes[0].targets[zone.id] ?? zone.rgbw }))); setNotice(`${parsed.name} imported and validated`);
-    } catch (error) { setNotice(error instanceof Error ? error.message : 'Scene import failed validation'); }
+      setScenes((all) => [...all.filter((item) => item.id !== parsed.id), parsed]); setActiveSceneId(parsed.id); applySceneAt(0, parsed); setZones((previous) => previous.map((zone) => ({ ...zone, rgbw: parsed.keyframes[0].targets[zone.id] ?? zone.rgbw }))); setNotice(t('sceneImported').replace('{name}', () => studioSceneName(locale, parsed)));
+    } catch (error) { setNotice(studioSceneDiagnostic(locale, error, 'sceneValidationFailed')); }
     if (importRef.current) importRef.current.value = '';
   };
   const importScenario = async (file?: File) => {
@@ -1071,8 +1179,8 @@ function Studio() {
       setCabinConfig(scenario.cabin.config); setCabinDraft(scenario.cabin.config);
       setUndo([]); setRedo([]); setPlaying(false); setTime(0);
       setEffectiveImmediately(Object.fromEntries(importedZones.map((zone) => [zone.id, zone.rgbw])) as Record<ControlZoneId, RGBW>);
-      setNotice(`Scenario “${scenario.projectName}” imported as a new local project · simulation only · no hardware output`);
-    } catch (error) { setNotice(error instanceof Error ? error.message : 'Scenario package import failed validation'); }
+      setNotice(t('scenarioImported').replace('{name}', () => scenario.projectName));
+    } catch (error) { setNotice(studioSceneDiagnostic(locale, error, 'scenarioValidationFailed')); }
     if (scenarioImportRef.current) scenarioImportRef.current.value = '';
   };
   const chooseTab = (next: string, section: string) => {
@@ -1083,13 +1191,13 @@ function Studio() {
   return <main className="studio-shell" data-active-tab={tab} lang={locale}>
     <header className="studio-topbar"><Brand />
       <div className="top-spacer" />
-      <div className="top-actions"><span className="mode-pill compact-mode" title="SIMULATION · OFFLINE · NO HARDWARE CONNECTED"><i className="status-pulse" /> SIM · OFFLINE · NO HW</span><button className="button button-quiet button-sm top-save" onClick={saveScene}><Save size={15} /> Save scene</button><button className="button button-primary button-sm top-export" onClick={() => void exportCabin4K()}><Download size={15} /> Export</button><button className="icon-button" title="Help" aria-label="Help" onClick={() => setNotice('Studio help: select a zone, tune RGBW, then save or export a scene.')}><CircleHelp size={18} /></button>
-        <button className="icon-button" title="More studio actions" aria-label="More studio actions" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}><MoreHorizontal size={20} /></button>
+      <div className="top-actions"><span className="mode-pill compact-mode" title={t('offlineStatus')}><i className="status-pulse" /> {t('offlineShort')}</span><button className="button button-quiet button-sm top-save" onClick={saveScene}><Save size={15} /> {t('saveScene')}</button><button className="button button-primary button-sm top-export" onClick={() => void exportCabin4K()}><Download size={15} /> {t('export')}</button><button className="icon-button" title={t('help')} aria-label={t('help')} onClick={() => setNotice(t('studioHelp'))}><CircleHelp size={18} /></button>
+        <button className="icon-button" title={t('moreActions')} aria-label={t('moreActions')} aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}><MoreHorizontal size={20} /></button>
       </div>
-      {menuOpen && <><button className="dismiss-overlay" aria-label="Close menu" onClick={() => setMenuOpen(false)} /><div className="top-menu" role="menu"><button role="menuitem" disabled={!undo.length} onClick={() => { setMenuOpen(false); undoOnce(); }}><Undo2 size={15} /> Undo</button><button role="menuitem" disabled={!redo.length} onClick={() => { setMenuOpen(false); redoOnce(); }}><Redo2 size={15} /> Redo</button><button role="menuitem" onClick={() => { setMenuOpen(false); saveScene(); }}><Save size={15} /> Save scene locally</button><button role="menuitem" onClick={() => { setMenuOpen(false); exportScene(); }}><Download size={15} /> Export scene JSON</button><button role="menuitem" onClick={() => { setMenuOpen(false); exportPreflight(); }}><ClipboardCheck size={15} /> Export engineering preflight · JSON</button><button role="menuitem" onClick={() => { setMenuOpen(false); void exportCabin4K(); }}><Download size={15} /> Export cabin view · 4K PNG</button><button role="menuitem" onClick={() => { setMenuOpen(false); importRef.current?.click(); }}><Upload size={15} /> Import scene file</button><button role="menuitem" onClick={() => { setMenuOpen(false); scenarioImportRef.current?.click(); }}><Upload size={15} /> Import scenario package</button><button role="menuitem" onClick={() => { setMenuOpen(false); resetScene(); }}><RotateCcw size={15} /> Reset local studio</button><button role="menuitem" onClick={() => { setMenuOpen(false); setNotice('SIMULATION ONLY · NOT CONNECTED · No physical output is enabled.'); }}><ShieldCheck size={15} /> Operating mode &amp; safety</button></div></>}
+      {menuOpen && <><button className="dismiss-overlay" aria-label={t('closeMenu')} onClick={() => setMenuOpen(false)} /><div className="top-menu" role="menu"><button role="menuitem" disabled={!undo.length} onClick={() => { setMenuOpen(false); undoOnce(); }}><Undo2 size={15} /> {t('undo')}</button><button role="menuitem" disabled={!redo.length} onClick={() => { setMenuOpen(false); redoOnce(); }}><Redo2 size={15} /> {t('redo')}</button><button role="menuitem" onClick={() => { setMenuOpen(false); saveScene(); }}><Save size={15} /> {t('saveSceneLocal')}</button><button role="menuitem" onClick={() => { setMenuOpen(false); exportScene(); }}><Download size={15} /> {t('exportSceneJson')}</button><button role="menuitem" onClick={() => { setMenuOpen(false); exportPreflight(); }}><ClipboardCheck size={15} /> {t('exportPreflight')}</button><button role="menuitem" onClick={() => { setMenuOpen(false); void exportCabin4K(); }}><Download size={15} /> {t('exportCabin')}</button><button role="menuitem" onClick={() => { setMenuOpen(false); importRef.current?.click(); }}><Upload size={15} /> {t('importScene')}</button><button role="menuitem" onClick={() => { setMenuOpen(false); scenarioImportRef.current?.click(); }}><Upload size={15} /> {t('importScenario')}</button><button role="menuitem" onClick={() => { setMenuOpen(false); resetScene(); }}><RotateCcw size={15} /> {t('resetStudio')}</button><button role="menuitem" onClick={() => { setMenuOpen(false); setNotice(t('simulationOnly')); }}><ShieldCheck size={15} /> {t('modeSafety')}</button></div></>}
     </header>
     <div className="studio-layout">
-      <aside className="studio-rail" aria-label="Studio sections">
+      <aside className="studio-rail" aria-label={t('studioSections')}>
         <span className="rail-label">{t('workspace')}</span>
         <button aria-label={t('cabinOverview')} title={t('cabinOverview')} aria-current={tab === 'scene' ? 'page' : undefined} className={tab === 'scene' ? 'active' : ''} onClick={() => chooseTab('scene', 'cabin-view')}><LayoutGrid size={18} /><span>{t('cabinOverview')}</span></button>
         <button aria-label={t('zoneMapping')} title={t('zoneMapping')} aria-current={tab === 'zones' ? 'page' : undefined} className={tab === 'zones' ? 'active' : ''} onClick={() => chooseTab('zones', 'zone-inspector')}><SlidersHorizontal size={18} /><span>{t('zoneMapping')}</span></button>
@@ -1105,82 +1213,82 @@ function Studio() {
         <button aria-label={t('changeCabin')} title={t('changeCabin')} aria-expanded={configOpen} onClick={changeCabin}><Settings2 size={18} /><span>{t('changeCabin')}</span></button>
         <button aria-label={t('resetCamera')} title={t('resetCamera')} disabled={viewMode !== '3d'} onClick={() => cameraResetRef.current?.()}><RotateCcw size={18} /><span>{t('resetCamera')}</span></button>
         <div className="rail-divider" /><span className="rail-label">{t('system')}</span>
-        <div className="rail-disabled" title="Physical hardware diagnostics are not included in this offline release"><Activity size={18} /><span>{t('hardwareDiagnostics')}</span><small>{t('notAvailable')}</small></div>
-        <div className="rail-disabled" title="Adigun BOT is not enabled for this release"><Sparkles size={18} /><span>{t('adigunBot')}</span><small>{t('notEnabled')}</small></div>
+        <div className="rail-disabled" title={t('hardwareUnavailable')}><Activity size={18} /><span>{t('hardwareDiagnostics')}</span><small>{t('notAvailable')}</small></div>
+        <div className="rail-disabled" title={t('botUnavailable')}><Sparkles size={18} /><span>{t('adigunBot')}</span><small>{t('notEnabled')}</small></div>
       </aside>
       <section className="studio-main">
         <div className="workspace-grid">
           <div className="visual-column">
             <section className="panel cabin-panel" id="cabin-view" tabIndex={-1}>
               <div className="panel-head"><div><h2>{t('cabinDigitalTwin')}</h2></div><div className="view-controls" aria-label={t('cabinViewControls')}><div className="view-switch" role="group" aria-label={t('cabinView')}><button aria-pressed={viewMode === '2d'} onClick={() => setViewMode('2d')}>2D</button><button aria-pressed={viewMode === '3d'} onClick={() => setViewMode('3d')}>3D</button></div><button className={`quality-toggle ${hq4k ? 'is-on' : ''}`} aria-label={t('highQuality4K')} aria-pressed={hq4k} onClick={() => setHq4k((value) => !value)}>HQ 4K <span /></button></div></div>
-              {configOpen && <form className="cabin-config" onSubmit={(e) => { e.preventDefault(); const next = validateCabinConfig(cabinDraft); const meshSelect = e.currentTarget.elements.namedItem('aircraftMeshId') as HTMLSelectElement | null; const asset = getCabinMeshProfile(meshSelect?.value || null); setCabinDraft(next); setCabinConfig(next); setAircraftMeshDraftId(asset?.id ?? null); setAircraftMeshId(asset?.id ?? null); setConfigOpen(false); setNotice(asset ? `${asset.label} loaded in the cabin renderer · simulation geometry; no physical or OEM fit is asserted.` : next.layoutId === 'a350900' || next.layoutId === 'a330300' ? `${CABIN_LAYOUTS[next.layoutId].name} planning reference loaded · derived row arrangement is illustrative, not an airline cabin fit.` : next.layoutId === 'ownerVvip' ? 'Owner image-derived VVIP reference loaded · proportions are estimated, not measured aircraft geometry.' : `${CABIN_LAYOUTS[next.layoutId].name} cabin loaded · ${next.lengthMeters.toFixed(1)} m × ${next.widthMeters.toFixed(2)} m. Reference layout only.`); }}>
-                <div className="cabin-config-head"><strong>Change cabin <small>· {cabinDraft.layoutId === 'a350900' || cabinDraft.layoutId === 'a330300' || cabinDraft.layoutId === 'g650erVvip' ? 'manufacturer data reference' : cabinDraft.layoutId === 'ownerVvip' ? 'owner image-derived visual reference' : 'configurable reference layouts'}</small></strong><button type="button" aria-label="Close cabin configuration" onClick={() => setConfigOpen(false)}><X size={14} /></button></div>
-                <label className="cabin-profile-select">{t('cabinLayout')}<select aria-label={t('cabinLayout')} value={cabinDraft.layoutId} onChange={(e) => { setCabinDraft(CABIN_PROFILES[e.target.value as CabinLayoutId]); setAircraftMeshDraftId(null); }}>{Object.entries(CABIN_LAYOUTS).map(([id, item]) => <option key={id} value={id}>{item.name}</option>)}</select></label>
-                <label className="cabin-profile-select">Aircraft / airline 3D model<select name="aircraftMeshId" aria-label="Aircraft or airline 3D model" value={aircraftMeshDraftId ?? ''} onChange={(e) => { const id = e.target.value || null; setAircraftMeshDraftId(id); if (id === DEFAULT_CABIN_MESH_ID) setCabinDraft(CABIN_PROFILES.g650erVvip); }}><option value="">Current reference cabin</option><optgroup label="Airline seat-map reconstructions">{AIRLINE_MESH_PROFILES.map((profile) => <option key={profile.id} value={profile.id}>{profile.label}</option>)}</optgroup><optgroup label="Aircraft dimension-based models">{AIRCRAFT_DIMENSION_PROFILES.map((profile) => <option key={profile.id} value={profile.id}>{profile.label}</option>)}</optgroup></select></label>
-                {(() => { const profile = getCabinMeshProfile(aircraftMeshDraftId); return profile ? <p className="cabin-profile-note">{profile.sourceNote}{profile.sourceUrl && <> · <a href={profile.sourceUrl} target="_blank" rel="noreferrer">source</a></>}</p> : <p className="cabin-profile-note">Choose a sourced simulation profile to load its GLB in the existing 3D viewer. The imported cabin geometry remains labeled as simulation.</p>; })()}
-                <div className="cabin-profile-summary">{cabinDraft.layoutId === 'a350900' ? <>Airbus A350-900 standard two-class data · 315 passengers: 48 business (6 abreast, 60 in pitch) + 267 economy (9 abreast, 32 in pitch) · {cabinDraft.lengthMeters.toFixed(2)} m cabin length · {cabinDraft.widthMeters.toFixed(2)} m max cabin width</> : cabinDraft.layoutId === 'a330300' ? <>Airbus A330-300 standard two-class data · 300 passengers: 36 business (6 abreast, 60 in pitch) + 264 economy (8 abreast, 32 in pitch) · {cabinDraft.lengthMeters.toFixed(2)} m cabin length · {cabinDraft.widthMeters.toFixed(2)} m max cabin width</> : cabinDraft.layoutId === 'g650erVvip' ? <>Gulfstream G650ER · 10 mesh-authored seats · five two-seat rows · {cabinDraft.lengthMeters.toFixed(2)} m cabin length · {cabinDraft.widthMeters.toFixed(2)} m finished cabin width · 16 published windows</> : <>{CABIN_LAYOUTS[cabinDraft.layoutId].description} · {cabinDraft.lengthMeters.toFixed(1)} m long · {cabinDraft.widthMeters.toFixed(2)} m wide · {CABIN_LAYOUTS[cabinDraft.layoutId].groups.reduce((sum, count) => sum + count, 0)} seats/row</>}</div>
-                {([['lengthMeters','Cabin length (m)',8,60,.1],['widthMeters','Interior width (m)',2,7,.05],['ceilingHeightMeters','Ceiling height (m)',1.8,4,.05],['seatRows','Seat rows',2,60,1],['seatPitchMeters','Seat pitch (m)',.55,2.2,.01],['windowCountPerSide','Windows per side',2,30,1],['overheadBinDepthMeters','Bin depth (m)',.25,1,.01]] as const).map(([key,label,min,max,step]) => <label key={key}>{(cabinDraft.layoutId === 'a350900' || cabinDraft.layoutId === 'a330300') && key === 'widthMeters' ? 'Max cabin width (m)' : label}<input type="number" min={min} max={max} step={step} value={cabinDraft[key]} disabled={(cabinDraft.layoutId === 'a350900' || cabinDraft.layoutId === 'a330300') && ['lengthMeters','widthMeters','seatRows','seatPitchMeters'].includes(key) || cabinDraft.layoutId === 'g650erVvip' && ['lengthMeters','widthMeters','ceilingHeightMeters','seatRows','windowCountPerSide'].includes(key)} onChange={(e) => setCabinDraft((config) => ({ ...config, [key]: Number(e.target.value) }))} /></label>)}
-                <p className="cabin-profile-note">{cabinDraft.layoutId === 'a350900' ? `Airbus dimensions and seat totals are planning references. ${CABIN_LAYOUTS.a350900.geometryNote}` : cabinDraft.layoutId === 'a330300' ? `Airbus A330-300 planning dimensions and seat totals are references. ${CABIN_LAYOUTS.a330300.geometryNote}` : cabinDraft.layoutId === 'ownerVvip' ? CABIN_LAYOUTS.ownerVvip.geometryNote : cabinDraft.layoutId === 'g650erVvip' ? CABIN_LAYOUTS.g650erVvip.geometryNote : 'These are editable reference layouts, not certified aircraft models or operator cabin fits.'}{(cabinDraft.layoutId === 'a350900' || cabinDraft.layoutId === 'a330300' || cabinDraft.layoutId === 'g650erVvip') && <><br /><a href={cabinDraft.layoutId === 'g650erVvip' ? CABIN_LAYOUTS.g650erVvip.source : CABIN_LAYOUTS[cabinDraft.layoutId].planningSource} target="_blank" rel="noreferrer">{cabinDraft.layoutId === 'g650erVvip' ? CABIN_LAYOUTS.g650erVvip.sourceRevision : CABIN_LAYOUTS[cabinDraft.layoutId].sourceRevision}</a></>}</p>
+              {configOpen && <form className="cabin-config" onSubmit={(e) => { e.preventDefault(); const next = validateCabinConfig(cabinDraft); const meshSelect = e.currentTarget.elements.namedItem('aircraftMeshId') as HTMLSelectElement | null; const asset = getCabinMeshProfile(meshSelect?.value || null); setCabinDraft(next); setCabinConfig(next); setAircraftMeshDraftId(asset?.id ?? null); setAircraftMeshId(asset?.id ?? null); setConfigOpen(false); setNotice(asset ? t('meshLoaded').replace('{name}', () => asset.label) : next.layoutId === 'a350900' || next.layoutId === 'a330300' ? t('planningCabinLoaded').replace('{name}', () => studioCabinLayoutName(locale, next.layoutId)) : next.layoutId === 'ownerVvip' ? t('ownerCabinLoaded') : t('referenceCabinLoaded').replace('{dimensions}', () => `${next.lengthMeters.toFixed(1)} m × ${next.widthMeters.toFixed(2)} m`).replace('{name}', () => studioCabinLayoutName(locale, next.layoutId))); }}>
+                <div className="cabin-config-head"><strong>{t('changeCabin')} <small>· {cabinDraft.layoutId === 'a350900' || cabinDraft.layoutId === 'a330300' || cabinDraft.layoutId === 'g650erVvip' ? t('manufacturerReference') : cabinDraft.layoutId === 'ownerVvip' ? t('imageReference') : t('configurableReference')}</small></strong><button type="button" aria-label={t('closeCabin')} onClick={() => setConfigOpen(false)}><X size={14} /></button></div>
+                <label className="cabin-profile-select">{t('cabinLayout')}<select aria-label={t('cabinLayout')} value={cabinDraft.layoutId} onChange={(e) => { setCabinDraft(CABIN_PROFILES[e.target.value as CabinLayoutId]); setAircraftMeshDraftId(null); }}>{Object.keys(CABIN_LAYOUTS).map((id) => <option key={id} value={id}>{studioCabinLayoutName(locale, id as CabinLayoutId)}</option>)}</select></label>
+                <label className="cabin-profile-select">{t('aircraftModelLabel')}<select name="aircraftMeshId" aria-label={t('aircraftModel')} value={aircraftMeshDraftId ?? ''} onChange={(e) => { const id = e.target.value || null; setAircraftMeshDraftId(id); if (id === DEFAULT_CABIN_MESH_ID) setCabinDraft(CABIN_PROFILES.g650erVvip); }}><option value="">{t('currentReference')}</option><optgroup label={t('seatMapModels')}>{AIRLINE_MESH_PROFILES.map((profile) => <option key={profile.id} value={profile.id}>{profile.label}</option>)}</optgroup><optgroup label={t('dimensionModels')}>{AIRCRAFT_DIMENSION_PROFILES.map((profile) => <option key={profile.id} value={profile.id}>{profile.label}</option>)}</optgroup></select></label>
+                {(() => { const profile = getCabinMeshProfile(aircraftMeshDraftId); return profile ? <p className="cabin-profile-note">{studioProfileSourceNote(locale, profile.sourceNote)}{profile.sourceUrl && <> · <a href={profile.sourceUrl} target="_blank" rel="noreferrer">{t('sourceLink')}</a></>}</p> : <p className="cabin-profile-note">{t('sourcedProfileGuide')}</p>; })()}
+                <div className="cabin-profile-summary">{cabinDraft.layoutId === 'a350900' ? <>{t('a350SeatSummary')} · {cabinDraft.lengthMeters.toFixed(2)} {t('cabinLengthSummary')} · {cabinDraft.widthMeters.toFixed(2)} {t('maxWidthSummary')}</> : cabinDraft.layoutId === 'a330300' ? <>{t('a330SeatSummary')} · {cabinDraft.lengthMeters.toFixed(2)} {t('cabinLengthSummary')} · {cabinDraft.widthMeters.toFixed(2)} {t('maxWidthSummary')}</> : cabinDraft.layoutId === 'g650erVvip' ? <>{t('g650SeatSummary')} · {cabinDraft.lengthMeters.toFixed(2)} {t('cabinLengthSummary')} · {cabinDraft.widthMeters.toFixed(2)} {t('finishedWidthSummary')} · {t('publishedWindows')}</> : <>{studioCabinLayoutDescription(locale, cabinDraft.layoutId)} · {cabinDraft.lengthMeters.toFixed(1)} {t('metersLong')} · {cabinDraft.widthMeters.toFixed(2)} {t('metersWide')} · {CABIN_LAYOUTS[cabinDraft.layoutId].groups.reduce((sum, count) => sum + count, 0)} {t('seatsPerRow')}</>}</div>
+                {([['lengthMeters',t('cabinLength'),8,60,.1],['widthMeters',t('interiorWidth'),2,7,.05],['ceilingHeightMeters',t('ceilingHeight'),1.8,4,.05],['seatRows',t('seatRows'),2,60,1],['seatPitchMeters',t('seatPitch'),.55,2.2,.01],['windowCountPerSide',t('windowsPerSide'),2,30,1],['overheadBinDepthMeters',t('binDepth'),.25,1,.01]] as const).map(([key,label,min,max,step]) => <label key={key}>{(cabinDraft.layoutId === 'a350900' || cabinDraft.layoutId === 'a330300') && key === 'widthMeters' ? t('maxCabinWidth') : label}<input type="number" min={min} max={max} step={step} value={cabinDraft[key]} disabled={(cabinDraft.layoutId === 'a350900' || cabinDraft.layoutId === 'a330300') && ['lengthMeters','widthMeters','seatRows','seatPitchMeters'].includes(key) || cabinDraft.layoutId === 'g650erVvip' && ['lengthMeters','widthMeters','ceilingHeightMeters','seatRows','windowCountPerSide'].includes(key)} onChange={(e) => setCabinDraft((config) => ({ ...config, [key]: Number(e.target.value) }))} /></label>)}
+                <p className="cabin-profile-note">{cabinDraft.layoutId === 'a350900' ? `${t('a350PlanningQualifier')} ${studioCabinGeometryNote(locale, 'a350900')}` : cabinDraft.layoutId === 'a330300' ? `${t('a330PlanningQualifier')} ${studioCabinGeometryNote(locale, 'a330300')}` : cabinDraft.layoutId === 'ownerVvip' ? studioCabinGeometryNote(locale, 'ownerVvip') : cabinDraft.layoutId === 'g650erVvip' ? studioCabinGeometryNote(locale, 'g650erVvip') : t('editableLayoutsGuide')}{(cabinDraft.layoutId === 'a350900' || cabinDraft.layoutId === 'a330300' || cabinDraft.layoutId === 'g650erVvip') && <><br /><a href={cabinDraft.layoutId === 'g650erVvip' ? CABIN_LAYOUTS.g650erVvip.source : CABIN_LAYOUTS[cabinDraft.layoutId].planningSource} target="_blank" rel="noreferrer">{cabinDraft.layoutId === 'g650erVvip' ? CABIN_LAYOUTS.g650erVvip.sourceRevision : CABIN_LAYOUTS[cabinDraft.layoutId].sourceRevision}</a></>}</p>
                 <button type="submit" className="button button-quiet button-sm">{t('loadCabinLayout')}</button>
               </form>}
               <div className={`cabin-stage ${hq4k ? 'quality-high' : ''}`} data-view-mode={viewMode} data-cabin-layout={cabinConfig.layoutId} data-aircraft-mesh-id={selectedMeshProfile?.id ?? ''} ref={stageRef}><div className="stage-grid" /><div className="stage-crosshair" />
-                {viewMode === '3d' ? <><Suspense fallback={<div className="cabin3d-loading" role="status">Loading the selected aircraft cabin mesh…</div>}>{selectedMeshProfile ? <CabinAsset3D key={selectedMeshProfile.id} profile={selectedMeshProfile} zones={zones} effective={effectiveRGBW} intensity={intensity} selected={selected} onSelect={(id) => { if (inspectorZoneIds.has(id)) setSelected(id); }} highQuality={hq4k} previewActive={playing} previewMotion={playing && motionPreview} previewTime={time} previewDuration={scene.durationSeconds} previewStartedAt={previewStartedAt} scene={scene} cameraView={cameraView} captureRef={cabinCaptureRef} cameraResetRef={cameraResetRef} /> : <Cabin3D key={JSON.stringify(cabinConfig)} config={cabinConfig} zones={zones} effective={effectiveRGBW} intensity={intensity} selected={selected} onSelect={(id) => { if (inspectorZoneIds.has(id)) setSelected(id); }} highQuality={hq4k} previewActive={playing} previewMotion={playing && motionPreview} previewTime={time} previewDuration={scene.durationSeconds} cameraView={cameraView} captureRef={cabinCaptureRef} cameraResetRef={cameraResetRef} />}</Suspense><select className="camera-angle-select" aria-label="3D camera angle" value={cameraView} onChange={(event) => setCameraView(event.target.value as typeof cameraView)}><option value="entry">Entry view</option><option value="mid-cabin">Mid-cabin</option><option value="aft">Aft view</option><option value="window-row">Window row</option></select></> : <><CabinDrawing zones={inspectorZones.map((zone) => ({ ...zone, rgbw: Object.fromEntries(Object.entries(effectiveRGBW[zone.id]).map(([key, value]) => [key, value * intensity / 100])) as RGBW }))} selected={selected} onSelect={(id) => { if (inspectorZoneIds.has(id)) setSelected(id); }} config={cabinConfig} /><div className="stage-scale"><span /> {selectedMeshProfile ? `${selectedMeshProfile.label.toUpperCase()} · 2D REFERENCE MAP` : `${CABIN_LAYOUTS[cabinConfig.layoutId].name.toUpperCase()} · 2D REFERENCE MAP`}</div></>}
+                {viewMode === '3d' ? <><Suspense fallback={<div className="cabin3d-loading" role="status">{t('meshLoading')}</div>}>{selectedMeshProfile ? <CabinAsset3D locale={locale} key={selectedMeshProfile.id} profile={selectedMeshProfile} zones={zones} effective={effectiveRGBW} intensity={intensity} selected={selected} onSelect={(id) => { if (inspectorZoneIds.has(id)) setSelected(id); }} highQuality={hq4k} previewActive={playing} previewMotion={playing && motionPreview} previewTime={time} previewDuration={scene.durationSeconds} previewStartedAt={previewStartedAt} scene={scene} cameraView={cameraView} captureRef={cabinCaptureRef} cameraResetRef={cameraResetRef} /> : <Cabin3D locale={locale} key={JSON.stringify(cabinConfig)} config={cabinConfig} zones={zones} effective={effectiveRGBW} intensity={intensity} selected={selected} onSelect={(id) => { if (inspectorZoneIds.has(id)) setSelected(id); }} highQuality={hq4k} previewActive={playing} previewMotion={playing && motionPreview} previewTime={time} previewDuration={scene.durationSeconds} cameraView={cameraView} captureRef={cabinCaptureRef} cameraResetRef={cameraResetRef} />}</Suspense><select className="camera-angle-select" aria-label={t('cameraAngle')} value={cameraView} onChange={(event) => setCameraView(event.target.value as typeof cameraView)}><option value="entry">{t('entryView')}</option><option value="mid-cabin">{t('midCabin')}</option><option value="aft">{t('aftView')}</option><option value="window-row">{t('windowRow')}</option></select></> : <><CabinDrawing locale={locale} zones={inspectorZones.map((zone) => ({ ...zone, rgbw: Object.fromEntries(Object.entries(effectiveRGBW[zone.id]).map(([key, value]) => [key, value * intensity / 100])) as RGBW }))} selected={selected} onSelect={(id) => { if (inspectorZoneIds.has(id)) setSelected(id); }} config={cabinConfig} /><div className="stage-scale"><span /> {selectedMeshProfile ? `${selectedMeshProfile.label.toUpperCase()} · ${t('referenceMap2D')}` : `${studioCabinLayoutName(locale, cabinConfig.layoutId).toUpperCase()} · ${t('referenceMap2D')}`}</div></>}
               </div>
-              <div className="cabin-legend"><span><i className="legend-active" /> {t('activeZone')}: {currentZone.name}</span><span><i className="legend-zone" /> {t('doubleClickFixture')}</span><span className="legend-revision">{selectedMeshProfile ? `${selectedMeshProfile.accuracy} · simulation only` : 'Configurable reference geometry · not an aircraft fit'}</span></div>
+              <div className="cabin-legend"><span><i className="legend-active" /> {t('activeZone')}: {studioZoneName(locale, currentZone)}</span><span><i className="legend-zone" /> {t('doubleClickFixture')}</span><span className="legend-revision">{selectedMeshProfile ? `${studioGeometryAccuracy(locale, selectedMeshProfile.accuracy)} · ${t('legendSimulation')}` : t('legendReference')}</span></div>
             </section>
             <section className="panel timeline-panel" id="timeline" tabIndex={-1}>
-              <div className="timeline-head"><div><span className="panel-overline">{t('choreographyTimeline')}</span><h2>{t('transitionPreview')}</h2></div><div className="timeline-actions"><button className={`preview-toggle ${motionPreview ? 'is-on' : ''}`} aria-label="Camera motion preview" aria-pressed={motionPreview} title="Subtle camera motion during playback" onClick={() => setMotionPreview((value) => !value)}><Move3D size={13} /> Motion</button><button className={`preview-toggle ${audioCues ? 'is-on' : ''}`} aria-label="Mood music" aria-pressed={audioCues} title="Play a mood-specific instrumental during transition preview" onClick={() => setAudioCues((value) => !value)}><Volume2 size={13} /> Music</button><button className="preview-toggle" aria-label="Audio announcements and volume" aria-expanded={audioPanelOpen} title="Announcement, tour voice, and volume" onClick={() => setAudioPanelOpen((open) => !open)}><Headphones size={13} /> Audio</button><button className="button button-quiet button-sm" onClick={addKeyframe}><Plus size={14} /> {t('addKeyframe')}</button></div></div>
-              {audioPanelOpen && <div className="audio-console" id="audio-console" role="group" aria-label="Cabin audio controls">
-                <div className="audio-console-head"><div><span className="panel-overline">CABIN SOUND DESIGN</span><strong>{scene.name} · {currentMoodAudio ? currentMoodAudio.title : getMoodInstrumentLabel(scene.id)}</strong></div><button type="button" aria-label="Close audio controls" onClick={() => setAudioPanelOpen(false)}><X size={15} /></button></div>
-                <p className="audio-score-note">{currentMoodAudio ? 'Imported local cue · loops with preview; shared volume control' : `Original browser-synthesized score · ${getMoodScore(scene.id).tempo} BPM · follows the transition preview`}</p>
-                <label className="audio-volume-control" htmlFor="cabin-audio-volume"><span><Volume2 size={14} /> Playback volume</span><strong>{audioVolume}%</strong></label>
-                <input id="cabin-audio-volume" aria-label="Playback volume" type="range" min="0" max="100" value={audioVolume} onChange={(event) => setAudioVolume(Number(event.target.value))} />
-                <div className="audio-voice-actions"><button type="button" onClick={() => speakCabinAudio('welcome')}><Megaphone size={14} /> Welcome announcement</button><button type="button" onClick={() => speakCabinAudio('tour')}><Headphones size={14} /> Guided cabin tour</button></div>
+              <div className="timeline-head"><div><span className="panel-overline">{t('choreographyTimeline')}</span><h2>{t('transitionPreview')}</h2></div><div className="timeline-actions"><button className={`preview-toggle ${motionPreview ? 'is-on' : ''}`} aria-label={t('cameraMotion')} aria-pressed={motionPreview} title={t('cameraMotionHelp')} onClick={() => setMotionPreview((value) => !value)}><Move3D size={13} /> {t('motion')}</button><button className={`preview-toggle ${audioCues ? 'is-on' : ''}`} aria-label={t('moodMusic')} aria-pressed={audioCues} title={t('moodMusicHelp')} onClick={() => setAudioCues((value) => !value)}><Volume2 size={13} /> {t('music')}</button><button className="preview-toggle" aria-label={t('audioAnnouncements')} aria-expanded={audioPanelOpen} title={t('audioAnnouncementsHelp')} onClick={() => setAudioPanelOpen((open) => !open)}><Headphones size={13} /> {t('audio')}</button><button className="button button-quiet button-sm" onClick={addKeyframe}><Plus size={14} /> {t('addKeyframe')}</button></div></div>
+              {audioPanelOpen && <div className="audio-console" id="audio-console" role="group" aria-label={t('audioControls')}>
+                <div className="audio-console-head"><div><span className="panel-overline">{t('soundDesign')}</span><strong>{studioSceneName(locale, scene)} · {currentMoodAudio ? currentMoodAudio.title : studioInstrumentLabel(locale, scene.id)}</strong></div><button type="button" aria-label={t('closeAudio')} onClick={() => setAudioPanelOpen(false)}><X size={15} /></button></div>
+                <p className="audio-score-note">{currentMoodAudio ? t('importedCueNote') : t('generatedScoreNote').replace('{tempo}', String(getMoodScore(scene.id).tempo))}</p>
+                <label className="audio-volume-control" htmlFor="cabin-audio-volume"><span><Volume2 size={14} /> {t('playbackVolume')}</span><strong>{audioVolume}%</strong></label>
+                <input id="cabin-audio-volume" aria-label={t('playbackVolume')} type="range" min="0" max="100" value={audioVolume} onChange={(event) => setAudioVolume(Number(event.target.value))} />
+                <div className="audio-voice-actions"><button type="button" onClick={() => speakCabinAudio('welcome')}><Megaphone size={14} /> {t('welcomeAnnouncement')}</button><button type="button" onClick={() => speakCabinAudio('tour')}><Headphones size={14} /> {t('guidedTour')}</button></div>
                 <div className="audio-cue-import">
-                  <strong>Airline audio · {localAudioRole === 'mood' ? scene.name : localAudioRole === 'welcome' ? 'Welcome announcement' : 'Guided cabin tour'}</strong>
-                  <label htmlFor="local-audio-role">Assign recording to</label>
-                  <select id="local-audio-role" aria-label="Local audio cue role" value={localAudioRole} onChange={(event) => setLocalAudioRole(event.target.value as typeof localAudioRole)}>
-                    <option value="mood">Instrumental for this mood</option><option value="welcome">HB380 welcome announcement</option><option value="tour">Cabin tour narration</option>
+                  <strong>{t('airlineAudio')} · {localAudioRole === 'mood' ? studioSceneName(locale, scene) : t(localAudioRole === 'welcome' ? 'welcomeAnnouncement' : 'guidedTour')}</strong>
+                  <label htmlFor="local-audio-role">{t('assignRecording')}</label>
+                  <select id="local-audio-role" aria-label={t('localAudioRole')} value={localAudioRole} onChange={(event) => setLocalAudioRole(event.target.value as typeof localAudioRole)}>
+                    <option value="mood">{t('moodInstrumental')}</option><option value="welcome">{t('hb380Welcome')}</option><option value="tour">{t('tourNarration')}</option>
                   </select>
-                  <label htmlFor="mood-audio-file">Audio file · up to 25 MiB</label>
-                  <input ref={moodAudioFileRef} id="mood-audio-file" aria-label="Local audio file" type="file" accept="audio/*,.aac,.flac,.m4a,.mp3,.oga,.ogg,.wav,.webm" onChange={(event) => { const file = event.currentTarget.files?.[0] ?? null; setLocalMoodAudioDraft((draft) => ({ ...draft, file })); }} />
-                  <label htmlFor="mood-audio-title">Recording title</label>
-                  <input id="mood-audio-title" aria-label="Audio track title" value={localMoodAudioDraft.title} onChange={(event) => setLocalMoodAudioDraft((draft) => ({ ...draft, title: event.target.value }))} placeholder={localAudioRole === 'mood' ? 'e.g. Boarding piano cue' : localAudioRole === 'welcome' ? 'e.g. HB380 welcome · en-GB' : 'e.g. Cabin tour · en-GB'} />
-                  <label htmlFor="mood-audio-rights">Rights or source reference</label>
-                  <input id="mood-audio-rights" aria-label="Audio rights or source reference" value={localMoodAudioDraft.rightsReference} onChange={(event) => setLocalMoodAudioDraft((draft) => ({ ...draft, rightsReference: event.target.value }))} placeholder="Owner, license, or asset ID" />
+                  <label htmlFor="mood-audio-file">{t('audioFileLimit')}</label>
+                  <input ref={moodAudioFileRef} id="mood-audio-file" aria-label={t('localAudioFile')} type="file" accept="audio/*,.aac,.flac,.m4a,.mp3,.oga,.ogg,.wav,.webm" onChange={(event) => { const file = event.currentTarget.files?.[0] ?? null; setLocalMoodAudioDraft((draft) => ({ ...draft, file })); }} />
+                  <label htmlFor="mood-audio-title">{t('recordingTitle')}</label>
+                  <input id="mood-audio-title" aria-label={t('trackTitle')} value={localMoodAudioDraft.title} onChange={(event) => setLocalMoodAudioDraft((draft) => ({ ...draft, title: event.target.value }))} placeholder={localAudioRole === 'mood' ? t('moodAudioExample') : localAudioRole === 'welcome' ? t('welcomeAudioExample') : t('tourAudioExample')} />
+                  <label htmlFor="mood-audio-rights">{t('rightsReference')}</label>
+                  <input id="mood-audio-rights" aria-label={t('audioRights')} value={localMoodAudioDraft.rightsReference} onChange={(event) => setLocalMoodAudioDraft((draft) => ({ ...draft, rightsReference: event.target.value }))} placeholder={t('rightsExample')} />
                   <button type="button" className="audio-import-button" onClick={() => void importLocalMoodAudio()} disabled={!localMoodAudioDraft.file || !localMoodAudioDraft.title.trim() || !localMoodAudioDraft.rightsReference.trim()}>
-                    {localAudioRole === 'mood' ? 'Add cue to this mood' : localAudioRole === 'welcome' ? 'Add welcome announcement recording' : 'Add cabin tour recording'}
+                    {localAudioRole === 'mood' ? t('addMoodAudio') : localAudioRole === 'welcome' ? t('addWelcomeAudio') : t('addTourAudio')}
                   </button>
-                  {currentConfiguredAudio && <div className="audio-cue-active"><span><b>{currentConfiguredAudio.title}</b><small>{currentConfiguredAudio.fileName} · {currentConfiguredAudio.rightsReference}</small></span><button type="button" aria-label={`Remove ${currentConfiguredAudio.title}`} onClick={() => void removeLocalMoodAudio()}>Remove</button></div>}
-                  <small>Saved in this browser on this device; never uploaded or included in project exports. Clearing browser site data removes recordings. Rights/source is uploader-provided and unverified.</small>
+                  {currentConfiguredAudio && <div className="audio-cue-active"><span><b>{currentConfiguredAudio.title}</b><small>{currentConfiguredAudio.fileName} · {currentConfiguredAudio.rightsReference}</small></span><button type="button" aria-label={t('removeRecording').replace('{name}', () => currentConfiguredAudio.title)} onClick={() => void removeLocalMoodAudio()}>{t('removeAudio')}</button></div>}
+                  <small>{t('audioStorageDisclosure')}</small>
                 </div>
-                <small>Generated preview voice and music · not approved operational PA audio</small>
+                <small>{t('audioPreviewOnly')}</small>
               </div>}
               <audio ref={localMoodAudioRef} preload="metadata" aria-hidden="true" />
               <audio ref={localVoiceAudioRef} preload="metadata" aria-hidden="true" data-testid="local-voice-audio" />
-              <div className="transport"><button className="play-button" aria-label={playing ? 'Pause preview' : 'Play preview'} onClick={() => { if (playing) setPlaying(false); else startTransitionPreview(); }}>{playing ? <Pause size={17} /> : <Play size={17} fill="currentColor" />}</button>
-                <div className="timeline-track-wrap"><div className="timeline-label-row"><span>{scene.name.toUpperCase()} <i>·</i> {scene.keyframes.length} KEYFRAMES</span><span className="time-readout">{formatTime(time)} <small>/ {formatTime(scene.durationSeconds)}</small></span></div>
-                  <div className="timeline-track"><div className="timeline-progress" style={{ width: `${scene.durationSeconds ? time / scene.durationSeconds * 100 : 0}%` }} /><input aria-label="Scene timeline position" type="range" min="0" max={scene.durationSeconds} step="0.1" value={time} onChange={(e) => { setPlaying(false); applySceneAt(Number(e.target.value)); }} />
-                    {scene.keyframes.map((frame, index) => <span key={frame.atSeconds} className="timeline-key" style={{ left: `${frame.atSeconds / scene.durationSeconds * 100}%` }} title={`Keyframe ${index + 1} · ${formatTime(frame.atSeconds)}`} />)}
+              <div className="transport"><button className="play-button" aria-label={playing ? t('pausePreview') : t('playPreview')} onClick={() => { if (playing) setPlaying(false); else startTransitionPreview(); }}>{playing ? <Pause size={17} /> : <Play size={17} fill="currentColor" />}</button>
+                <div className="timeline-track-wrap"><div className="timeline-label-row"><span>{studioSceneName(locale, scene).toLocaleUpperCase(locale)} <i>·</i> {scene.keyframes.length} {t('keyframes')}</span><span className="time-readout">{formatTime(time)} <small>/ {formatTime(scene.durationSeconds)}</small></span></div>
+                  <div className="timeline-track"><div className="timeline-progress" style={{ width: `${scene.durationSeconds ? time / scene.durationSeconds * 100 : 0}%` }} /><input aria-label={t('timelinePosition')} type="range" min="0" max={scene.durationSeconds} step="0.1" value={time} onChange={(e) => { setPlaying(false); applySceneAt(Number(e.target.value)); }} />
+                    {scene.keyframes.map((frame, index) => <span key={frame.atSeconds} className="timeline-key" style={{ left: `${frame.atSeconds / scene.durationSeconds * 100}%` }} title={`${t('keyframe')} ${index + 1} · ${formatTime(frame.atSeconds)}`} />)}
                   </div>
                 </div>
-                <button className="icon-button stop-button" title="Return to start" aria-label="Return to start" onClick={() => { setPlaying(false); applySceneAt(0); }}><RotateCcw size={16} /></button>
+                <button className="icon-button stop-button" title={t('returnToStart')} aria-label={t('returnToStart')} onClick={() => { setPlaying(false); applySceneAt(0); }}><RotateCcw size={16} /></button>
                 <span className="transport-duration"><Clock3 size={14} /> {scene.durationSeconds}s</span>
               </div>
             </section>
             <section className="panel scene-library" id="scene-library" tabIndex={-1}>
-              <div className="library-head"><div><span className="panel-overline">{t('sceneLibrary')}</span><h2>{t('startWithMood')}</h2></div><div className="library-tools"><button className="icon-button" aria-label="Duplicate current scene" title="Duplicate current scene" onClick={() => duplicateScene(scene.id)}><CopyPlus size={15} /></button><button className="icon-button" aria-label="Rename current scene" title="Rename current scene" onClick={() => renameScene(scene.id)}><Settings2 size={15} /></button><button className="icon-button" aria-label="Delete current scene" title="Delete current scene" onClick={() => deleteScene(scene.id)}><Trash2 size={15} /></button><span className="local-badge"><span /> {t('savedLocally')}</span></div></div>
+              <div className="library-head"><div><span className="panel-overline">{t('sceneLibrary')}</span><h2>{t('startWithMood')}</h2></div><div className="library-tools"><button className="icon-button" aria-label={t('duplicateScene')} title={t('duplicateScene')} onClick={() => duplicateScene(scene.id)}><CopyPlus size={15} /></button><button className="icon-button" aria-label={t('renameScene')} title={t('renameScene')} onClick={() => renameScene(scene.id)}><Settings2 size={15} /></button><button className="icon-button" aria-label={t('deleteScene')} title={t('deleteScene')} onClick={() => deleteScene(scene.id)}><Trash2 size={15} /></button><span className="local-badge"><span /> {t('savedLocally')}</span></div></div>
               <div className="scene-cards">{scenes.map((item) => { const last = item.keyframes[item.keyframes.length - 1].targets; const samples = [last.ceiling, last.windows, last.sidewalls, last.footwell]; return <button key={item.id} className={`scene-card ${item.id === activeSceneId ? 'selected' : ''}`} onClick={() => chooseScene(item.id)} aria-pressed={item.id === activeSceneId}>
-                <span className="scene-swatch">{samples.map((sample, index) => <i key={index} style={{ background: toHex(sample), color: toHex(sample) }} />)}</span><strong>{item.name}</strong><small>{item.durationSeconds}s transition</small>{item.id === activeSceneId && <Check className="scene-check" size={15} />}
+                <span className="scene-swatch">{samples.map((sample, index) => <i key={index} style={{ background: toHex(sample), color: toHex(sample) }} />)}</span><strong>{studioSceneName(locale, item)}</strong><small>{t('sceneDuration').replace('{duration}', String(item.durationSeconds))}</small>{item.id === activeSceneId && <Check className="scene-check" size={15} />}
               </button>; })}</div>
             </section>
           </div>
           <aside className="inspector panel" id="zone-inspector" tabIndex={-1}>
-            <div className="inspector-head"><div><span className="panel-overline">{t('zoneInspector')}</span><h2>{currentZone.name}</h2><p>{currentZone.detail}</p></div><button className="icon-button" aria-label="Inspector settings" title="Inspector settings" onClick={() => setNotice('Zone values are editable in SIMULATION only.')}><Settings2 size={17} /></button></div>
-            <div className="zone-select"><label htmlFor="zone-picker">{t('editingZone')}</label><select id="zone-picker" value={inspectorZoneIds.has(selected) ? selected : inspectorZones[0]?.id} onChange={(e) => setSelected(e.target.value as ControlZoneId)}>{inspectorZones.map((zone) => <option key={zone.id} value={zone.id}>{zone.name}</option>)}</select><ChevronDown size={14} /></div>
-            <div className="rgbw-head"><div><span className="panel-overline">{t('rgbwOutput')}</span><span className="channel-model">{t('channelRange')}</span></div><label className="color-well" aria-label="RGB color picker"><input type="color" aria-label="Choose RGB color" value={toHex(currentZone.rgbw)} onChange={(e) => { const hex = e.target.value; setZoneColor({ r: parseInt(hex.slice(1, 3), 16) / 2.55, g: parseInt(hex.slice(3, 5), 16) / 2.55, b: parseInt(hex.slice(5, 7), 16) / 2.55, w: currentZone.rgbw.w }); }} /><span style={{ background: toHex(currentZone.rgbw) }} /></label></div>
+            <div className="inspector-head"><div><span className="panel-overline">{t('zoneInspector')}</span><h2>{studioZoneName(locale, currentZone)}</h2><p>{studioZoneDetail(locale, currentZone)}</p></div><button className="icon-button" aria-label={t('inspectorSettings')} title={t('inspectorSettings')} onClick={() => setNotice(t('simulationEditingOnly'))}><Settings2 size={17} /></button></div>
+            <div className="zone-select"><label htmlFor="zone-picker">{t('editingZone')}</label><select id="zone-picker" value={inspectorZoneIds.has(selected) ? selected : inspectorZones[0]?.id} onChange={(e) => setSelected(e.target.value as ControlZoneId)}>{inspectorZones.map((zone) => <option key={zone.id} value={zone.id}>{studioZoneName(locale, zone)}</option>)}</select><ChevronDown size={14} /></div>
+            <div className="rgbw-head"><div><span className="panel-overline">{t('rgbwOutput')}</span><span className="channel-model">{t('channelRange')}</span></div><label className="color-well" aria-label={t('rgbPicker')}><input type="color" aria-label={t('chooseRgb')} value={toHex(currentZone.rgbw)} onChange={(e) => { const hex = e.target.value; setZoneColor({ r: parseInt(hex.slice(1, 3), 16) / 2.55, g: parseInt(hex.slice(3, 5), 16) / 2.55, b: parseInt(hex.slice(5, 7), 16) / 2.55, w: currentZone.rgbw.w }); }} /><span style={{ background: toHex(currentZone.rgbw) }} /></label></div>
             <div className="channel-list">
-              {(['r', 'g', 'b', 'w'] as const).map((channel) => <Channel key={channel} name={channel.toUpperCase()} value={currentZone.rgbw[channel]} color={{ r: '#ff6b72', g: '#59d6a5', b: '#6c9eff', w: '#e9edf2' }[channel]} onChange={(value) => setRGBW(channel, value)} />)}
+              {(['r', 'g', 'b', 'w'] as const).map((channel) => <Channel locale={locale} key={channel} name={channel.toUpperCase()} value={currentZone.rgbw[channel]} color={{ r: '#ff6b72', g: '#59d6a5', b: '#6c9eff', w: '#e9edf2' }[channel]} onChange={(value) => setRGBW(channel, value)} />)}
             </div>
             <div className="inspector-divider" />
             <div className="control-block"><div className="control-head"><label htmlFor="intensity">{t('masterIntensity')}</label><strong>{Math.round(intensity)}<small>%</small></strong></div><input id="intensity" className="wide-range" type="range" min="0" max="100" value={intensity} style={{ '--range-fill': `${intensity}%` } as React.CSSProperties} onChange={(e) => setIntensity(Number(e.target.value))} /></div>
@@ -1188,14 +1296,14 @@ function Studio() {
             <div className="inspector-divider" />
             <div className="inspector-summary"><div><span className="summary-symbol"><Lightbulb size={15} /></span><div><b>{t('simulatorOutput')}</b><small>{t('effectiveOfflinePreview')}</small></div></div><code>{Math.round((effectiveRGBW[selected] ?? currentZone.rgbw).r * intensity / 100)} / {Math.round((effectiveRGBW[selected] ?? currentZone.rgbw).g * intensity / 100)} / {Math.round((effectiveRGBW[selected] ?? currentZone.rgbw).b * intensity / 100)} / {Math.round((effectiveRGBW[selected] ?? currentZone.rgbw).w * intensity / 100)}</code></div>
             <button className="apply-button" onClick={commitCurrentKeyframe}>{t('applySetKeyframe')} <ArrowRight size={16} /></button>
-            <div className="inspector-note"><ShieldCheck size={15} /><span>Applies to the local preview only. No physical output path exists in this release.</span></div>
+            <div className="inspector-note"><ShieldCheck size={15} /><span>{t('previewOnly')}</span></div>
           </aside>
         </div>
       </section>
     </div>
-    <input ref={importRef} type="file" accept="application/json,.json" className="visually-hidden" aria-label="Import versioned scene JSON" onChange={(e) => void importScene(e.target.files?.[0])} />
-    <input ref={scenarioImportRef} type="file" accept="application/json,.json" className="visually-hidden" aria-label="Import scenario package JSON" onChange={(e) => void importScenario(e.target.files?.[0])} />
-    {notice && <div className="toast" role="status"><Check size={15} />{notice}<button aria-label="Dismiss notice" onClick={() => setNotice('')}><X size={14} /></button></div>}
+    <input ref={importRef} type="file" accept="application/json,.json" className="visually-hidden" aria-label={t('importVersionedScene')} onChange={(e) => void importScene(e.target.files?.[0])} />
+    <input ref={scenarioImportRef} type="file" accept="application/json,.json" className="visually-hidden" aria-label={t('importScenarioJson')} onChange={(e) => void importScenario(e.target.files?.[0])} />
+    {notice && <div className="toast" role="status"><Check size={15} />{notice}<button aria-label={t('dismissNotice')} onClick={() => setNotice('')}><X size={14} /></button></div>}
   </main>;
 }
 

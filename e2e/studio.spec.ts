@@ -47,6 +47,7 @@ test('landing page locale selector switches every public landing section', async
 });
 
 test('selected landing language carries into core Studio panels without adding controls', async ({ page }) => {
+  test.setTimeout(120_000);
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/studio');
   const fixedPanels = ['.studio-topbar', '.studio-rail', '#cabin-view', '#timeline', '#scene-library', '#zone-inspector'];
@@ -61,12 +62,64 @@ test('selected landing language carries into core Studio panels without adding c
   await expect(page.getByRole('button', { name: 'Kabinenübersicht' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Übergangsvorschau' })).toBeVisible();
   await expect(page.getByText('ZONENINSPEKTOR')).toBeVisible();
-  const germanBoxes = await Promise.all(fixedPanels.map((selector) => page.locator(selector).boundingBox()));
-  for (let index = 0; index < fixedPanels.length; index++) {
-    expect(germanBoxes[index], `${fixedPanels[index]} disappeared in German`).not.toBeNull();
-    for (const edge of ['x', 'y', 'width', 'height'] as const) {
-      expect(germanBoxes[index]![edge], `${fixedPanels[index]} ${edge} changed with locale`).toBeCloseTo(englishBoxes[index]![edge], 0);
+  await expect(page.getByRole('button', { name: 'Hilfe', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Vorschau abspielen' })).toBeVisible();
+  const audioControls = page.getByRole('button', { name: 'Durchsagen und Lautstärke' });
+  await audioControls.click();
+  await expect(page.getByRole('combobox', { name: 'Verwendungszweck der lokalen Audiodatei' })).toBeVisible();
+  await expect(page.getByText('Aufnahmen bleiben in diesem Browser', { exact: false })).toBeVisible();
+  await page.getByRole('button', { name: 'Audioeinstellungen schließen' }).click();
+  await page.getByRole('button', { name: 'Weitere Studio-Aktionen' }).click();
+  await expect(page.getByRole('menuitem', { name: 'Szenendatei importieren' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Kabine ändern', exact: true }).click();
+  await expect(page.getByRole('combobox', { name: '3D-Modell für Flugzeug oder Airline' })).toBeVisible();
+  await page.getByRole('combobox', { name: 'Kabinenlayout' }).selectOption('a350900');
+  await expect(page.locator('.cabin-profile-summary')).toContainText('315 Passagiere');
+  await expect(page.getByText('Airbus-Abmessungen und Sitzplatzzahlen dienen als Planungsreferenz.', { exact: false })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Airbus A350 Aircraft Characteristics/ })).toHaveAttribute('href', /airbus\.com/);
+  await page.getByRole('button', { name: 'Kabinenkonfiguration schließen' }).click();
+  const zonePicker = page.locator('#zone-picker');
+  const previousZone = await zonePicker.inputValue();
+  await zonePicker.selectOption('footwell');
+  await expect(page.locator('#zone-inspector').getByRole('heading', { name: 'Fußraum' })).toBeVisible();
+  await expect(page.locator('#zone-inspector').getByText('benannte Fußraumkomponenten', { exact: false })).toBeVisible();
+  await zonePicker.selectOption(previousZone);
+  await page.getByRole('button', { name: '2D', exact: true }).click();
+  await expect(page.getByRole('group', { name: 'Interaktive VVIP-Kabinenreferenz' })).toBeVisible();
+  await page.getByRole('button', { name: 'Fußraum', exact: true }).focus();
+  await page.keyboard.press('Enter');
+  await expect(zonePicker).toHaveValue('footwell');
+  await page.getByRole('button', { name: '3D', exact: true }).click();
+  await zonePicker.selectOption(previousZone);
+  async function expectAlignedPanels(language: string) {
+    const boxes = await Promise.all(fixedPanels.map((selector) => page.locator(selector).boundingBox()));
+    for (let index = 0; index < fixedPanels.length; index++) {
+      expect(boxes[index], `${fixedPanels[index]} disappeared in ${language}`).not.toBeNull();
+      for (const edge of ['x', 'y', 'width', 'height'] as const) {
+        expect(boxes[index]![edge], `${fixedPanels[index]} ${edge} changed in ${language}`).toBeCloseTo(englishBoxes[index]![edge], 0);
+      }
     }
+  }
+
+  await page.getByLabel('Versionierte Szenen-JSON importieren').setInputFiles({
+    name: 'invalid-scene.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify({ schemaVersion: 0 })),
+  });
+  await expect(studio.getByRole('status').filter({ hasText: 'Diese Version des Szenenschemas wird nicht unterstützt.' })).toBeVisible();
+  await expectAlignedPanels('de');
+  for (const [locale, heading, exportLabel] of [
+    ['yo', 'Àwòṣe oni-nọmba àgọ́', 'Gbé jáde'],
+    ['pcm', 'Cabin digital twin', 'Export am'],
+  ]) {
+    await page.goto('/');
+    await page.locator('.landing-locale').selectOption(locale);
+    await page.goto('/studio');
+    await expect(studio).toHaveAttribute('lang', locale);
+    await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: exportLabel, exact: true })).toBeVisible();
+    await expectAlignedPanels(locale);
   }
 });
 

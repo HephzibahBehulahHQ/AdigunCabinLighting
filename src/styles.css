@@ -198,3 +198,25 @@
 .live-cabin-preview{height:370px;isolation:isolate}.live-cabin-preview:before,.live-cabin-preview:after{z-index:-1}.live-cabin-preview .cabin-asset-renderer{position:absolute;inset:0}.landing-view-badge{position:absolute;top:13px;left:14px;right:14px;display:flex;justify-content:space-between;gap:8px;pointer-events:none;color:#c2d6e6;font:8px var(--mono);letter-spacing:.55px;text-shadow:0 1px 4px #000}.landing-view-badge>span{display:flex;align-items:center;gap:7px;padding:7px 9px;border:1px solid #ffffff24;border-radius:4px;background:#081421d9}.landing-view-badge i{width:6px;height:6px;border-radius:50%;background:#41dfc2;box-shadow:0 0 9px #41dfc2}.landing-preview-tools{position:absolute;left:13px;right:13px;bottom:49px;z-index:2;display:flex;align-items:center;gap:6px;flex-wrap:wrap}.landing-preview-tools button{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:0 9px;border:1px solid #ffffff32;border-radius:4px;background:#081421ed;color:#d8e5ef;font-size:9px;font-weight:600;cursor:pointer}.landing-preview-tools button:hover,.landing-preview-tools button[aria-pressed=true]{border-color:#27c4d7;color:#e9fbff;background:#10303c}.landing-preview-tools button>i{width:16px;height:8px;border-radius:3px;box-shadow:0 0 8px currentColor}.landing-preview-tools .landing-preview-play{margin-left:auto;color:#d9c45e}.landing-preview-tools .landing-preview-sound.is-on{color:#a7f2e2;border-color:#49c8a3}.live-cabin-preview .art-caption{left:13px;bottom:10px;padding:7px 9px;font-size:9px}.live-cabin-preview .art-caption small{font-size:7px}.landing-audio-status{position:absolute;right:12px;bottom:50px;max-width:45%;padding:6px 8px;border:1px solid #5d5140;border-radius:4px;background:#111720ee;color:#dbc97a;font:8px var(--mono)}.landing-3d-loading{position:absolute;inset:0;display:grid;place-items:center;color:#91a8bb;font:11px var(--mono);background:#07111d}
 @media(max-width:900px){.landing-workflow{margin:0 7vw 42px;padding:26px}.landing-workflow-steps{grid-template-columns:1fr}.landing-workflow-steps article{min-height:0}.landing-profile-proof{flex-wrap:wrap;max-width:420px}}
 @media(max-width:680px){.landing-workflow{margin:0 21px 32px;padding:21px}.landing-workflow-heading h2{font-size:24px}.landing-workflow-steps article{padding:14px}.landing-profile-proof{gap:8px;font-size:8px}.landing-proof-divider{margin-inline:1px}.live-cabin-preview{height:250px}.landing-preview-tools{left:8px;right:8px;bottom:45px;gap:4px}.landing-preview-tools button{min-height:27px;padding:0 6px;font-size:8px}.landing-preview-tools .landing-preview-play{margin-left:0}.landing-view-badge{top:8px;left:8px;right:8px;font-size:7px}.landing-view-badge>span{padding:5px 6px}.live-cabin-preview .art-caption{bottom:8px}.landing-audio-status{bottom:46px;right:8px}}
+
+.landing-lighting-lab {
+  margin-top: 16px;
+  padding: 18px;
+  border: 1px solid #2b455d;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #132536, #0b1724);
+}
+.landing-lighting-lab h2 { margin: 0 0 7px; font-size: clamp(17px, 2vw, 23px); }
+.landing-lighting-lab p { color: #b2c4d4; line-height: 1.55; font-size: 12px; margin: 0 0 12px; }
+.landing-lab-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 12px; }
+.landing-lab-controls label { display: grid; grid-template-columns: 1fr auto; gap: 7px; color: #e2edf5; font-size: 12px; }
+.landing-lab-controls output { color: #87e9f6; font: 11px var(--mono); }
+.landing-lab-controls input { grid-column: 1 / -1; width: 100%; accent-color: var(--cyan); margin: 0; }
+.landing-lab-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+.landing-lab-actions button[aria-pressed=true] { border-color: #56d3e6; }
+.landing-fixture-study { padding-top: 12px; margin-top: 14px; border-top: 1px solid #ffffff23; }
+.landing-fixture-study summary { cursor: pointer; color: #d2edf5; font-size: 13px; font-weight: 700; }
+.landing-fixture-study label { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 7px; margin: 10px 8px 10px 0; font-size: 12px; }
+.landing-fixture-study select { background: #101d2b; color: #e2edf5; border: 1px solid #496177; border-radius: 4px; padding: 6px; }
+.landing-fixture-study p { margin-bottom: 0; }
+.landing-fixture-study p + p { margin-top: 8px; } .landing-fixture-study a { color: #9cecff; text-decoration: underline; }
