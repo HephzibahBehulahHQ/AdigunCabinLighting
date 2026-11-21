@@ -979,7 +979,7 @@ function Studio() {
   const setRGBW = (channel: keyof RGBW, value: number) => {
     snapshot(); setRedo([]);
     const rgbw = { ...currentZone.rgbw, [channel]: Math.max(0, Math.min(100, value)) };
-    const editedIds: ControlZoneId[] = selected === 'sidewalls' ? ['sidewalls', 'left_sidewall', 'right_sidewall'] : [selected];
+    const editedIds: ControlZoneId[] = selected === 'sidewalls' ? ['sidewalls', 'left_sidewall', 'right_sidewall'] : [selected, ...zones.filter((zone) => zone.parentZoneId === selected && selected === 'reading').map((zone) => zone.id)];
     setZones((previous) => {
       const matching = previous.map((zone) => editedIds.includes(zone.id) ? { ...zone, rgbw } : zone);
       return matching.some((zone, index) => zone !== previous[index]) ? matching : [...previous, { ...currentZone, rgbw }];
@@ -989,7 +989,7 @@ function Studio() {
   };
   const setZoneColor = (rgbw: RGBW) => {
     snapshot(); setRedo([]);
-    const editedIds: ControlZoneId[] = selected === 'sidewalls' ? ['sidewalls', 'left_sidewall', 'right_sidewall'] : [selected];
+    const editedIds: ControlZoneId[] = selected === 'sidewalls' ? ['sidewalls', 'left_sidewall', 'right_sidewall'] : [selected, ...zones.filter((zone) => zone.parentZoneId === selected && selected === 'reading').map((zone) => zone.id)];
     setZones((previous) => {
       const matching = previous.map((zone) => editedIds.includes(zone.id) ? { ...zone, rgbw } : zone);
       return matching.some((zone, index) => zone !== previous[index]) ? matching : [...previous, { ...currentZone, rgbw }];

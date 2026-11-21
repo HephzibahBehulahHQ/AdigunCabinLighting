@@ -12,6 +12,101 @@ const fixtureGroups = [
   ['footwell', 'footwell-guidance', [10, 72, 86, 42]],
 ] as const;
 
+test('QantasLink aisle exit signs render independently and remain visible during Aurora', async ({ page }) => {
+  test.setTimeout(90_000);
+  const zones = makeDefaultZones().map((zone) => ({
+    ...zone, fadeSeconds: 0, rgbw: { r: 0, g: 0, b: 0, w: 0 },
+  }));
+  await page.addInitScript((initialZones) => {
+    localStorage.setItem('adigun-cabin-studio:v1', JSON.stringify({
+      zones: initialZones, intensity: 100, aircraftMeshId: 'qantaslink-a220-300-137', selectedZoneId: 'exit',
+    }));
+  }, zones);
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await page.goto('/studio');
+  const canvas = page.locator('canvas.cabin-webgl-canvas');
+  const stage = page.locator('#cabin-view');
+  await expect(canvas).toHaveAttribute('data-cabin-profile', 'qantaslink-a220-300-137');
+  await expect(canvas).toHaveAttribute('data-simulated-fixture-counts', /"exit":5/);
+  await expect(page.locator('#zone-picker option[value="emergency"]')).toHaveCount(0);
+  await page.locator('#zone-picker').selectOption('exit');
+  const previewDir = 'artifacts/qantaslink-exit-signs';
+  await mkdir(previewDir, { recursive: true });
+  const views = [['entry', 'forward'], ['aft', 'aft']] as const;
+  for (const [view, end] of views) {
+    await page.getByLabel('3D camera angle').selectOption(view);
+    await stage.screenshot({ path: `${previewDir}/${end}-off.png` });
+  }
+  const green = page.getByRole('slider', { name: 'G channel', exact: true });
+  await green.focus();
+  await green.press('End');
+  await expect(green).toHaveValue('100');
+  for (const [view, end] of views) {
+    await page.getByLabel('3D camera angle').selectOption(view);
+    await stage.screenshot({ path: `${previewDir}/${end}-isolated.png` });
+    await canvas.evaluate((element) => {
+      for (let step = 0; step < 23; step++) element.dispatchEvent(new WheelEvent('wheel', { deltaY: -360, cancelable: true }));
+    });
+    await stage.screenshot({ path: `${previewDir}/${end}-detail.png` });
+  }
+  await page.getByLabel('3D camera angle').selectOption('entry');
+  await page.getByLabel('3D camera angle').selectOption('aft');
+  await stage.screenshot();
+  await canvas.evaluate((element) => {
+    for (let step = 0; step < 4; step++) element.dispatchEvent(new WheelEvent('wheel', { deltaY: -360, cancelable: true }));
+  });
+  await stage.screenshot({ path: `${previewDir}/overwing-isolated.png` });
+  await page.locator('.scene-card').filter({ hasText: 'Aurora' }).click();
+  await page.getByLabel('Scene timeline position').press('End');
+  await expect(green).toHaveValue('100');
+  for (const [view, end] of views) {
+    await page.getByLabel('3D camera angle').selectOption(view);
+    await stage.screenshot({ path: `${previewDir}/${end}-aurora.png` });
+  }
+  await canvas.evaluate((element) => {
+    for (let step = 0; step < 4; step++) element.dispatchEvent(new WheelEvent('wheel', { deltaY: -360, cancelable: true }));
+  });
+  await stage.screenshot({ path: `${previewDir}/overwing-aurora.png` });
+});
+
+test('QantasLink business reading lights render from seat-specific panels', async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.addInitScript((zones) => localStorage.setItem('adigun-cabin-studio:v1', JSON.stringify({
+    zones, intensity: 100, aircraftMeshId: 'qantaslink-a220-300-137', selectedZoneId: 'reading',
+  })), makeDefaultZones().map((zone) => ({ ...zone, fadeSeconds: 0, rgbw: { r: 0, g: 0, b: 0, w: 0 } })));
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await page.goto('/studio');
+  const canvas = page.locator('canvas.cabin-webgl-canvas');
+  const stage = page.locator('#cabin-view');
+  await expect(canvas).toHaveAttribute('data-cabin-profile', 'qantaslink-a220-300-137');
+  await expect(canvas).toHaveAttribute('data-simulated-fixture-counts', /"reading":10/);
+  const picker = page.locator('#zone-picker');
+  await expect(picker.locator('option[value^="fixture:qantaslink-a220-300-137:reading:"]')).toHaveCount(10);
+  await picker.selectOption('reading');
+  await page.getByLabel('3D camera angle').selectOption('mid-cabin');
+  await stage.screenshot();
+  await canvas.evaluate((element) => {
+    for (let step = 0; step < 14; step++) element.dispatchEvent(new WheelEvent('wheel', { deltaY: -360, cancelable: true }));
+  });
+  const previewDir = 'artifacts/qantaslink-reading-lights';
+  await mkdir(previewDir, { recursive: true });
+  await stage.screenshot({ path: `${previewDir}/off.png` });
+  const white = page.getByRole('slider', { name: 'W channel', exact: true });
+  await white.press('End');
+  await expect(white).toHaveValue('100');
+  await stage.screenshot({ path: `${previewDir}/isolated.png` });
+  const firstFixture = picker.locator('option[value^="fixture:qantaslink-a220-300-137:reading:"]').first();
+  await picker.selectOption((await firstFixture.getAttribute('value'))!);
+  await expect(white).toHaveValue('100');
+  await white.press('Home');
+  await expect(white).toHaveValue('0');
+  await picker.selectOption('reading');
+  await expect(white).toHaveValue('100');
+  await page.locator('.scene-card').filter({ hasText: 'Sunrise' }).click();
+  await page.getByLabel('Scene timeline position').press('End');
+  await stage.screenshot({ path: `${previewDir}/sunrise.png` });
+});
+
 test('model-tied cabin fixture groups and combined moods render in the existing Studio', async ({ page }) => {
   test.setTimeout(420_000);
   await page.setViewportSize({ width: 1600, height: 1000 });
