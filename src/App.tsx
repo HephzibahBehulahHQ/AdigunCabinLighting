@@ -391,7 +391,7 @@ function LandingCabinExperience({ locale }: { locale: AppLocale }) {
   const scene = useMemo(() => {
     if (!challenge) return preset;
     const last = preset.keyframes.at(-1)!;
-    return validateSceneFile({
+    const study = validateSceneFile({
       ...preset,
       id: 'landing-lighting-study',
       name: copy.study,
@@ -405,7 +405,14 @@ function LandingCabinExperience({ locale }: { locale: AppLocale }) {
         },
       }],
     });
-  }, [challenge, copy.study, daylight, preset, warmth]);
+    return {
+      ...study,
+      keyframes: study.keyframes.map((frame) => ({
+        ...frame,
+        targets: withFixtureFallbacks(frame.targets, zones),
+      })),
+    };
+  }, [challenge, copy.study, daylight, preset, warmth, zones]);
   const effective = useMemo(() => {
     const values = withFixtureFallbacks(interpolateScene(showOriginal ? preset : scene, time), zones);
     if (!isolated) return values;

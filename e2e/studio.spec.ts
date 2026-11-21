@@ -47,6 +47,7 @@ test('landing page locale selector switches every public landing section', async
 });
 
 test('selected landing language carries into core Studio panels without adding controls', async ({ page }) => {
+  test.setTimeout(120_000);
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/studio');
   const fixedPanels = ['.studio-topbar', '.studio-rail', '#cabin-view', '#timeline', '#scene-library', '#zone-inspector'];

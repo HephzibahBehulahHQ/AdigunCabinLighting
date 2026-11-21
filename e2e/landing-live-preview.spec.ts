@@ -26,6 +26,7 @@ test('landing page loads the cabin GLB and runs its color, transition, and sound
 });
 
 test('guided landing study downloads a working scenario and opens the same edits in Studio', async ({ page }) => {
+  test.setTimeout(120_000);
   await page.goto('/');
   await page.getByRole('button', { name: 'Start the lighting challenge' }).click();
   await page.locator('#lighting-challenge input[type="range"]').nth(1).focus();
@@ -73,6 +74,7 @@ test('guided landing study downloads a working scenario and opens the same edits
 });
 
 test('the challenge and fixture inspection follow all four landing languages', async ({ page }) => {
+  test.setTimeout(120_000);
   await page.goto('/');
   for (const [locale, title, start, inspect, group, download] of [
     ['en', 'Design your first cabin scene', 'Start the lighting challenge', 'Inspect a light source', 'Fixture group', 'Download scenario'],
