@@ -13,6 +13,7 @@ const MAX_DYNAMIC_LIGHTS_PER_ZONE = 32;
 
 type Props = {
   locale?: AppLocale;
+  enhancedSpill?: boolean;
   profile: CabinMeshProfile;
   zones: ZoneState[];
   effective: Record<ControlZoneId, RGBW>;
@@ -139,7 +140,7 @@ function batchRepeatedCabinParts(root: THREE.Object3D, candidates: THREE.Mesh[])
   }
 }
 
-export default function CabinAsset3D({ locale = 'en', profile, zones, effective, intensity, selected, onSelect, highQuality, previewActive, previewMotion, previewTime, previewDuration, previewStartedAt, scene: activeScene, cameraView, captureRef, cameraResetRef }: Props) {
+export default function CabinAsset3D({ locale = 'en', enhancedSpill = true, profile, zones, effective, intensity, selected, onSelect, highQuality, previewActive, previewMotion, previewTime, previewDuration, previewStartedAt, scene: activeScene, cameraView, captureRef, cameraResetRef }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const runtime = useRef<{ renderer: THREE.WebGLRenderer; scene: THREE.Scene; camera: THREE.PerspectiveCamera; materials: Map<ControlZoneId, Set<THREE.Material>>; lights: Map<ControlZoneId, THREE.Light[]>; selectable: THREE.Object3D[]; resize: ResizeObserver; reset: () => void; applyLighting: (values?: Record<ControlZoneId, RGBW>) => void; draw: () => void } | null>(null);
   const [error, setError] = useState('');
@@ -489,10 +490,10 @@ export default function CabinAsset3D({ locale = 'en', profile, zones, effective,
 
       // Lift the spill above the authored strips so nearby floor receives light.
       // Decorative footwell tracks remain independent of the emergency path.
-      for (const bounds of footwellBounds) {
+      for (const bounds of enhancedSpill ? footwellBounds : []) {
         const center = bounds.getCenter(new THREE.Vector3());
         const length = bounds.max.z - bounds.min.z;
-        const samples = Math.max(1, Math.min(8, Math.ceil(length / 1.2)));
+        const samples = Math.max(1, Math.min(3, Math.ceil(length / 2.5)));
         const inward = Math.sign(centerX - center.x);
         for (let index = 0; index < samples; index++) {
           const z = bounds.min.z + length * (index + .5) / samples;
@@ -501,7 +502,7 @@ export default function CabinAsset3D({ locale = 'en', profile, zones, effective,
       }
 
       // Accent emitters sit on the cabin-facing surface of a modeled service unit.
-      const serviceItems = [...monumentBounds, ...consoleBounds].map((bounds) => {
+      const serviceItems = (enhancedSpill ? [...monumentBounds, ...consoleBounds] : []).map((bounds) => {
         const center = bounds.getCenter(new THREE.Vector3());
         const inward = center.x < centerX ? 1 : -1;
         const surfaceX = inward > 0 ? bounds.max.x : bounds.min.x;
@@ -516,8 +517,12 @@ export default function CabinAsset3D({ locale = 'en', profile, zones, effective,
       // Central cove is a linear, ceiling-mounted source, independent from the bin-top wash.
       for (const bounds of coveBounds) {
         const center = bounds.getCenter(new THREE.Vector3());
+        if (!enhancedSpill) {
+          addPoint('ceiling_cove', center, Math.max(1.2, size.x * .45));
+          continue;
+        }
         const length = bounds.max.z - bounds.min.z;
-        const samples = Math.max(1, Math.min(8, Math.ceil(length / 1.2)));
+        const samples = Math.max(1, Math.min(3, Math.ceil(length / 2.5)));
         for (let index = 0; index < samples; index++) {
           const z = bounds.min.z + length * (index + .5) / samples;
           addPoint('ceiling_cove', new THREE.Vector3(center.x, bounds.min.y - .035, z), Math.max(1.2, size.x * .45));
@@ -667,7 +672,7 @@ export default function CabinAsset3D({ locale = 'en', profile, zones, effective,
       root.traverse((object) => { if (object instanceof THREE.Mesh) { object.geometry.dispose(); const materials = Array.isArray(object.material) ? object.material : [object.material]; materials.forEach((material) => { if (material instanceof THREE.MeshStandardMaterial) { material.map?.dispose(); material.emissiveMap?.dispose(); } material.dispose(); }); } });
       renderer.dispose(); renderer.forceContextLoss(); renderer.domElement.remove(); runtime.current = null; captureRef.current = null; cameraResetRef.current = null; home.current = null;
     };
-  }, [profile.id, locale]);
+  }, [profile.id, locale, enhancedSpill]);
 
   useEffect(() => {
     const current = runtime.current;

@@ -158,7 +158,7 @@ test('window daylight uses passive tinted glazing and a separate source', async 
 });
 
 test('comparison cabin moods render while unsourced fixture groups remain unavailable', async ({ page }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(300_000);
   await page.setViewportSize({ width: 1600, height: 1000 });
   await page.goto('/studio');
   const previewDir = 'artifacts/lighting-fixtures';

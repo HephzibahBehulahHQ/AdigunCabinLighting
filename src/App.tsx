@@ -495,7 +495,7 @@ function LandingCabinExperience({ locale }: { locale: AppLocale }) {
 
   return <><div className="hero-art live-cabin-preview" data-testid="landing-live-cabin">
     <Suspense fallback={<div className="landing-3d-loading">{copy.loading}</div>}>
-      <CabinAsset3D locale={locale} profile={profile} zones={zones} effective={effective} intensity={78} selected={selectedZone} onSelect={setSelectedZone}
+      <CabinAsset3D locale={locale} enhancedSpill={false} profile={profile} zones={zones} effective={effective} intensity={78} selected={selectedZone} onSelect={setSelectedZone}
         highQuality previewActive={playing} previewMotion={false} previewTime={time} previewDuration={scene.durationSeconds} previewStartedAt={playbackStartedAt}
         scene={scene} cameraView="entry" captureRef={captureRef} cameraResetRef={resetRef} />
     </Suspense>

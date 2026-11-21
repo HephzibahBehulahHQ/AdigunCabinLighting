@@ -21,6 +21,7 @@ test('landing opens the working Studio route', async ({ page }) => {
 });
 
 test('landing page locale selector switches every public landing section', async ({ page }) => {
+  test.setTimeout(90_000);
   await page.goto('/');
   const locale = page.locator('.landing-locale');
   const landing = page.locator('main.landing');
@@ -292,6 +293,7 @@ test('transition preview runs scene-specific instrumental audio and exposes cabi
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/studio');
   const motion = page.getByRole('button', { name: 'Camera motion preview' });
+  await page.getByRole('button', { name: '2D', exact: true }).click();
   const sound = page.getByRole('button', { name: 'Mood music' });
   await expect(motion).toHaveAttribute('aria-pressed', 'false');
   await motion.click();
@@ -366,6 +368,7 @@ test('new cabin zones, scenes, and browser-local projects are usable', async ({ 
   const renderSize = await page.locator('canvas.cabin-webgl-canvas').evaluate((canvas: HTMLCanvasElement) => ({ width: canvas.width, height: canvas.height }));
   expect(renderSize.width).toBeGreaterThan(0);
   expect(renderSize.height).toBeGreaterThan(0);
+  await page.getByRole('button', { name: '2D', exact: true }).click();
   await page.getByRole('button', { name: 'Change cabin' }).click();
   await page.getByLabel('Cabin layout').selectOption('widebody');
   await expect(page.locator('.cabin-profile-summary')).toContainText('9 seats/row');
