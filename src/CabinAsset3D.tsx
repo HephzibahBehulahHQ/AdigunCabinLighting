@@ -13,6 +13,7 @@ const MAX_DYNAMIC_LIGHTS_PER_ZONE = 32;
 
 type Props = {
   locale?: AppLocale;
+  enhancedSpill?: boolean;
   profile: CabinMeshProfile;
   zones: ZoneState[];
   effective: Record<ControlZoneId, RGBW>;
@@ -139,7 +140,7 @@ function batchRepeatedCabinParts(root: THREE.Object3D, candidates: THREE.Mesh[])
   }
 }
 
-export default function CabinAsset3D({ locale = 'en', profile, zones, effective, intensity, selected, onSelect, highQuality, previewActive, previewMotion, previewTime, previewDuration, previewStartedAt, scene: activeScene, cameraView, captureRef, cameraResetRef }: Props) {
+export default function CabinAsset3D({ locale = 'en', enhancedSpill = true, profile, zones, effective, intensity, selected, onSelect, highQuality, previewActive, previewMotion, previewTime, previewDuration, previewStartedAt, scene: activeScene, cameraView, captureRef, cameraResetRef }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const runtime = useRef<{ renderer: THREE.WebGLRenderer; scene: THREE.Scene; camera: THREE.PerspectiveCamera; materials: Map<ControlZoneId, Set<THREE.Material>>; lights: Map<ControlZoneId, THREE.Light[]>; selectable: THREE.Object3D[]; resize: ResizeObserver; reset: () => void; applyLighting: (values?: Record<ControlZoneId, RGBW>) => void; draw: () => void } | null>(null);
   const [error, setError] = useState('');
@@ -255,6 +256,7 @@ export default function CabinAsset3D({ locale = 'en', profile, zones, effective,
       const readingFixtureBounds: THREE.Box3[] = [];
       const spotlightFixtureBounds: THREE.Box3[] = [];
       const coveBounds: THREE.Box3[] = [];
+      const footwellBounds: THREE.Box3[] = [];
       const fixtureAnchors: { id: ControlZoneId; parent: ZoneId; position: THREE.Vector3; name: string }[] = [];
       const fixtureMeshes: { id: ControlZoneId; position: THREE.Vector3 }[] = [];
       const canonicalNodeName = (name: string) => name.replace(/_/g, ' ').trim().replace(/\s+/g, ' ').toLowerCase();
@@ -304,6 +306,10 @@ export default function CabinAsset3D({ locale = 'en', profile, zones, effective,
         }
         if (feature === 'spotlights') {
           const bounds = new THREE.Box3().setFromObject(object); if (!bounds.isEmpty()) spotlightFixtureBounds.push(bounds);
+        }
+        if (feature === 'footwell') {
+          const bounds = new THREE.Box3().setFromObject(object);
+          if (!bounds.isEmpty()) footwellBounds.push(bounds);
         }
         if (parentFeature === 'ceiling_cove') {
           const bounds = new THREE.Box3().setFromObject(object); if (!bounds.isEmpty()) coveBounds.push(bounds);
@@ -482,8 +488,46 @@ export default function CabinAsset3D({ locale = 'en', profile, zones, effective,
       addFixtures('handrail', edgeItems);
       edgeItems.filter((_, index) => index % Math.max(1, Math.ceil(edgeItems.length / 18)) === 0).forEach((item) => addPoint('handrail', item.position.clone(), Math.max(1.2, size.x * .42)));
 
+      // Lift the spill above the authored strips so nearby floor receives light.
+      // Decorative footwell tracks remain independent of the emergency path.
+      for (const bounds of enhancedSpill ? footwellBounds : []) {
+        const center = bounds.getCenter(new THREE.Vector3());
+        const length = bounds.max.z - bounds.min.z;
+        const samples = Math.max(1, Math.min(3, Math.ceil(length / 2.5)));
+        const inward = Math.sign(centerX - center.x);
+        for (let index = 0; index < samples; index++) {
+          const z = bounds.min.z + length * (index + .5) / samples;
+          addPoint('footwell', new THREE.Vector3(center.x + inward * .045, bounds.max.y + .075, z), .85);
+        }
+      }
+
+      // Accent emitters sit on the cabin-facing surface of a modeled service unit.
+      const serviceItems = (enhancedSpill ? [...monumentBounds, ...consoleBounds] : []).map((bounds) => {
+        const center = bounds.getCenter(new THREE.Vector3());
+        const inward = center.x < centerX ? 1 : -1;
+        const surfaceX = inward > 0 ? bounds.max.x : bounds.min.x;
+        return {
+          position: new THREE.Vector3(surfaceX + inward * .025, center.y, center.z),
+          size: new THREE.Vector3(.018, .035, Math.min(.58, bounds.getSize(new THREE.Vector3()).z * .55)),
+        };
+      });
+      addFixtures('monuments', serviceItems);
+      for (const item of serviceItems) addPoint('monuments', item.position, Math.max(.8, size.x * .38));
+
       // Central cove is a linear, ceiling-mounted source, independent from the bin-top wash.
-      for (const bounds of coveBounds) addPoint('ceiling_cove', bounds.getCenter(new THREE.Vector3()), Math.max(1.2, size.x * .45));
+      for (const bounds of coveBounds) {
+        const center = bounds.getCenter(new THREE.Vector3());
+        if (!enhancedSpill) {
+          addPoint('ceiling_cove', center, Math.max(1.2, size.x * .45));
+          continue;
+        }
+        const length = bounds.max.z - bounds.min.z;
+        const samples = Math.max(1, Math.min(3, Math.ceil(length / 2.5)));
+        for (let index = 0; index < samples; index++) {
+          const z = bounds.min.z + length * (index + .5) / samples;
+          addPoint('ceiling_cove', new THREE.Vector3(center.x, bounds.min.y - .035, z), Math.max(1.2, size.x * .45));
+        }
+      }
 
       let emergencyFixtureCount = 0;
       if (profile.zones.some((zone) => zone.id === 'emergency')) {
@@ -524,7 +568,7 @@ export default function CabinAsset3D({ locale = 'en', profile, zones, effective,
       exitSignCount = signItems.length;
       }
 
-      renderer.domElement.dataset.simulatedFixtureCounts = JSON.stringify({ windows: panes.length, handrail: edgeItems.length, leftSidewall: sidewallFixtureBounds.left_sidewall.length, rightSidewall: sidewallFixtureBounds.right_sidewall.length, cove: coveBounds.length, reading: readingFixtureBounds.length, monuments: monumentBounds.length + consoleBounds.length, spotlights: spotlightFixtureBounds.length, emergency: emergencyFixtureCount, exit: exitSignCount, authoredFixtureMeshes: fixtureMeshes.length, authoredLocatorSources: fixtureAnchors.length, placementBasis: binBounds.length ? 'overhead-bin-mesh-bounds' : consoleBounds.length ? 'vip-side-console-mesh-bounds' : 'named-component-bounds' });
+      renderer.domElement.dataset.simulatedFixtureCounts = JSON.stringify({ windows: panes.length, handrail: edgeItems.length, leftSidewall: sidewallFixtureBounds.left_sidewall.length, rightSidewall: sidewallFixtureBounds.right_sidewall.length, cove: coveBounds.length, footwellSpill: modelLights.get('footwell')?.length ?? 0, reading: readingFixtureBounds.length, monuments: monumentBounds.length + consoleBounds.length, spotlights: spotlightFixtureBounds.length, emergency: emergencyFixtureCount, exit: exitSignCount, authoredFixtureMeshes: fixtureMeshes.length, authoredLocatorSources: fixtureAnchors.length, placementBasis: binBounds.length ? 'overhead-bin-mesh-bounds' : consoleBounds.length ? 'vip-side-console-mesh-bounds' : 'named-component-bounds' });
       renderer.domElement.dataset.simulatedLightCount = String([...modelLights.values()].flat().filter((light) => light.userData.simulatedRuntimeLight === true).length);
       fitCamera(cameraView);
       renderer.domElement.dataset.fixtureSourcePositions = JSON.stringify(fixtureAnchors.map((fixture) => {
@@ -628,7 +672,7 @@ export default function CabinAsset3D({ locale = 'en', profile, zones, effective,
       root.traverse((object) => { if (object instanceof THREE.Mesh) { object.geometry.dispose(); const materials = Array.isArray(object.material) ? object.material : [object.material]; materials.forEach((material) => { if (material instanceof THREE.MeshStandardMaterial) { material.map?.dispose(); material.emissiveMap?.dispose(); } material.dispose(); }); } });
       renderer.dispose(); renderer.forceContextLoss(); renderer.domElement.remove(); runtime.current = null; captureRef.current = null; cameraResetRef.current = null; home.current = null;
     };
-  }, [profile.id, locale]);
+  }, [profile.id, locale, enhancedSpill]);
 
   useEffect(() => {
     const current = runtime.current;

@@ -22,3 +22,7 @@ Future cabin profiles, dimensions and simulator capabilities must use these exis
 The owner-supplied 3D cabin screenshot in this conversation is the visual reference for the cabin viewport. Automated screenshots from the deployed release candidate are retained in the `cabin-lighting-ui-screenshots` artifact attached to [CI run 43356510144](https://github.com/HephzibahBehulahHQ/AdigunCabinLighting/actions/runs/43356510144).
 
 The UI suite covers desktop sizes 1280×720, 1366×768, 1440×900 and 1920×1080; mobile 390×844; no document overflow; accessibility; and docked-panel behavior. PR #13 changed cabin reference data and geometry within the existing viewport and selector; it made no CSS or layout-structure changes.
+
+## Live landing and Studio approval
+
+On 21 November 2026, the owner approved the visuals of the live landing page and Studio after PR #91 deployed. The aircraft simulation work preserves those approved panels, controls, and navigation. Lighting geometry and material response can be refined within the existing viewer.
