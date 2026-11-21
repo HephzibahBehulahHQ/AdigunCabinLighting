@@ -68,6 +68,7 @@ test('model-tied cabin fixture groups and combined moods render in the existing 
   expect(counts.leftSidewall).toBe(1);
   expect(counts.rightSidewall).toBe(1);
   expect(counts.cove).toBe(2);
+  expect(counts.footwellSpill).toBeGreaterThan(0);
   expect(counts.authoredFixtureMeshes).toBe(4);
   expect(counts.authoredLocatorSources).toBe(16);
   expect(counts.reading).toBe(0);
@@ -84,10 +85,13 @@ test('model-tied cabin fixture groups and combined moods render in the existing 
   for (const mood of ['Aurora', 'Sunrise', 'Sunset']) {
     await previewPage.locator('.scene-card').filter({ hasText: mood }).click();
     await expect(previewPage.locator('.scene-card.selected')).toContainText(mood);
-    if (mood === 'Aurora') {
-      await previewPage.getByRole('button', { name: 'Play preview' }).click();
-      await previewPage.waitForTimeout(1600);
-    }
+    const timeline = previewPage.getByLabel('Scene timeline position');
+    await timeline.focus();
+    await timeline.press('End');
+    await expect(timeline).toHaveValue((await timeline.getAttribute('max'))!);
+    await canvas.evaluate(() => new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    }));
     await previewPage.screenshot({ path: `${previewDir}/mood-${mood.toLowerCase()}.png`, fullPage: true });
   }
 
@@ -124,9 +128,6 @@ test('G650 inspector omits reading and spotlight zones without modeled fixtures'
   const counts = await canvas.evaluate((element) => JSON.parse(element.dataset.simulatedFixtureCounts ?? '{}') as Record<string, number>);
   expect(counts.reading).toBe(0);
   expect(counts.spotlights).toBe(0);
-  await page.getByLabel('3D camera angle').selectOption('aft');
-  await mkdir('artifacts/lighting-fixtures', { recursive: true });
-  await page.locator('#cabin-view').screenshot({ path: 'artifacts/lighting-fixtures/spotlights-focused-final.png' });
 });
 
 test('window daylight uses passive tinted glazing and a separate source', async ({ page }) => {
@@ -156,4 +157,33 @@ test('window daylight uses passive tinted glazing and a separate source', async 
   await page.locator('#cabin-view').screenshot({ path: 'artifacts/lighting-fixtures/window-daylight-reviewed.png' });
 });
 
+test('comparison cabin moods render while unsourced fixture groups remain unavailable', async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await page.goto('/studio');
+  const previewDir = 'artifacts/lighting-fixtures';
+  await mkdir(previewDir, { recursive: true });
+  for (const profile of ['airbus-a220-300', 'airbus-a350-900']) {
+    await page.getByRole('button', { name: 'Change cabin' }).click();
+    await page.getByLabel('Aircraft or airline 3D model').selectOption(profile);
+    await page.getByRole('button', { name: 'Load cabin layout' }).click();
 
+    const canvas = page.locator('canvas.cabin-webgl-canvas');
+    await expect(canvas).toHaveAttribute('data-cabin-profile', profile, { timeout: 60_000 });
+    await expect.poll(() => canvas.getAttribute('data-simulated-fixture-counts'), { timeout: 60_000 }).not.toBeNull();
+    for (const group of ['reading', 'spotlights', 'emergency', 'exit']) {
+      await expect(page.locator(`#zone-picker option[value="${group}"]`)).toHaveCount(0);
+    }
+
+    for (const mood of ['Aurora', 'Sunset']) {
+      await page.locator('.scene-card').filter({ hasText: mood }).click();
+      const timeline = page.getByLabel('Scene timeline position');
+      await timeline.press('End');
+      await expect(timeline).toHaveValue((await timeline.getAttribute('max'))!);
+      await canvas.evaluate(() => new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      }));
+      await page.screenshot({ path: `${previewDir}/${profile}-${mood.toLowerCase()}.png` });
+    }
+  }
+});
