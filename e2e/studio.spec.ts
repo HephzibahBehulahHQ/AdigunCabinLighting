@@ -328,6 +328,7 @@ test('transition preview runs scene-specific instrumental audio and exposes cabi
   await expect(voicePlayer).toHaveAttribute('data-play-requested', 'true');
   await page.getByRole('button', { name: 'Close audio controls' }).click();
   await page.reload();
+  await page.getByRole('button', { name: '2D', exact: true }).click();
   await page.getByRole('button', { name: 'Audio announcements and volume' }).click();
   await page.getByLabel('Local audio cue role').selectOption('welcome');
   await expect(page.getByText('HB380 welcome test', { exact: true })).toBeVisible();
@@ -399,6 +400,7 @@ test('new cabin zones, scenes, and browser-local projects are usable', async ({ 
     const id = localStorage.getItem('adigun-cabin-active-project:v1');
     return id ? JSON.parse(localStorage.getItem(`adigun-cabin-studio:v1:${id}`) ?? '{}').projectName : '';
   })).toBe('Project Test');
+  await page.getByRole('button', { name: '3D', exact: true }).click();
   await page.getByRole('button', { name: 'More studio actions' }).click();
   const cabinDownload = page.waitForEvent('download');
   await page.getByRole('menuitem', { name: 'Export cabin view · 4K PNG' }).click();
