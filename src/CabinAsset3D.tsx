@@ -1,3 +1,4 @@
+import { studioText, type AppLocale } from './studio-localization';
 import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -11,6 +12,7 @@ import { inspectG650ERSeatClearance, isG650ERPublishedWindow, seatG650ERSeatAsse
 const MAX_DYNAMIC_LIGHTS_PER_ZONE = 32;
 
 type Props = {
+  locale?: AppLocale;
   profile: CabinMeshProfile;
   zones: ZoneState[];
   effective: Record<ControlZoneId, RGBW>;
@@ -137,7 +139,7 @@ function batchRepeatedCabinParts(root: THREE.Object3D, candidates: THREE.Mesh[])
   }
 }
 
-export default function CabinAsset3D({ profile, zones, effective, intensity, selected, onSelect, highQuality, previewActive, previewMotion, previewTime, previewDuration, previewStartedAt, scene: activeScene, cameraView, captureRef, cameraResetRef }: Props) {
+export default function CabinAsset3D({ locale = 'en', profile, zones, effective, intensity, selected, onSelect, highQuality, previewActive, previewMotion, previewTime, previewDuration, previewStartedAt, scene: activeScene, cameraView, captureRef, cameraResetRef }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const runtime = useRef<{ renderer: THREE.WebGLRenderer; scene: THREE.Scene; camera: THREE.PerspectiveCamera; materials: Map<ControlZoneId, Set<THREE.Material>>; lights: Map<ControlZoneId, THREE.Light[]>; selectable: THREE.Object3D[]; resize: ResizeObserver; reset: () => void; applyLighting: (values?: Record<ControlZoneId, RGBW>) => void; draw: () => void } | null>(null);
   const [error, setError] = useState('');
@@ -157,7 +159,7 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: false });
     } catch {
-      setError('WebGL is unavailable in this browser. The aircraft cabin mesh could not be rendered.');
+      setError(studioText(locale, 'meshWebglUnavailable'));
       return;
     }
     renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -168,7 +170,7 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
     renderer.setSize(host.clientWidth || 800, host.clientHeight || 500, false);
     renderer.domElement.className = 'cabin-webgl-canvas';
     renderer.domElement.setAttribute('role', 'img');
-    renderer.domElement.setAttribute('aria-label', `Interactive 3D ${profile.label}. Authored simulation geometry; not an OEM or verified airline fit.`);
+    renderer.domElement.setAttribute('aria-label', studioText(locale, 'meshCanvas').replace('{name}', () => profile.label));
     renderer.domElement.tabIndex = 0;
     renderer.domElement.dataset.cabinProfile = profile.id;
     renderer.domElement.dataset.supportedZoneIds = JSON.stringify(profile.zones.map((zone) => zone.id));
@@ -535,7 +537,7 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
       setError('');
       requestDraw();
     }).catch((reason: unknown) => {
-      if (!disposed) setError(`Aircraft mesh failed to load: ${reason instanceof Error ? reason.message : 'unknown loader error'}`);
+      if (!disposed) setError(studioText(locale, 'meshLoadFailed').replace('{reason}', () => reason instanceof Error ? reason.message : studioText(locale, 'unknownLoaderError')));
     });
 
     const raycaster = new THREE.Raycaster();
@@ -626,7 +628,7 @@ export default function CabinAsset3D({ profile, zones, effective, intensity, sel
       root.traverse((object) => { if (object instanceof THREE.Mesh) { object.geometry.dispose(); const materials = Array.isArray(object.material) ? object.material : [object.material]; materials.forEach((material) => { if (material instanceof THREE.MeshStandardMaterial) { material.map?.dispose(); material.emissiveMap?.dispose(); } material.dispose(); }); } });
       renderer.dispose(); renderer.forceContextLoss(); renderer.domElement.remove(); runtime.current = null; captureRef.current = null; cameraResetRef.current = null; home.current = null;
     };
-  }, [profile.id]);
+  }, [profile.id, locale]);
 
   useEffect(() => {
     const current = runtime.current;

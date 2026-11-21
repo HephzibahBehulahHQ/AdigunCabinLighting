@@ -1,3 +1,4 @@
+import { studioText, type AppLocale } from './studio-localization';
 import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
@@ -25,6 +26,7 @@ function cameraPose(view: CabinCameraView, config: CabinConfig): { position: THR
 }
 
 type Props = {
+  locale?: AppLocale;
   config: CabinConfig;
   zones: ZoneState[];
   effective: Record<ControlZoneId, RGBW>;
@@ -46,7 +48,7 @@ const sRGB = (rgbw: RGBW) => {
   return new THREE.Color(color.r / 100, color.g / 100, color.b / 100);
 };
 
-export default function Cabin3D({ config, zones, effective, intensity, selected, onSelect, highQuality, previewActive, previewMotion, previewTime, previewDuration, cameraView, captureRef, cameraResetRef }: Props) {
+export default function Cabin3D({ locale = 'en', config, zones, effective, intensity, selected, onSelect, highQuality, previewActive, previewMotion, previewTime, previewDuration, cameraView, captureRef, cameraResetRef }: Props) {
   const canvasHost = useRef<HTMLDivElement>(null);
   const api = useRef<{ renderer: THREE.WebGLRenderer; scene: THREE.Scene; camera: THREE.PerspectiveCamera; lights: Map<ZoneId, THREE.PointLight[]>; zoneMaterials: Map<ZoneId, THREE.MeshStandardMaterial[]>; selectable: THREE.Object3D[]; frame: number; resize: ResizeObserver; applyCameraView: (view: CabinCameraView) => void; draw: () => void } | null>(null);
   const [error, setError] = useState('');
@@ -60,7 +62,7 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: true });
     } catch {
-      setError('WebGL is unavailable in this browser. The 3D cabin could not be created.');
+      setError(studioText(locale, 'referenceWebglUnavailable'));
       return;
     }
     const scene = new THREE.Scene();
@@ -80,7 +82,7 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, highQuality ? 2 : 1.35));
     renderer.setSize(host.clientWidth || 800, host.clientHeight || 500, false);
     renderer.domElement.className = 'cabin-webgl-canvas';
-    renderer.domElement.setAttribute('aria-label', `Interactive 3D ${CABIN_LAYOUTS[config.layoutId].name} cabin reference; visually inferred geometry, not an aircraft-specific fit`);
+    renderer.domElement.setAttribute('aria-label', studioText(locale, 'referenceCanvas').replace('{name}', () => CABIN_LAYOUTS[config.layoutId].name));
     renderer.domElement.setAttribute('role', 'img');
     renderer.domElement.tabIndex = 0;
     host.replaceChildren(renderer.domElement);
@@ -433,7 +435,7 @@ export default function Cabin3D({ config, zones, effective, intensity, selected,
       captureRef.current = null;
       cameraResetRef.current = null;
     };
-  }, [config]);
+  }, [config, locale]);
 
   useEffect(() => {
     api.current?.applyCameraView(cameraView);
