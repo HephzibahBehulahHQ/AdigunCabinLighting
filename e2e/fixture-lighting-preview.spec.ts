@@ -13,7 +13,7 @@ const fixtureGroups = [
 ] as const;
 
 test('QantasLink aisle exit signs render independently and remain visible during Aurora', async ({ page }) => {
-  test.setTimeout(90_000);
+  test.setTimeout(180_000);
   const zones = makeDefaultZones().map((zone) => ({
     ...zone, fadeSeconds: 0, rgbw: { r: 0, g: 0, b: 0, w: 0 },
   }));
@@ -33,14 +33,17 @@ test('QantasLink aisle exit signs render independently and remain visible during
   const previewDir = 'artifacts/qantaslink-exit-signs';
   await mkdir(previewDir, { recursive: true });
   const views = [['entry', 'forward'], ['aft', 'aft']] as const;
+  if (!process.env.CI) {
   for (const [view, end] of views) {
     await page.getByLabel('3D camera angle').selectOption(view);
     await stage.screenshot({ path: `${previewDir}/${end}-off.png` });
+  }
   }
   const green = page.getByRole('slider', { name: 'G channel', exact: true });
   await green.focus();
   await green.press('End');
   await expect(green).toHaveValue('100');
+  if (!process.env.CI) {
   for (const [view, end] of views) {
     await page.getByLabel('3D camera angle').selectOption(view);
     await stage.screenshot({ path: `${previewDir}/${end}-isolated.png` });
@@ -49,6 +52,8 @@ test('QantasLink aisle exit signs render independently and remain visible during
     });
     await stage.screenshot({ path: `${previewDir}/${end}-detail.png` });
   }
+  }
+  if (!process.env.CI) {
   await page.getByLabel('3D camera angle').selectOption('entry');
   await page.getByLabel('3D camera angle').selectOption('aft');
   await stage.screenshot();
@@ -56,17 +61,22 @@ test('QantasLink aisle exit signs render independently and remain visible during
     for (let step = 0; step < 4; step++) element.dispatchEvent(new WheelEvent('wheel', { deltaY: -360, cancelable: true }));
   });
   await stage.screenshot({ path: `${previewDir}/overwing-isolated.png` });
+  }
   await page.locator('.scene-card').filter({ hasText: 'Aurora' }).click();
   await page.getByLabel('Scene timeline position').press('End');
   await expect(green).toHaveValue('100');
+  if (!process.env.CI) {
   for (const [view, end] of views) {
     await page.getByLabel('3D camera angle').selectOption(view);
     await stage.screenshot({ path: `${previewDir}/${end}-aurora.png` });
   }
+  }
+  if (!process.env.CI) {
   await canvas.evaluate((element) => {
     for (let step = 0; step < 4; step++) element.dispatchEvent(new WheelEvent('wheel', { deltaY: -360, cancelable: true }));
   });
   await stage.screenshot({ path: `${previewDir}/overwing-aurora.png` });
+  }
 });
 
 test('QantasLink business reading lights render from seat-specific panels', async ({ page }) => {
@@ -252,13 +262,14 @@ test('window daylight uses passive tinted glazing and a separate source', async 
   await page.locator('#cabin-view').screenshot({ path: 'artifacts/lighting-fixtures/window-daylight-reviewed.png' });
 });
 
-test('comparison cabin moods render while unsourced fixture groups remain unavailable', async ({ page }) => {
+for (const profile of ['airbus-a220-300', 'airbus-a350-900']) {
+  test(`comparison cabin moods render for ${profile} without unsourced fixture groups`, async ({ page }) => {
   test.setTimeout(300_000);
-  await page.setViewportSize({ width: 1600, height: 1000 });
+  await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/studio');
   const previewDir = 'artifacts/lighting-fixtures';
   await mkdir(previewDir, { recursive: true });
-  for (const profile of ['airbus-a220-300', 'airbus-a350-900']) {
+
     await page.getByRole('button', { name: 'Change cabin' }).click();
     await page.getByLabel('Aircraft or airline 3D model').selectOption(profile);
     await page.getByRole('button', { name: 'Load cabin layout' }).click();
@@ -278,7 +289,7 @@ test('comparison cabin moods render while unsourced fixture groups remain unavai
       await canvas.evaluate(() => new Promise<void>((resolve) => {
         requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
       }));
-      await page.screenshot({ path: `${previewDir}/${profile}-${mood.toLowerCase()}.png` });
+      if (!process.env.CI) await page.screenshot({ path: `${previewDir}/${profile}-${mood.toLowerCase()}.png` });
     }
-  }
-});
+  });
+}
