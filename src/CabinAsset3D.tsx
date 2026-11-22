@@ -101,7 +101,7 @@ function applyZoneLighting(materials: Map<ControlZoneId, Set<THREE.Material>>, l
       }
     }
     // Avoid clipped white pools when local real-time lights overlap on pale cabin surfaces.
-    const fixturePower = parentId === 'windows' ? 8 : parentId === 'reading' ? 36 : parentId === 'spotlights' ? 20 : parentId === 'ceiling' ? 18 : parentId === 'emergency' || parentId === 'exit' ? 4 : 2.5;
+    const fixturePower = parentId === 'windows' ? 8 : parentId === 'reading' ? 3 : parentId === 'spotlights' ? 20 : parentId === 'ceiling' ? 18 : parentId === 'emergency' ? 4 : parentId === 'exit' ? .12 : 2.5;
     for (const light of lights.get(id) ?? []) {
       const fillScale = parentId === 'spotlights' ? .10 : .35;
       light.visible = level > 0;
@@ -210,7 +210,7 @@ export default function CabinAsset3D({ locale = 'en', enhancedSpill = true, prof
       const next = pose(view);
       camera.position.copy(next.position);
       camera.lookAt(next.target);
-      home.current = { position: camera.position.clone(), quaternion: camera.quaternion.clone() };
+      home.current = null;
     };
     let frame: number | null = null;
     let lastRender = 0;
@@ -257,14 +257,21 @@ export default function CabinAsset3D({ locale = 'en', enhancedSpill = true, prof
       const spotlightFixtureBounds: THREE.Box3[] = [];
       const coveBounds: THREE.Box3[] = [];
       const footwellBounds: THREE.Box3[] = [];
+      const exitSignAnchors: { position: THREE.Vector3; rotation: THREE.Euler; directional: boolean }[] = [];
       const fixtureAnchors: { id: ControlZoneId; parent: ZoneId; position: THREE.Vector3; name: string }[] = [];
-      const fixtureMeshes: { id: ControlZoneId; position: THREE.Vector3 }[] = [];
+      const fixtureMeshes: { id: ControlZoneId; position: THREE.Vector3; readingTarget?: THREE.Vector3 }[] = [];
       const canonicalNodeName = (name: string) => name.replace(/_/g, ' ').trim().replace(/\s+/g, ' ').toLowerCase();
       const fixtureByNodeName = new Map(profile.zones.filter((zone) => zone.source_node_name).map((zone) => [canonicalNodeName(zone.source_node_name!), zone] as const));
       gltf.scene.updateMatrixWorld(true);
       let visibleG650WindowGlass = 0;
       if (profile.id === 'gulfstream-g650er') seatG650ERSeatAssemblies(gltf.scene);
       gltf.scene.traverse((object) => {
+        const exitMount = /^exit sign (forward|aft|overwing (?:locator|left|right))$/.exec(canonicalNodeName(object.name));
+        if (exitMount) {
+          const facing = { forward: 0, aft: Math.PI, 'overwing locator': Math.PI, 'overwing left': Math.PI / 2, 'overwing right': -Math.PI / 2 };
+          const yaw = facing[exitMount[1] as keyof typeof facing];
+          exitSignAnchors.push({ position: object.getWorldPosition(new THREE.Vector3()), rotation: new THREE.Euler(0, yaw, 0), directional: exitMount[1] === 'overwing locator' });
+        }
         const fixtureEvidence = fixtureByNodeName.get(canonicalNodeName(object.name));
         if (fixtureEvidence?.source_kind === 'locator' && fixtureEvidence.parent_zone_id) {
           fixtureAnchors.push({ id: fixtureEvidence.id, parent: fixtureEvidence.parent_zone_id, position: object.getWorldPosition(new THREE.Vector3()), name: object.name });
@@ -286,6 +293,10 @@ export default function CabinAsset3D({ locale = 'en', enhancedSpill = true, prof
         if (!(object instanceof THREE.Mesh) || !object.visible) return;
         const feature = fixtureEvidence?.id ?? featureZone(object.name) ?? (/galley module|monument|vip side console/i.test(object.name) ? 'monuments' : undefined);
         let list = Array.isArray(object.material) ? object.material : [object.material];
+        if (fixtureEvidence?.parent_zone_id === 'reading') {
+          list = list.map((material) => material.clone());
+          object.material = Array.isArray(object.material) ? list : list[0];
+        }
         if (feature === 'windows' && object.visible) {
           list = list.map((material) => material.name.toLowerCase().includes('window glass') ? material.clone() : material);
           object.material = Array.isArray(object.material) ? list : list[0];
@@ -295,7 +306,11 @@ export default function CabinAsset3D({ locale = 'en', enhancedSpill = true, prof
         const normalizedName = object.name.replace(/_/g, ' ').toLowerCase();
         if (fixtureEvidence?.source_kind === 'mesh') {
           const bounds = new THREE.Box3().setFromObject(object);
-          if (!bounds.isEmpty()) fixtureMeshes.push({ id: fixtureEvidence.id, position: bounds.getCenter(new THREE.Vector3()) });
+          const target = object.userData.readingTarget;
+          const readingTarget = fixtureEvidence.parent_zone_id === 'reading' && Array.isArray(target) && target.length === 3 && target.every(Number.isFinite)
+            ? gltf.scene.localToWorld(new THREE.Vector3().fromArray(target))
+            : undefined;
+          if (!bounds.isEmpty()) fixtureMeshes.push({ id: fixtureEvidence.id, position: bounds.getCenter(new THREE.Vector3()), readingTarget });
         }
         const parentFeature = fixtureEvidence?.parent_zone_id ?? feature;
         if (parentFeature === 'left_sidewall' || parentFeature === 'right_sidewall') {
@@ -433,7 +448,14 @@ export default function CabinAsset3D({ locale = 'en', enhancedSpill = true, prof
       };
       const centerX = box.getCenter(new THREE.Vector3()).x;
       const cabinSpan = Math.max(.1, box.max.z - box.min.z);
-      for (const fixture of fixtureMeshes) addPoint(fixture.id, fixture.position, Math.max(1.1, size.x * .34));
+      for (const fixture of fixtureMeshes) {
+        if (fixture.readingTarget) {
+          const beamDirection = fixture.readingTarget.clone().sub(fixture.position).normalize();
+          addSpot(fixture.id, fixture.position.clone().addScaledVector(beamDirection, .01), fixture.readingTarget, 1.35, .29);
+        } else {
+          addPoint(fixture.id, fixture.position, Math.max(1.1, size.x * .34));
+        }
+      }
       for (const fixture of fixtureAnchors) {
         const inward = fixture.parent === 'left_sidewall' ? 1 : -1;
         const position = fixture.position.clone().add(new THREE.Vector3(inward * .09, 0, 0));
@@ -540,17 +562,17 @@ export default function CabinAsset3D({ locale = 'en', enhancedSpill = true, prof
       }
 
       let exitSignCount = 0;
-      if (profile.zones.some((zone) => zone.id === 'exit')) {
-      const signItems = [box.min.z + Math.min(.42, cabinSpan * .025), box.max.z - Math.min(.42, cabinSpan * .025)].map((z, index) => ({
-        position: new THREE.Vector3(centerX, box.min.y + size.y * .76, z), size: new THREE.Vector3(.30, .12, .025), rotation: new THREE.Euler(0, index ? Math.PI : 0, 0),
-      }));
+      if (exitSignAnchors.length && profile.zones.some((zone) => zone.id === 'exit')) {
+      for (const directional of [false, true]) {
+      const signItems = exitSignAnchors.filter((anchor) => anchor.directional === directional);
+      if (!signItems.length) continue;
       const signCanvas = document.createElement('canvas'); signCanvas.width = 256; signCanvas.height = 96;
       const signContext = signCanvas.getContext('2d');
       if (signContext) {
         signContext.fillStyle = '#123d2b'; signContext.fillRect(0, 0, signCanvas.width, signCanvas.height);
         signContext.strokeStyle = '#69e7a4'; signContext.lineWidth = 6; signContext.strokeRect(3, 3, signCanvas.width - 6, signCanvas.height - 6);
         signContext.fillStyle = '#aaffd0'; signContext.font = '700 54px Arial'; signContext.textAlign = 'center'; signContext.textBaseline = 'middle';
-        signContext.fillText('EXIT  ›', signCanvas.width / 2, signCanvas.height / 2);
+        signContext.fillText(directional ? '←  EXIT  →' : 'EXIT', signCanvas.width / 2, signCanvas.height / 2, signCanvas.width - 20);
       }
       const signTexture = new THREE.CanvasTexture(signCanvas); signTexture.colorSpace = THREE.SRGBColorSpace;
       const signMaterial = new THREE.MeshStandardMaterial({ color: '#ffffff', map: signTexture, emissive: '#000000', emissiveMap: signTexture, emissiveIntensity: 0, roughness: .4, metalness: .05 });
@@ -559,16 +581,17 @@ export default function CabinAsset3D({ locale = 'en', enhancedSpill = true, prof
       signMesh.name = `Estimated simulated EXIT signs · ${signItems.length}`; signMesh.userData.zoneId = 'exit';
       const signTransform = new THREE.Object3D();
       signItems.forEach((item, index) => {
-        signTransform.position.copy(item.position); signTransform.scale.set(item.size.x, item.size.y, 1); signTransform.rotation.copy(item.rotation ?? new THREE.Euler());
+        signTransform.position.copy(item.position); signTransform.scale.set(.30, .30, 1); signTransform.rotation.copy(item.rotation);
         signTransform.updateMatrix(); signMesh.setMatrixAt(index, signTransform.matrix);
       });
       signMesh.instanceMatrix.needsUpdate = true; signMesh.computeBoundingSphere(); root.add(signMesh); selectable.push(signMesh);
       const signMaterials = zoneMaterials.get('exit') ?? new Set<THREE.Material>(); signMaterials.add(signMaterial); zoneMaterials.set('exit', signMaterials);
-      signItems.forEach((item) => addPoint('exit', item.position.clone(), Math.max(.8, size.x * .20)));
-      exitSignCount = signItems.length;
+      signItems.forEach((item) => addPoint('exit', item.position.clone(), .28));
+      exitSignCount += signItems.length;
+      }
       }
 
-      renderer.domElement.dataset.simulatedFixtureCounts = JSON.stringify({ windows: panes.length, handrail: edgeItems.length, leftSidewall: sidewallFixtureBounds.left_sidewall.length, rightSidewall: sidewallFixtureBounds.right_sidewall.length, cove: coveBounds.length, footwellSpill: modelLights.get('footwell')?.length ?? 0, reading: readingFixtureBounds.length, monuments: monumentBounds.length + consoleBounds.length, spotlights: spotlightFixtureBounds.length, emergency: emergencyFixtureCount, exit: exitSignCount, authoredFixtureMeshes: fixtureMeshes.length, authoredLocatorSources: fixtureAnchors.length, placementBasis: binBounds.length ? 'overhead-bin-mesh-bounds' : consoleBounds.length ? 'vip-side-console-mesh-bounds' : 'named-component-bounds' });
+      renderer.domElement.dataset.simulatedFixtureCounts = JSON.stringify({ windows: panes.length, handrail: edgeItems.length, leftSidewall: sidewallFixtureBounds.left_sidewall.length, rightSidewall: sidewallFixtureBounds.right_sidewall.length, cove: coveBounds.length, footwellSpill: modelLights.get('footwell')?.length ?? 0, reading: readingFixtureBounds.length + fixtureMeshes.filter((fixture) => fixture.readingTarget).length, monuments: monumentBounds.length + consoleBounds.length, spotlights: spotlightFixtureBounds.length, emergency: emergencyFixtureCount, exit: exitSignCount, authoredFixtureMeshes: fixtureMeshes.length, authoredLocatorSources: fixtureAnchors.length, placementBasis: binBounds.length ? 'overhead-bin-mesh-bounds' : consoleBounds.length ? 'vip-side-console-mesh-bounds' : 'named-component-bounds' });
       renderer.domElement.dataset.simulatedLightCount = String([...modelLights.values()].flat().filter((light) => light.userData.simulatedRuntimeLight === true).length);
       fitCamera(cameraView);
       renderer.domElement.dataset.fixtureSourcePositions = JSON.stringify(fixtureAnchors.map((fixture) => {

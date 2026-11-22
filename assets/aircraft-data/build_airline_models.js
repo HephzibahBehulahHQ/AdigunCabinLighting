@@ -77,6 +77,36 @@ function makeAirline(profile) {
  if(vip)for(const side of[-1,1])box('VIP side console '+side,[side*width*.40,.68,0],[.21,.12,length-.4],wood,.035);
  const lights=[];for(let i=0;i<8;i++){let z=-length/2+(i+.5)*length/8;for(const [x,c,zone]of[[-width*.28,[.04,.6,1],'left_sidewall'],[width*.28,[.55,.1,1],'right_sidewall']]){lights.push({name:zone,type:'point',color:c,intensity:22,range:5});nodes.push({name:zone+' fixture '+i,translation:[x,height*.72,z],extensions:{KHR_lights_punctual:{light:lights.length-1}}});}}
  nodes.push({name:'Aisle camera',camera:0,translation:[0,Math.min(1.6,height*.7),length/2-1]});
+ if (profile.id === 'qantaslink-a220-300-137') {
+  const panelY = height * .79 - .16;
+  for (const seat of profile.seats.filter(({ class: cabinClass }) => cabinClass === 'business')) {
+   const side = Math.sign(seat.x_m);
+   const lampX = side * (Math.abs(seat.x_m) > .8 ? 1.18 : .94);
+   const lampZ = seat.z_m + .22;
+   box(`Passenger service panel ${seat.id}`, [lampX, panelY - .015, lampZ], [.22, .03, .18], wall, .006);
+   box(`Reading light ${seat.id}`, [lampX, panelY - .032, lampZ], [.035, .008, .036], metal, .003);
+   nodes.at(-1).extras = { readingTarget: [seat.x_m, .78, seat.z_m + .16] };
+  }
+  for (const [end, direction] of [['forward', -1], ['aft', 1]]) {
+   const bulkheadZ = direction * (length / 2 - .15);
+   const headerY = height * .89;
+   box(`Aisle header ${end}`, [0, headerY, bulkheadZ], [width * .35, .16, .08], wall);
+   nodes.push({ name: `Exit sign ${end}`, translation: [0, headerY, bulkheadZ - direction * .041] });
+  }
+  const economyRows = [...new Set(profile.seats.filter(({ class: cabinClass }) => cabinClass === 'economy').map(({ z_m }) => z_m))].sort((a, b) => a - b);
+  // The operator map shows the hatches beside row 12. Economy starts at row 4.
+  const overwingZ = (economyRows[7] + economyRows[8]) / 2;
+  const locatorY = height * .93;
+  box('Overwing locator housing', [0, locatorY, overwingZ], [.34, .14, .07], wall, .015);
+  nodes.push({ name: 'Exit sign overwing locator', translation: [0, locatorY, overwingZ - .036] });
+  for (const [side, direction] of [['left', -1], ['right', 1]]) {
+   const signY = height * .70;
+   const wallX = width / 2 * Math.sqrt(1 - ((signY - cy) / ry) ** 2);
+   const signX = direction * (wallX - .025);
+   box(`Overwing sign housing ${side}`, [signX, signY, overwingZ], [.04, .12, .26], wall, .01);
+   nodes.push({ name: `Exit sign overwing ${side}`, translation: [signX - direction * .021, signY, overwingZ] });
+  }
+ }
  const metadata={aircraft_id:record.id,units:'meters',scope:/A380/.test(record.model)?'main_deck_cabin_only':'passenger_cabin',mode:'SIMULATION',source:record.source.url,published_dimensions:record,modeled_dimensions_m:{length,width,height},assumptions,seat_count:profile.seats.length,rows,seats_per_row:null,airline_configuration_id:profile.id,airline:profile.airline,seat_position_basis:profile.seat_position_basis,seat_nodes:occupied};
  const gltf={asset:{version:'2.0',generator:'AdigunCabinLighting dimension-based cabin builder',extras:metadata},scene:0,scenes:[{name:record.model+' cabin simulation',nodes:nodes.map((_,i)=>i)}],nodes,meshes,materials,bufferViews:views,accessors,buffers:[{byteLength:bytes}],cameras:[{type:'perspective',perspective:{yfov:1.05,znear:.03,zfar:200}}],extensionsUsed:['KHR_lights_punctual'],extensions:{KHR_lights_punctual:{lights}}};
  const enc=new TextEncoder(),json=enc.encode(JSON.stringify(gltf)),jp=(4-json.length%4)%4,bp=(4-bytes%4)%4,total=12+8+json.length+jp+8+bytes+bp,result=new Uint8Array(total),dv=new DataView(result.buffer);dv.setUint32(0,0x46546c67,true);dv.setUint32(4,2,true);dv.setUint32(8,total,true);dv.setUint32(12,json.length+jp,true);dv.setUint32(16,0x4e4f534a,true);result.set(json,20);result.fill(32,20+json.length,20+json.length+jp);let off=20+json.length+jp;dv.setUint32(off,bytes+bp,true);dv.setUint32(off+4,0x004e4942,true);off+=8;for(const b of binary){result.set(b,off);off+=b.length;}
@@ -90,11 +120,13 @@ if (argv[1] && resolve(argv[1]) === scriptPath) {
  const root=dirname(scriptPath);
  const catalog=JSON.parse(readFileSync(join(root,'airline-mesh-catalog.json'),'utf8'));
  mkdirSync(join(root,'airline-meshes'),{recursive:true});
- for(const item of catalog.profiles){
+ const profiles = argv[2] ? catalog.profiles.filter(({ id }) => id === argv[2]) : catalog.profiles;
+ if (!profiles.length) throw Error(`Unknown airline profile ${argv[2]}`);
+ for(const item of profiles){
   const profile=JSON.parse(readFileSync(join(root,item.layout_json),'utf8'));
   const model=makeAirline(profile);
   writeFileSync(join(root,item.mesh_path),Buffer.from(model.base64,'base64'));
  }
- log('Generated',catalog.profiles.length,'airline cabin GLBs');
+ log('Generated',profiles.length,'airline cabin GLBs');
 }
 

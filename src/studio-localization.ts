@@ -1097,6 +1097,7 @@ const FIXTURE_LABELS: Partial<Record<string, Record<Exclude<AppLocale, 'en'>, st
   'Right sidewall locator': { de: 'Positionsknoten rechts', yo: 'Àmì ipò ògiri ọ̀tún', pcm: 'Position marker for right sidewall' },
   'Service monuments / VIP consoles': { de: 'Serviceeinbauten / VIP-Konsolen', yo: 'Ohun èlò iṣẹ́ / tábìlì VIP', pcm: 'Service units / VIP consoles' },
   'VIP console edge': { de: 'VIP-Konsolenkante', yo: 'Etí tábìlì VIP', pcm: 'VIP console edge' },
+  'Reading light': { de: 'Leselampe', yo: 'Ìmọ́lẹ̀ kíkà', pcm: 'Light for reading' },
 };
 
 export function studioZoneName(locale: AppLocale, zone: Pick<ZoneState, 'id' | 'name'>): string {
@@ -1132,6 +1133,16 @@ const ZONE_DETAILS = {
 } satisfies typeof ZONE_NAMES;
 
 const COUNTED_COMPONENTS: Partial<Record<string, Record<Exclude<AppLocale, 'en'>, string>>> = {
+  "named reading-light fixtures": {
+    de: "{count} benannte Leselampen",
+    yo: "Ìmọ́lẹ̀ kíkà {count} tí a dárúkọ",
+    pcm: "{count} lights wey get name for reading",
+  },
+  "named components": {
+    de: "{count} benannte Komponenten",
+    yo: "Ẹ̀yà {count} tí a dárúkọ",
+    pcm: "{count} parts wey get name",
+  },
   "named footwell components": {
     de: "{count} benannte Fußraumkomponenten",
     yo: "Ẹ̀yà àyè ẹsẹ̀ {count} tí a dárúkọ",

@@ -13,17 +13,21 @@ describe('aircraft mesh zone inventory', () => {
       expect(available.map((zone) => zone.id).sort(), profile.id).toEqual(profile.zones.map((zone) => zone.id).sort());
       expect(available.every((zone) => zone.detail.length > 0), profile.id).toBe(true);
       for (const zone of profile.zones) expect(zone.basis, `${profile.id}:${zone.id}`).not.toMatch(/fallback|estimated/i);
-      for (const unsupported of ['entry', 'toilet', 'trolley', 'emergency', 'exit', 'cabin', 'sidewalls'] as const) {
+      for (const unsupported of ['entry', 'toilet', 'trolley', 'emergency', 'cabin', 'sidewalls'] as const) {
         expect(profile.zones.some((zone) => zone.id === unsupported), `${profile.id}:${unsupported}`).toBe(false);
       }
+      const expectedExitCount = profile.id === 'qantaslink-a220-300-137' ? 5 : 0;
+      expect(profile.componentCounts.exit_signs, `${profile.id}:exit sign anchors`).toBe(expectedExitCount);
+      expect(profile.zones.some((zone) => zone.id === 'exit'), `${profile.id}:exit control`).toBe(expectedExitCount > 0);
       expect(profile.componentCounts.left_sidewall_fixture_meshes, `${profile.id}:empty left-sidewall locators`).toBe(0);
       expect(profile.componentCounts.right_sidewall_fixture_meshes, `${profile.id}:empty right-sidewall locators`).toBe(0);
       expect(profile.componentCounts.left_sidewall_lights, `${profile.id}:modeled left-sidewall light source`).toBe(1);
       expect(profile.componentCounts.right_sidewall_lights, `${profile.id}:modeled right-sidewall light source`).toBe(1);
-      expect(profile.componentCounts.reading_fixtures, `${profile.id}:reading fixtures`).toBe(0);
+      const expectedReadingCount = profile.id === 'qantaslink-a220-300-137' ? 10 : 0;
+      expect(profile.componentCounts.reading_fixtures, `${profile.id}:reading fixtures`).toBe(expectedReadingCount);
       expect(profile.componentCounts.spotlight_fixtures, `${profile.id}:spotlight fixtures`).toBe(0);
       expect(profile.componentCounts.ceiling_panels, `${profile.id}:ceiling panels`).toBe(0);
-      expect(profile.zones.map((zone) => zone.id), `${profile.id}:unmodeled light groups`).not.toContain('reading');
+      expect(profile.zones.some((zone) => zone.id === 'reading'), `${profile.id}:reading control`).toBe(expectedReadingCount > 0);
       expect(profile.zones.map((zone) => zone.id), `${profile.id}:unmodeled light groups`).not.toContain('spotlights');
       expect(profile.zones.map((zone) => zone.id), `${profile.id}:unmodeled ceiling shell`).not.toContain('ceiling');
       expect(profile.zones.find((zone) => zone.id === 'left_sidewall')?.basis, `${profile.id}:left-sidewall evidence`).toContain('1 modeled left-sidewall light strip mesh');
@@ -45,7 +49,7 @@ describe('aircraft mesh zone inventory', () => {
   it('keeps cabin-specific differences between the dimension models and airline layouts', () => {
     expect(AIRLINE_MESH_PROFILES).toHaveLength(6);
     for (const profile of AIRLINE_MESH_PROFILES) {
-      expect(profile.zones.map((zone) => zone.id)).not.toContain('reading');
+      expect(profile.zones.some((zone) => zone.id === 'reading')).toBe(profile.id === 'qantaslink-a220-300-137');
       expect(profile.zones.map((zone) => zone.id)).not.toContain('monuments');
       expect(profile.zones.map((zone) => zone.id)).not.toContain('spotlights');
     }
