@@ -106,6 +106,31 @@ function makeAirline(profile) {
    box(`Overwing sign housing ${side}`, [signX, signY, overwingZ], [.04, .12, .26], wall, .01);
    nodes.push({ name: `Exit sign overwing ${side}`, translation: [signX - direction * .021, signY, overwingZ] });
   }
+  const economyReferenceRow = economyRows[19 - 4];
+  const economyPair = profile.seats.filter(({ class: cabinClass, x_m, z_m }) => cabinClass === 'economy' && x_m < 0 && z_m === economyReferenceRow);
+  for (const seat of economyPair) {
+   const lampX = seat.x_m < -.8 ? -1.18 : -.94;
+   const lampZ = seat.z_m + .22;
+   box(`Passenger service panel ${seat.id}`, [lampX, panelY - .015, lampZ], [.22, .03, .18], wall, .006);
+   box(`Reading light ${seat.id}`, [lampX, panelY - .032, lampZ], [.035, .008, .036], metal, .003);
+   nodes.at(-1).extras = { readingTarget: [seat.x_m, .78, seat.z_m + .13] };
+  }
+  const galleyLength = 1.55;
+  const galleyZ = -length / 2 - galleyLength / 2;
+  const galleyCeiling = height * .93;
+  box('Forward galley headliner', [0, galleyCeiling, galleyZ], [2.48, .06, galleyLength], wall);
+  box('Forward galley flooring', [0, -.025, galleyZ], [2.48, .05, galleyLength], floor);
+  box('Forward galley end panel', [0, galleyCeiling / 2, galleyZ - galleyLength / 2], [2.48, galleyCeiling, .08], wall);
+  box('Forward galley cabinet', [-.91, .47, galleyZ], [.64, .94, 1.38], wall);
+  box('Forward galley worktop', [-.91, .958, galleyZ], [.66, .04, 1.40], metal);
+  box('Forward attendant station panel', [.99, galleyCeiling / 2, galleyZ], [.33, galleyCeiling, 1.38], wall);
+  const lens = material('Forward galley spotlight lens', [.65, .66, .68], 0, .38);
+  for (const zOffset of [-.40, .40]) {
+   for (const x of [-.65, .51]) {
+    const z = galleyZ + zOffset;
+    box(`Spotlight forward galley ${x} ${zOffset}`, [x, galleyCeiling - .035, z], [.075, .014, .075], lens, .006);
+   }
+  }
  }
  const metadata={aircraft_id:record.id,units:'meters',scope:/A380/.test(record.model)?'main_deck_cabin_only':'passenger_cabin',mode:'SIMULATION',source:record.source.url,published_dimensions:record,modeled_dimensions_m:{length,width,height},assumptions,seat_count:profile.seats.length,rows,seats_per_row:null,airline_configuration_id:profile.id,airline:profile.airline,seat_position_basis:profile.seat_position_basis,seat_nodes:occupied};
  const gltf={asset:{version:'2.0',generator:'AdigunCabinLighting dimension-based cabin builder',extras:metadata},scene:0,scenes:[{name:record.model+' cabin simulation',nodes:nodes.map((_,i)=>i)}],nodes,meshes,materials,bufferViews:views,accessors,buffers:[{byteLength:bytes}],cameras:[{type:'perspective',perspective:{yfov:1.05,znear:.03,zfar:200}}],extensionsUsed:['KHR_lights_punctual'],extensions:{KHR_lights_punctual:{lights}}};

@@ -476,7 +476,11 @@ export default function CabinAsset3D({ locale = 'en', enhancedSpill = true, prof
         }
       }
       for (const bounds of readingFixtureBounds) addPoint('reading', bounds.getCenter(new THREE.Vector3()), Math.max(1, size.x * .28));
-      for (const bounds of spotlightFixtureBounds) addPoint('spotlights', bounds.getCenter(new THREE.Vector3()), Math.max(1, size.x * .35));
+      for (const bounds of spotlightFixtureBounds) {
+        const source = bounds.getCenter(new THREE.Vector3());
+        source.y = bounds.min.y - .008;
+        addSpot('spotlights', source, source.clone().setY(box.min.y), 2.4, .36);
+      }
       const panes = windowBounds.map((bounds) => {
         const center = bounds.getCenter(new THREE.Vector3()); const inward = center.x < centerX ? 1 : -1;
         return { bounds, position: center.add(new THREE.Vector3(inward * Math.max(.12, size.x * .045), 0, 0)), inward };
