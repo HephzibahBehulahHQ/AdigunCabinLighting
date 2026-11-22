@@ -10474,9 +10474,9 @@
         "right_sidewall_fixture_anchors": 8,
         "footwells": 2,
         "seat_headrests": 137,
-        "reading_fixtures": 10,
+        "reading_fixtures": 12,
         "call_button_fixtures": 0,
-        "spotlight_fixtures": 0,
+        "spotlight_fixtures": 4,
         "overhead_bins": 46,
         "bin_handles": 46,
         "galley_modules": 0,
@@ -10521,7 +10521,12 @@
         {
           "id": "reading",
           "name": "Reading lights",
-          "basis": "10 named reading-light fixtures"
+          "basis": "12 named reading-light fixtures"
+        },
+        {
+          "id": "spotlights",
+          "name": "Spotlights",
+          "basis": "4 named spotlight fixtures"
         },
         {
           "id": "exit",
@@ -10767,6 +10772,22 @@
           "parent_zone_id": "reading",
           "source_node_name": "Reading light SIM-business-10",
           "source_kind": "mesh"
+        },
+        {
+          "id": "fixture:qantaslink-a220-300-137:reading:reading-light-sim-economy-76:node-2015",
+          "name": "Reading light \u00b7 Reading light SIM-economy-76",
+          "basis": "Named GLB mesh node: Reading light SIM-economy-76",
+          "parent_zone_id": "reading",
+          "source_node_name": "Reading light SIM-economy-76",
+          "source_kind": "mesh"
+        },
+        {
+          "id": "fixture:qantaslink-a220-300-137:reading:reading-light-sim-economy-77:node-2017",
+          "name": "Reading light \u00b7 Reading light SIM-economy-77",
+          "basis": "Named GLB mesh node: Reading light SIM-economy-77",
+          "parent_zone_id": "reading",
+          "source_node_name": "Reading light SIM-economy-77",
+          "source_kind": "mesh"
         }
       ],
       "fixtures": [
@@ -11009,6 +11030,22 @@
           "node_name": "Reading light SIM-business-10",
           "source_kind": "mesh",
           "basis": "Named GLB mesh node: Reading light SIM-business-10"
+        },
+        {
+          "id": "fixture:qantaslink-a220-300-137:reading:reading-light-sim-economy-76:node-2015",
+          "name": "Reading light \u00b7 Reading light SIM-economy-76",
+          "parent_zone_id": "reading",
+          "node_name": "Reading light SIM-economy-76",
+          "source_kind": "mesh",
+          "basis": "Named GLB mesh node: Reading light SIM-economy-76"
+        },
+        {
+          "id": "fixture:qantaslink-a220-300-137:reading:reading-light-sim-economy-77:node-2017",
+          "name": "Reading light \u00b7 Reading light SIM-economy-77",
+          "parent_zone_id": "reading",
+          "node_name": "Reading light SIM-economy-77",
+          "source_kind": "mesh",
+          "basis": "Named GLB mesh node: Reading light SIM-economy-77"
         }
       ]
     },

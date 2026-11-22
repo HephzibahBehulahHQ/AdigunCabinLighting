@@ -23,12 +23,13 @@ describe('aircraft mesh zone inventory', () => {
       expect(profile.componentCounts.right_sidewall_fixture_meshes, `${profile.id}:empty right-sidewall locators`).toBe(0);
       expect(profile.componentCounts.left_sidewall_lights, `${profile.id}:modeled left-sidewall light source`).toBe(1);
       expect(profile.componentCounts.right_sidewall_lights, `${profile.id}:modeled right-sidewall light source`).toBe(1);
-      const expectedReadingCount = profile.id === 'qantaslink-a220-300-137' ? 10 : 0;
+      const expectedReadingCount = profile.id === 'qantaslink-a220-300-137' ? 12 : 0;
       expect(profile.componentCounts.reading_fixtures, `${profile.id}:reading fixtures`).toBe(expectedReadingCount);
-      expect(profile.componentCounts.spotlight_fixtures, `${profile.id}:spotlight fixtures`).toBe(0);
+      const expectedSpotlightCount = profile.id === 'qantaslink-a220-300-137' ? 4 : 0;
+      expect(profile.componentCounts.spotlight_fixtures, `${profile.id}:spotlight fixtures`).toBe(expectedSpotlightCount);
       expect(profile.componentCounts.ceiling_panels, `${profile.id}:ceiling panels`).toBe(0);
       expect(profile.zones.some((zone) => zone.id === 'reading'), `${profile.id}:reading control`).toBe(expectedReadingCount > 0);
-      expect(profile.zones.map((zone) => zone.id), `${profile.id}:unmodeled light groups`).not.toContain('spotlights');
+      expect(profile.zones.some((zone) => zone.id === 'spotlights'), `${profile.id}:spotlight control`).toBe(expectedSpotlightCount > 0);
       expect(profile.zones.map((zone) => zone.id), `${profile.id}:unmodeled ceiling shell`).not.toContain('ceiling');
       expect(profile.zones.find((zone) => zone.id === 'left_sidewall')?.basis, `${profile.id}:left-sidewall evidence`).toContain('1 modeled left-sidewall light strip mesh');
       expect(profile.zones.find((zone) => zone.id === 'right_sidewall')?.basis, `${profile.id}:right-sidewall evidence`).toContain('1 modeled right-sidewall light strip mesh');
@@ -51,7 +52,7 @@ describe('aircraft mesh zone inventory', () => {
     for (const profile of AIRLINE_MESH_PROFILES) {
       expect(profile.zones.some((zone) => zone.id === 'reading')).toBe(profile.id === 'qantaslink-a220-300-137');
       expect(profile.zones.map((zone) => zone.id)).not.toContain('monuments');
-      expect(profile.zones.map((zone) => zone.id)).not.toContain('spotlights');
+      expect(profile.zones.some((zone) => zone.id === 'spotlights')).toBe(profile.id === 'qantaslink-a220-300-137');
     }
     const vip = AIRCRAFT_MESH_PROFILES.find((profile) => profile.id === 'gulfstream-g650er');
     expect(vip?.componentCounts.overhead_bins).toBe(0);

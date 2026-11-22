@@ -1133,6 +1133,11 @@ const ZONE_DETAILS = {
 } satisfies typeof ZONE_NAMES;
 
 const COUNTED_COMPONENTS: Partial<Record<string, Record<Exclude<AppLocale, 'en'>, string>>> = {
+  "named spotlight fixtures": {
+    de: "{count} benannte Spots",
+    yo: "Ìmọ́lẹ̀ àfojúsùn {count} tí a dárúkọ",
+    pcm: "{count} spotlights wey get name",
+  },
   "named reading-light fixtures": {
     de: "{count} benannte Leselampen",
     yo: "Ìmọ́lẹ̀ kíkà {count} tí a dárúkọ",
