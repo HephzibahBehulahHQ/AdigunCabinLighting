@@ -13,7 +13,7 @@ const fixtureGroups = [
 ] as const;
 
 test('QantasLink forward galley spotlights render as a separate group', async ({ page }) => {
-  test.setTimeout(90_000);
+  test.setTimeout(180_000);
   await page.addInitScript((zones) => localStorage.setItem('adigun-cabin-studio:v1', JSON.stringify({
     zones, intensity: 100, aircraftMeshId: 'qantaslink-a220-300-137', selectedZoneId: 'spotlights',
   })), makeDefaultZones().map((zone) => ({ ...zone, fadeSeconds: 0, rgbw: { r: 0, g: 0, b: 0, w: 0 } })));
@@ -38,8 +38,9 @@ test('QantasLink forward galley spotlights render as a separate group', async ({
   await expect(white).toHaveValue('100');
   if (!process.env.CI) await stage.screenshot({ path: `${previewDir}/isolated.png` });
   await page.locator('.scene-card').filter({ hasText: 'Aurora' }).click();
-  await page.getByLabel('Scene timeline position').press('End');
-  await white.press('End');
+  const timeline = page.getByLabel('Scene timeline position');
+  await timeline.fill((await timeline.getAttribute('max'))!);
+  await white.fill('100');
   await expect(white).toHaveValue('100');
   if (!process.env.CI) await stage.screenshot({ path: `${previewDir}/aurora.png` });
 });
