@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './account-fixture';
 import AxeBuilder from '@axe-core/playwright';
 import { Buffer } from 'node:buffer';
 import { mkdir } from 'node:fs/promises';

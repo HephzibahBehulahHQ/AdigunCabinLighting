@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './account-fixture';
 
 test('landing page loads the cabin GLB and runs its color, transition, and sound controls', async ({ page }) => {
   test.setTimeout(120_000);

@@ -11,7 +11,7 @@ export default tseslint.config(
     languageOptions: { globals: { ...globals.browser, ...globals.es2022 } },
   },
   {
-    files: ['gateway/**/*.{ts,mjs}'],
+    files: ['gateway/**/*.{ts,mjs}', 'cloudflare/**/*.mjs'],
     languageOptions: { globals: { ...globals.node, ...globals.es2022 } },
   },
 );

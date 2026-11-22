@@ -28,6 +28,7 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run test
+      - run: node --test cloudflare/account.test.mjs
       - run: npm run build
       - name: Inspect static release for gateway code and credentials
         run: node scripts/check-static-release.mjs dist

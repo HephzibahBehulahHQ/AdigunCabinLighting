@@ -1,3 +1,5 @@
+import { CabinAccount, useStudioAccess } from './studio-account';
+import './studio-account.css';
 import { LANDING_CHALLENGE_COPY } from './landing-challenge-copy';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -595,7 +597,7 @@ function Channel({ locale, name, value, color, onChange }: { locale: AppLocale; 
   </div>;
 }
 
-function Studio() {
+function Studio({ blocked, onAccount }: { blocked: boolean; onAccount: () => void }) {
   const [locale] = useState<AppLocale>(readAppLocale);
   const t = (key: StudioCopyKey) => studioText(locale, key);
   const [projectId, setProjectId] = useState(() => localStorage.getItem(ACTIVE_PROJECT_KEY) ?? 'default');
@@ -1188,13 +1190,13 @@ function Studio() {
     window.requestAnimationFrame(() => document.getElementById(section)?.focus({ preventScroll: true }));
   };
 
-  return <main className="studio-shell" data-active-tab={tab} lang={locale}>
+  return <main ref={(node) => { if (node) node.inert = blocked; }} className="studio-shell" data-active-tab={tab} lang={locale}>
     <header className="studio-topbar"><Brand />
       <div className="top-spacer" />
       <div className="top-actions"><span className="mode-pill compact-mode" title={t('offlineStatus')}><i className="status-pulse" /> {t('offlineShort')}</span><button className="button button-quiet button-sm top-save" onClick={saveScene}><Save size={15} /> {t('saveScene')}</button><button className="button button-primary button-sm top-export" onClick={() => void exportCabin4K()}><Download size={15} /> {t('export')}</button><button className="icon-button" title={t('help')} aria-label={t('help')} onClick={() => setNotice(t('studioHelp'))}><CircleHelp size={18} /></button>
         <button className="icon-button" title={t('moreActions')} aria-label={t('moreActions')} aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}><MoreHorizontal size={20} /></button>
       </div>
-      {menuOpen && <><button className="dismiss-overlay" aria-label={t('closeMenu')} onClick={() => setMenuOpen(false)} /><div className="top-menu" role="menu"><button role="menuitem" disabled={!undo.length} onClick={() => { setMenuOpen(false); undoOnce(); }}><Undo2 size={15} /> {t('undo')}</button><button role="menuitem" disabled={!redo.length} onClick={() => { setMenuOpen(false); redoOnce(); }}><Redo2 size={15} /> {t('redo')}</button><button role="menuitem" onClick={() => { setMenuOpen(false); saveScene(); }}><Save size={15} /> {t('saveSceneLocal')}</button><button role="menuitem" onClick={() => { setMenuOpen(false); exportScene(); }}><Download size={15} /> {t('exportSceneJson')}</button><button role="menuitem" onClick={() => { setMenuOpen(false); exportPreflight(); }}><ClipboardCheck size={15} /> {t('exportPreflight')}</button><button role="menuitem" onClick={() => { setMenuOpen(false); void exportCabin4K(); }}><Download size={15} /> {t('exportCabin')}</button><button role="menuitem" onClick={() => { setMenuOpen(false); importRef.current?.click(); }}><Upload size={15} /> {t('importScene')}</button><button role="menuitem" onClick={() => { setMenuOpen(false); scenarioImportRef.current?.click(); }}><Upload size={15} /> {t('importScenario')}</button><button role="menuitem" onClick={() => { setMenuOpen(false); resetScene(); }}><RotateCcw size={15} /> {t('resetStudio')}</button><button role="menuitem" onClick={() => { setMenuOpen(false); setNotice(t('simulationOnly')); }}><ShieldCheck size={15} /> {t('modeSafety')}</button></div></>}
+      {menuOpen && <><button className="dismiss-overlay" aria-label={t('closeMenu')} onClick={() => setMenuOpen(false)} /><div className="top-menu" role="menu"><button role="menuitem" onClick={() => { setMenuOpen(false); onAccount(); }}>CabinLighting account</button><button role="menuitem" disabled={!undo.length} onClick={() => { setMenuOpen(false); undoOnce(); }}><Undo2 size={15} /> {t('undo')}</button><button role="menuitem" disabled={!redo.length} onClick={() => { setMenuOpen(false); redoOnce(); }}><Redo2 size={15} /> {t('redo')}</button><button role="menuitem" onClick={() => { setMenuOpen(false); saveScene(); }}><Save size={15} /> {t('saveSceneLocal')}</button><button role="menuitem" onClick={() => { setMenuOpen(false); exportScene(); }}><Download size={15} /> {t('exportSceneJson')}</button><button role="menuitem" onClick={() => { setMenuOpen(false); exportPreflight(); }}><ClipboardCheck size={15} /> {t('exportPreflight')}</button><button role="menuitem" onClick={() => { setMenuOpen(false); void exportCabin4K(); }}><Download size={15} /> {t('exportCabin')}</button><button role="menuitem" onClick={() => { setMenuOpen(false); importRef.current?.click(); }}><Upload size={15} /> {t('importScene')}</button><button role="menuitem" onClick={() => { setMenuOpen(false); scenarioImportRef.current?.click(); }}><Upload size={15} /> {t('importScenario')}</button><button role="menuitem" onClick={() => { setMenuOpen(false); resetScene(); }}><RotateCcw size={15} /> {t('resetStudio')}</button><button role="menuitem" onClick={() => { setMenuOpen(false); setNotice(t('simulationOnly')); }}><ShieldCheck size={15} /> {t('modeSafety')}</button></div></>}
     </header>
     <div className="studio-layout">
       <aside className="studio-rail" aria-label={t('studioSections')}>
@@ -1314,7 +1316,16 @@ function formatTime(seconds: number) {
 
 export default function App() {
   const isStudio = window.location.pathname.replace(/\/$/, '') === '/studio';
-  return isStudio ? <Studio /> : <Landing />;
+  return isStudio ? <StudioWithAccess /> : <Landing />;
 }
 
 
+
+function StudioWithAccess() {
+  const access = useStudioAccess();
+  const [open, setOpen] = useState(false);
+  return <>
+    <Studio blocked={access.locked || open} onAccount={() => setOpen(true)} />
+    {(access.locked || open) && <CabinAccount access={access} close={() => setOpen(false)} />}
+  </>;
+}

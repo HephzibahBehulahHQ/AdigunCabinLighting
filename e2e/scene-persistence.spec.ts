@@ -1,5 +1,5 @@
 import { Buffer } from 'node:buffer';
-import { expect, test } from '@playwright/test';
+import { expect, test } from './account-fixture';
 import { PRESETS } from '../src/scene-engine';
 
 test('complete versioned scene survives local project save and reload', async ({ page }) => {
