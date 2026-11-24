@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './account-fixture';
 import { mkdir } from 'node:fs/promises';
 import { makeDefaultZones, PRESETS } from '../src/scene-engine';
 

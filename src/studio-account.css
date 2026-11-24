@@ -1,0 +1,7 @@
+
+.cabin-account-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 16px; background: rgb(4 12 23 / 80%); }
+.cabin-account { width: min(100%, 440px); max-height: 90dvh; overflow: auto; background: #0b1220; color: #f1f7ff; border: 1px solid #3a617b; border-radius: 12px; padding: 24px; }
+.cabin-account form, .cabin-account label { display: grid; gap: 8px; }
+.cabin-account form { margin-block: 16px; }
+.cabin-account input { width: 100%; min-width: 0; color: inherit; background: #162338; border: 1px solid #50718b; padding: 10px; border-radius: 6px; }
+.cabin-account-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-block-start: 10px; }
