@@ -111,7 +111,7 @@ async function begin(body, env, origin) {
     JSON.stringify([email, password]),
   );
   if (mode === "sign-in") {
-    const accepted = await rpc(env, "adiguncabinlighting_check_product_password", {
+    const accepted = await rpc(env, "check_product_password", {
       email_address: email,
       password_proof: passwordProof,
     });
@@ -182,10 +182,10 @@ async function verify(body, request, env, origin) {
   const registration = challenge.mode === "register";
   const recovery = challenge.mode === "reset-password";
   const operation = registration
-    ? "adiguncabinlighting_activate_product_account"
+    ? "activate_product_account"
     : recovery
-      ? "adiguncabinlighting_reset_product_password"
-      : "adiguncabinlighting_verify_product_session";
+      ? "reset_product_password"
+      : "verify_product_session";
   const accepted = await rpc(
     env,
     operation,
@@ -227,9 +227,10 @@ function provider(env, path, data, token, schema) {
 }
 
 async function rpc(env, name, data, token) {
+  const prefix = env.PRODUCT_ACCOUNT_PREFIX || "adiguncabinlighting";
   const response = await provider(
     env,
-    "/rest/v1/rpc/" + name,
+    "/rest/v1/rpc/" + prefix + "_" + name,
     { ...data, worker_proof: env.ACCOUNT_RPC_PROOF },
     token,
     "public",

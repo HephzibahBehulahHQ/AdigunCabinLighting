@@ -1,7 +1,7 @@
 name = "adiguncabinlighting-account-preview"
 main = "cloudflare/index.mjs"
 compatibility_date = "2026-11-22"
-workers_dev = false
+workers_dev = true
 preview_urls = false
 
 [assets]
@@ -12,6 +12,7 @@ run_worker_first = ["/api/account"]
 
 [vars]
 SUPABASE_URL = "https://fqcbfnktdvqojyezxeis.supabase.co"
+PRODUCT_ACCOUNT_PREFIX = "adiguncabinlighting_preview"
 
 [[ratelimits]]
 name = "ACCOUNT_LIMITER"
@@ -19,7 +20,7 @@ namespace_id = "63"
 simple = { limit = 10, period = 60 }
 
 [env.production]
-name = "adiguncabinlighting-account-preview"
+name = "adiguncabinlighting-product"
 workers_dev = false
 preview_urls = false
 routes = [{ pattern = "adiguncabinlighting.hephzibahbehulah.com/*", zone_name = "hephzibahbehulah.com" }]
@@ -32,6 +33,7 @@ run_worker_first = ["/api/account"]
 
 [env.production.vars]
 SUPABASE_URL = "https://fqcbfnktdvqojyezxeis.supabase.co"
+PRODUCT_ACCOUNT_PREFIX = "adiguncabinlighting"
 
 [[env.production.ratelimits]]
 name = "ACCOUNT_LIMITER"
