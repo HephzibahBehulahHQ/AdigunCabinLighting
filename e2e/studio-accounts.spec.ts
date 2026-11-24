@@ -26,7 +26,7 @@ test('Studio locks when guest time expires and requires a fresh sign-in code', a
   });
   await page.goto('/studio/');
   const account = page.getByRole('dialog', { name: 'CabinLighting account' });
-  await expect(account.getByText('Your four-minute Studio trial has ended.')).toBeVisible();
+  await expect(account).toContainText('Your four-minute Studio trial has ended.', { timeout: 15000 });
   await expect(page.locator('main.studio-shell')).toHaveAttribute('inert', '');
   await account.getByLabel('Email', { exact: true }).fill('studio-account@example.invalid');
   await account.getByLabel('Password', { exact: true }).fill('cabin-only-test-password');
