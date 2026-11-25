@@ -242,8 +242,9 @@ function CabinDrawing({ zones, selected, onSelect, compact = false, config = DEF
   );
 }
 
-function Brand({ small = false }: { small?: boolean }) {
+function Brand({ small = false, corporateLogo = false }: { small?: boolean; corporateLogo?: boolean }) {
   return <a className={`brand ${small ? 'brand-small' : ''}`} href="/" aria-label="AdigunCabinLighting home">
+    {corporateLogo && <img className="brand-company-logo" src="/assets/corporate/hephzibah-behulah-official.jpg" alt="Hephzibah Behulah" width="1280" height="360" />}
     <span className="brand-rule" aria-hidden="true" />
     <span className="brand-text"><strong>Adigun<span>Cabin</span>Lighting</strong><small>BY HB ELEKTRONIKER</small></span>
   </a>;
@@ -269,7 +270,7 @@ const LANDING_COPY = {
     engineeringBody: 'AdigunCabinLighting Studio is an offline software simulator. It does not connect to aircraft or lighting hardware, and it does not claim certification or OEM compatibility.',
     exploreStudio: 'Explore the Studio', safetyTitle: 'Safety is explicit in every session.',
     safetyBody: 'SIMULATION · OFFLINE · NO HARDWARE CONNECTED. Physical bench and aircraft integration require independent authorization, validated equipment, and their own safety gates.',
-    review: 'Review the simulator', footer: 'Engineering simulator · 2026',
+    review: 'Review the simulator', footer: 'Engineering simulator · 2026', companyLinks: 'Company links', contact: 'Contact', website: 'Website',
     workflowTitle: 'From cabin profile to repeatable scene.',
     workflow: [
       ['01', 'Choose a cabin', 'Switch between the aircraft and airline mesh profiles available in this workspace.'],
@@ -297,7 +298,7 @@ const LANDING_COPY = {
     engineeringBody: 'AdigunCabinLighting Studio ist ein Offline-Software-Simulator. Es verbindet sich weder mit Flugzeugen noch mit Beleuchtungshardware und beansprucht keine Zertifizierung oder OEM-Kompatibilität.',
     exploreStudio: 'Studio ansehen', safetyTitle: 'Sicherheit ist in jeder Sitzung ausdrücklich ausgewiesen.',
     safetyBody: 'SIMULATION · OFFLINE · KEINE HARDWARE VERBUNDEN. Prüfstand- und Flugzeugintegration erfordern eine unabhängige Genehmigung, validierte Ausrüstung und eigene Sicherheitsfreigaben.',
-    review: 'Simulator ansehen', footer: 'Engineering-Simulator · 2026',
+    review: 'Simulator ansehen', footer: 'Engineering-Simulator · 2026', companyLinks: 'Unternehmenslinks', contact: 'Kontakt', website: 'Website',
     workflowTitle: 'Vom Kabinenprofil zur wiederholbaren Szene.',
     workflow: [
       ['01', 'Kabine auswählen', 'Wechseln Sie zwischen den Flugzeug- und Airline-Meshprofilen dieses Arbeitsbereichs.'],
@@ -325,7 +326,7 @@ const LANDING_COPY = {
     engineeringBody: 'AdigunCabinLighting Studio jẹ́ simulator sọ́fítíwẹ̀ tí kò nílò ìsopọ̀. Kò sopọ̀ mọ́ ọkọ̀ òfurufú tàbí ẹ̀rọ ìmọ́lẹ̀, kò sì sọ pé ó ní ìjẹ́rìí tàbí ìbámu OEM.',
     exploreStudio: 'Ṣàyẹ̀wò Studio', safetyTitle: 'A ń ṣàlàyé ààbò ní gbogbo ìgbà ìlò.',
     safetyBody: 'ÌṢẸ̀LẸ̀ · LÁÌSÍ ÌSỌ̀DỌ̀ · KÒ SÍ Ẹ̀RỌ̀ GIDI TÍ A SOPỌ̀. Ìdánwò pẹ̀lú ohun èlò àti ìsopọ̀ ọkọ̀ òfurufú nílò àṣẹ olómìnira, ohun èlò tí a ti fọwọ́sí, àti ìgbésẹ̀ ààbò lọ́tọ̀ọ̀tọ̀.',
-    review: 'Ṣàyẹ̀wò simulator', footer: 'Simulator ìmọ̀ ẹ̀rọ · 2026',
+    review: 'Ṣàyẹ̀wò simulator', footer: 'Simulator ìmọ̀ ẹ̀rọ · 2026', companyLinks: 'Àwọn ìjápọ̀ ilé-iṣẹ́', contact: 'Kàn sí wa', website: 'Ojú òpó wẹ́ẹ̀bù',
     workflowTitle: 'Láti àpẹẹrẹ àgọ́ dé ìran tó ṣeé tún ṣe.',
     workflow: [
       ['01', 'Yan àpẹẹrẹ àgọ́', 'Yí padà láàárín àwọn àpẹẹrẹ ọkọ̀ òfurufú àti ọkọ̀ òfurufú ilé-iṣẹ́ tó wà.'],
@@ -353,7 +354,7 @@ const LANDING_COPY = {
     engineeringBody: 'AdigunCabinLighting Studio na offline software simulator. E no connect to aircraft or lighting hardware, and e no claim certification or OEM compatibility.',
     exploreStudio: 'Check the Studio', safetyTitle: 'Safety dey clear for every session.',
     safetyBody: 'SIMULATION · OFFLINE · NO HARDWARE CONNECTED. Bench test and aircraft integration need independent authorization, validated equipment, and separate safety checks.',
-    review: 'Review the simulator', footer: 'Engineering simulator · 2026',
+    review: 'Review the simulator', footer: 'Engineering simulator · 2026', companyLinks: 'Company links', contact: 'Contact', website: 'Website',
     workflowTitle: 'From cabin profile reach scene wey you fit repeat.',
     workflow: [
       ['01', 'Choose cabin', 'Switch between aircraft and airline mesh profiles wey dey for this workspace.'],
@@ -555,7 +556,7 @@ function Landing() {
   const [locale, setLocale] = useState<LandingLocale>(readAppLocale);
   const text = LANDING_COPY[locale];
   return <main className="landing" lang={locale}>
-    <header className="landing-nav"><Brand />
+    <header className="landing-nav"><Brand corporateLogo />
       <nav aria-label={text.navLabel}><a href="#capabilities">{text.nav[0]}</a><a href="#engineering">{text.nav[1]}</a><a href="#safety">{text.nav[2]}</a></nav>
       <label className="landing-language"><span className="sr-only">{text.language}</span><select className="landing-locale" aria-label={text.language} value={locale} onChange={(event) => { const next = event.target.value as LandingLocale; setLocale(next); saveAppLocale(next); }}><option value="en">English</option><option value="de">Deutsch</option><option value="yo">Yorùbá</option><option value="pcm">Nigerian Pidgin</option></select></label>
       <a className="button button-primary nav-cta" href="/studio">{text.open} <ArrowRight size={16} /></a>
@@ -583,7 +584,22 @@ function Landing() {
     <section className="landing-workflow" aria-labelledby="landing-workflow-title"><div className="landing-workflow-heading"><div className="eyebrow">{text.profileCount}</div><h2 id="landing-workflow-title">{text.workflowTitle}</h2></div><div className="landing-workflow-steps">{text.workflow.map(([number, title, body]) => <article key={number}><span>{number}</span><div><h3>{title}</h3><p>{body}</p></div></article>)}</div><a href="/studio" className="button button-outline">{text.exploreStudio} <ArrowRight size={15} /></a></section>
     <section className="engineering-band" id="engineering"><div className="engineering-mark"><Gauge size={24} /></div><div><div className="eyebrow">{text.engineeringEyebrow}</div><h2>{text.engineeringTitle}</h2><p>{text.engineeringBody}</p></div><a href="/studio" className="button button-quiet">{text.exploreStudio} <ArrowRight size={16} /></a></section>
     <section className="safety-section" id="safety"><ShieldCheck size={18} /><div><strong>{text.safetyTitle}</strong><p>{text.safetyBody}</p></div><a href="/studio">{text.review} <ArrowRight size={14} /></a></section>
-    <footer className="landing-footer"><Brand small /><span>AdigunCabinLighting · HB Elektroniker</span><span>{text.footer}</span></footer>
+    <footer className="landing-footer" aria-label={text.companyLinks}>
+      <div className="landing-footer-brand">
+        <img src="/assets/corporate/hephzibah-behulah-official.jpg" alt="Hephzibah Behulah" width="1280" height="360" />
+        <span><strong>HEPHZIBAH BEHULAH</strong><small>Faith · Innovation · Intelligence · Leadership</small></span>
+      </div>
+      <nav className="landing-footer-links" aria-label={text.companyLinks}>
+        <a href="mailto:isaacadigunoluwole@gmail.com">{text.contact}</a>
+        <a href="https://hephzibahbehulah.com/" target="_blank" rel="noopener noreferrer">{text.website}</a>
+        <a href="https://www.facebook.com/Hephzibahbehulah/" target="_blank" rel="noopener noreferrer">Facebook</a>
+        <a href="https://x.com/HephzibaBehulah" target="_blank" rel="noopener noreferrer">X</a>
+        <a href="https://www.instagram.com/hephzibahbehulah/" target="_blank" rel="noopener noreferrer">Instagram</a>
+        <a href="https://www.tiktok.com/@hephzibahbhehulah" target="_blank" rel="noopener noreferrer">TikTok</a>
+        <a href="https://www.linkedin.com/in/isaacoluwoleadigun/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+      </nav>
+      <span className="landing-footer-copyright">© 2026 HEPHZIBAH BEHULAH</span>
+    </footer>
   </main>;
 }
 
