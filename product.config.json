@@ -3,7 +3,7 @@
   "brandKey": "elektroniker",
   "product": {
     "name": "AdigunCabinLighting",
-    "description": "RGBW cabin lighting scene design, simulation and validated laboratory controller commissioning",
+    "description": "RGBW cabin lighting scene design and offline simulation",
     "repository": "HephzibahBehulahHQ/AdigunCabinLighting",
     "legacyRepository": null
   },
@@ -13,7 +13,7 @@
     "divisionRepository": "HephzibahBehulahHQ/hb-elektroniker"
   },
   "features": {
-    "languages": ["en"],
+    "languages": ["en", "de", "yo", "pcm"],
     "defaultLanguage": "en",
     "themeSwitcher": false,
     "adigunBot": {
@@ -57,8 +57,8 @@
     "logoPolicy": "single-corporate-logo",
     "corporateLogo": {
       "asset": "assets/corporate/hephzibah-behulah-official.jpg",
-      "status": "text-only-fallback-no-logo-asset-copied",
-      "source": "hb-design-system",
+      "status": "verified-local-asset",
+      "source": "HephzibahBehulah-Public/apps/public/assets/corporate/hephzibah-behulah-official.jpg",
       "alt": "Hephzibah Behulah"
     },
     "header": {
