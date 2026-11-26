@@ -6,7 +6,7 @@ import {
   Activity, ArrowDownToLine, ArrowRight, Bookmark, Check, ChevronDown, ClipboardCheck, CopyPlus,
   CircleHelp, Clock3, Download, Gauge, LayoutGrid,
   Lightbulb, MoreHorizontal, Pause, Play, Plus, Radio, Redo2, RotateCcw,
-  Save, Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Trash2, Undo2, Upload,
+  Save, Settings2, ShieldCheck, SlidersHorizontal, Trash2, Undo2, Upload,
   Headphones, Megaphone, Move3D, Volume2, Waves, X,
 } from 'lucide-react';
 import {
@@ -21,6 +21,8 @@ import { createScenarioPackage, MAX_SCENARIO_PACKAGE_BYTES, validateScenarioPack
 import { getMoodScore, playWelcomeChime, scheduleMoodMusic, type MoodMusicHandle } from './cabin-audio';
 import { cabinAudioAssetKey, deleteCabinAudioAsset, readCabinAudioAsset, saveCabinAudioAsset, type StoredCabinAudioAsset } from './audio-asset-store';
 import { readAppLocale, saveAppLocale, studioText, studioCabinGeometryNote, studioCabinLayoutDescription, studioCabinLayoutName, studioGeometryAccuracy, studioInstrumentLabel, studioProfileSourceNote, studioSceneDiagnostic, studioSceneName, studioVoicePreview, studioZoneDetail, studioZoneName, type AppLocale, type StudioCopyKey } from './studio-localization';
+import AdigunBot from './product-bot';
+import './product-bot.css';
 import { AIRCRAFT_DIMENSION_PROFILES, AIRLINE_MESH_PROFILES, DEFAULT_CABIN_MESH_ID, getCabinMeshProfile, getProfileZones } from './aircraft-assets';
 import cabinReferenceImage from './assets/vvip-cabin-reference.jpg';
 
@@ -552,13 +554,13 @@ function LandingCabinExperience({ locale }: { locale: AppLocale }) {
   </>;
 }
 
-function Landing() {
+function Landing({ onLocaleChange }: { onLocaleChange: (locale: AppLocale) => void }) {
   const [locale, setLocale] = useState<LandingLocale>(readAppLocale);
   const text = LANDING_COPY[locale];
   return <main className="landing" lang={locale}>
     <header className="landing-nav"><Brand corporateLogo />
       <nav aria-label={text.navLabel}><a href="#capabilities">{text.nav[0]}</a><a href="#engineering">{text.nav[1]}</a><a href="#safety">{text.nav[2]}</a></nav>
-      <label className="landing-language"><span className="sr-only">{text.language}</span><select className="landing-locale" aria-label={text.language} value={locale} onChange={(event) => { const next = event.target.value as LandingLocale; setLocale(next); saveAppLocale(next); }}><option value="en">English</option><option value="de">Deutsch</option><option value="yo">Yorùbá</option><option value="pcm">Nigerian Pidgin</option></select></label>
+      <label className="landing-language"><span className="sr-only">{text.language}</span><select className="landing-locale" aria-label={text.language} value={locale} onChange={(event) => { const next = event.target.value as LandingLocale; setLocale(next); onLocaleChange(next); saveAppLocale(next); }}><option value="en">English</option><option value="de">Deutsch</option><option value="yo">Yorùbá</option><option value="pcm">Nigerian Pidgin</option></select></label>
       <a className="button button-primary nav-cta" href="/studio">{text.open} <ArrowRight size={16} /></a>
     </header>
     <section className="landing-hero">
@@ -1232,7 +1234,6 @@ function Studio({ blocked, onAccount }: { blocked: boolean; onAccount: () => voi
         <button aria-label={t('resetCamera')} title={t('resetCamera')} disabled={viewMode !== '3d'} onClick={() => cameraResetRef.current?.()}><RotateCcw size={18} /><span>{t('resetCamera')}</span></button>
         <div className="rail-divider" /><span className="rail-label">{t('system')}</span>
         <div className="rail-disabled" title={t('hardwareUnavailable')}><Activity size={18} /><span>{t('hardwareDiagnostics')}</span><small>{t('notAvailable')}</small></div>
-        <div className="rail-disabled" title={t('botUnavailable')}><Sparkles size={18} /><span>{t('adigunBot')}</span><small>{t('notEnabled')}</small></div>
       </aside>
       <section className="studio-main">
         <div className="workspace-grid">
@@ -1332,7 +1333,11 @@ function formatTime(seconds: number) {
 
 export default function App() {
   const isStudio = window.location.pathname.replace(/\/$/, '') === '/studio';
-  return isStudio ? <StudioWithAccess /> : <Landing />;
+  const [locale, setLocale] = useState<AppLocale>(readAppLocale);
+  return <>
+    {isStudio ? <StudioWithAccess /> : <Landing onLocaleChange={setLocale} />}
+    <AdigunBot locale={locale} />
+  </>;
 }
 
 

@@ -8,7 +8,7 @@ preview_urls = false
 directory = "dist"
 binding = "ASSETS"
 html_handling = "auto-trailing-slash"
-run_worker_first = ["/api/account"]
+run_worker_first = ["/api/account", "/api/bot"]
 
 [vars]
 SUPABASE_URL = "https://fqcbfnktdvqojyezxeis.supabase.co"
@@ -18,6 +18,14 @@ PRODUCT_ACCOUNT_PREFIX = "adiguncabinlighting_preview"
 name = "ACCOUNT_LIMITER"
 namespace_id = "63"
 simple = { limit = 10, period = 60 }
+
+[ai]
+binding = "AI"
+
+[[ratelimits]]
+name = "BOT_LIMITER"
+namespace_id = "65"
+simple = { limit = 20, period = 60 }
 
 [env.production]
 name = "adiguncabinlighting-product"
@@ -29,7 +37,7 @@ routes = [{ pattern = "adiguncabinlighting.hephzibahbehulah.com/*", zone_name = 
 directory = "dist"
 binding = "ASSETS"
 html_handling = "auto-trailing-slash"
-run_worker_first = ["/api/account"]
+run_worker_first = ["/api/account", "/api/bot"]
 
 [env.production.vars]
 SUPABASE_URL = "https://fqcbfnktdvqojyezxeis.supabase.co"
@@ -39,3 +47,11 @@ PRODUCT_ACCOUNT_PREFIX = "adiguncabinlighting"
 name = "ACCOUNT_LIMITER"
 namespace_id = "64"
 simple = { limit = 10, period = 60 }
+
+[env.production.ai]
+binding = "AI"
+
+[[env.production.ratelimits]]
+name = "BOT_LIMITER"
+namespace_id = "66"
+simple = { limit = 20, period = 60 }
